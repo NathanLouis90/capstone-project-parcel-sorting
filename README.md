@@ -8,6 +8,17 @@ Thin envelopes, compliant poly mailers, and rigid cartons require different cont
 
 **Policy A** acquires an item, presents it at the reading station, stages it, and retracts. **Policy B** reacquires it and places it in the destination bin. Staging provides an observable starting state and makes the destination available before B begins.
 
+## Hardware
+
+| Item | Use | Specifications and purchasing details |
+| --- | --- | --- |
+| Dobot X-Trainer | Two leader arms, two follower arms, supplied parallel-jaw grippers, and top/left-wrist/right-wrist cameras | Model, hardware revision and supplier: to add |
+| DL envelopes | Thin mail medium | Dimensions, material and Shopee/Lazada link: to add |
+| Poly mailer bags | Compliant parcel medium | Dimensions, material and Shopee/Lazada link: to add |
+| Carton boxes | Rigid parcel medium | Dimensions, material and Shopee/Lazada link: to add |
+| Rectangular basins | Destination bins 0 and 1 | Quantity, dimensions, placement and Shopee/Lazada link: to add |
+| Barcode scanner | Reads destination labels at the reading station | Model, interface, mounting and Shopee/Lazada link: to add |
+
 ## Current architecture
 
 ```mermaid
@@ -42,18 +53,26 @@ Recording, A/B metadata, conversion, and separate ACT task training are implemen
 
 Capstone additions and adaptations are work developed for Adiel Firqin's project. The supplied SDK and learning algorithms retain their upstream authorship and licenses. "Adapted" identifies a modified Dobot file rather than a wholly original implementation.
 
-## Record demonstrations
+## Quick startup
+
+This is a short checklist. Refer to the supplied **Dobot X-Trainer (Lightweight Base) User Guide**, especially sections 3.5 and 4.1–4.2, and **Dobot X-Trainer Operation Guide and FAQ** for the full startup, calibration and shutdown procedures. These manuals are retained locally.
 
 Use the existing **Python 3.8 Xtrainer environment**. Vendor training modules are distributed as Python 3.8 bytecode; `requirements.txt` is not a complete environment lockfile. On a fresh checkout, copy `scripts/dobot_config/dobot_settings.example.ini` to the local `dobot_settings.ini` only if absent, then configure devices and calibrate. The example is a schema, not working calibration.
 
 ```bash
 conda activate Xtrainer
 cd /path/to/capstone-project-parcel-sorting
-# Terminal 1: start one server
-python3 experiments/launch_nodes.py
 ```
 
-In terminal 2, activate the same environment and start one recorder:
+1. **Connect and power on.** Secure the arm, gripper and camera cables; power on in the order specified by the user guide. Clear both follower-arm paths and keep the cameras, reading station and bins in their demonstration positions.
+2. **Find ports.** Run `PYTHONPATH=. python3 scripts/1_find_port.py` and wait for it to finish. Repeat after a host restart or USB reconnection; it updates the local hardware settings.
+3. **Position the leaders.** Run `PYTHONPATH=. python3 scripts/3_just_buttonA.py`. Support each leader handle, short-press yellow **A** (below 0.5 seconds) to unlock, manually move it to the calibrated initial posture, then short-press again to lock. Stop the helper with **Ctrl+C** before continuing. This helper controls leader locking; synchronization happens in the recorder.
+4. **Calibrate only when needed.** For first setup or lost/incorrect calibration, follow the user guide's posture-setting procedure and run `PYTHONPATH=. python3 scripts/2_get_offset.py`. Keep existing working offsets for routine startup.
+5. **Start the server.** In terminal 1, run `python3 experiments/launch_nodes.py` and leave it running. In terminal 2, activate the same environment, enter the repository root, and start the recorder below.
+
+Server startup enables hardware and cycles grippers; recorder startup moves both followers, even when the demonstration uses only one arm. Keep startup paths clear. Yellow/green recording controls are not emergency stops.
+
+## Record demonstrations
 
 ```bash
 python3 experiments/run_control.py --show-img \
@@ -61,9 +80,14 @@ python3 experiments/run_control.py --show-img \
   --policy-stage A --medium poly_mailer --no-capture-barcode
 ```
 
-For B, use its own project name, `--policy-stage B`, and `--demonstrated-bin 0` or `1`. Support the leader; short yellow A presses below 0.5 seconds toggle torque lock. Hold yellow A above 1 second and release to toggle synchronization, then wait for alignment. Press/release green B to start; repeat to stop. At least one arm must be synchronized. Finish recording and disable synchronization before exiting. Episodes save in `datasets/<project>/collect_data/<timestamp>/`.
+For B, use its own project name, `--policy-stage B`, and `--demonstrated-bin 0` or `1`.
 
-Server startup enables hardware and cycles grippers; recorder startup moves both followers. Keep startup paths clear. Recording controls are not emergency stops. See the [recording guide](docs/guides/barcode_recording_guide.md).
+1. With the leader locked in its initial posture, hold yellow **A** for more than 2 seconds and release to enable synchronization; wait for alignment. The current code accepts holds above 1 second; the vendor guide specifies above 2 seconds.
+2. Support the leader and short-press yellow **A** to unlock for teleoperation. Synchronize only the arm needed for that policy; leave the unused arm unsynchronized. At least one arm must be synchronized to record.
+3. Press and release green **B** to start recording. Move the leader to demonstrate the task; squeeze/release its trigger to close/open the follower gripper.
+4. Press and release green **B** again to stop and save. Wait for saving to finish before the next episode. Finish recording and disable synchronization with another long yellow **A** press before exiting.
+
+The button names **A/B** are separate from the policy names **A/B**. Episodes save in `datasets/<project>/collect_data/<timestamp>/`. See the [recording guide](docs/guides/barcode_recording_guide.md) for more detail.
 
 ## Prepare and train ACT
 
