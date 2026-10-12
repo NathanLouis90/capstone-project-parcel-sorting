@@ -33,7 +33,12 @@ Last-mile parcel sorting is a repetitive and labor-intensive process in which wo
 
 ## Quick startup
 
-This is a short checklist. Refer to the supplied **Dobot X-Trainer (Lightweight Base) User Guide**, and **Dobot X-Trainer Operation Guide and FAQ** to learn how to startup the robot, operate the robot safely, and debugging common issues. 
+This is a short checklist. Refer to these Dobot manuals for full startup instructions, safe operation, and troubleshooting:
+
+- **Dobot X-Trainer (Lightweight Base) User Guide**
+- **Dobot X-Trainer Operation Guide and FAQ**
+
+To obtain the manuals, create an account on the [Dobot Portal](https://portal.dobot-robots.com/home), sign in, and download both guides for the X-Trainer.
 
 Use the existing **Python 3.8 Xtrainer environment**. Vendor training modules are distributed as Python 3.8 bytecode; `requirements.txt` is not a complete environment lockfile. On a fresh checkout, copy `scripts/dobot_config/dobot_settings.example.ini` to the local `dobot_settings.ini` only if absent, then configure devices and calibrate. The example is a schema, not working calibration.
 
