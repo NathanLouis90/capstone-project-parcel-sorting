@@ -1,12 +1,9 @@
-# Learned Mail and Parcel Sorting
-
-RSE4018 capstone project by **Muhammad Adiel Firqin Bin Muhamad Subta**, built on Dobot X-Trainer and its supplied parallel-jaw grippers.
-
 ## Problem and motivation
 
-Thin envelopes, compliant poly mailers, and rigid cartons require different contact and grasping strategies. This project investigates whether human demonstrations can teach these strategies on the same general-purpose hardware without changing the supplied fingertips. The planned evaluation compares ACT and Diffusion Policy, specialist and shared acquisition policies, and performance at different demonstration counts. The scope follows the capstone proposal dated 14 September 2026, retained locally.
+Last-mile parcel sorting is a repetitive and labor-intensive process in which workers scan parcels and manually place them into the correct delivery bins. This project explores robotic automation of this task using imitation learning (behavior cloning). Human demonstrations consisting of images and robot joint states are recorded to train policies that replicate expert actions. The project currently evaluates and compares two imitation learning approaches: Action Chunking with Transformers (ACT) and Diffusion Policy (DP).
 
-**Policy A** acquires an item, presents it at the reading station, stages it, and retracts. **Policy B** reacquires it and places it in the destination bin. Staging provides an observable starting state and makes the destination available before B begins.
+## Setup
+**To be filled**
 
 ## Hardware
 
@@ -19,25 +16,9 @@ Thin envelopes, compliant poly mailers, and rigid cartons require different cont
 | Rectangular basins | Destination bins 0 and 1 | Quantity, dimensions, placement and Shopee/Lazada link: to add |
 | Barcode scanner | Reads destination labels at the reading station | Model, interface, mounting and Shopee/Lazada link: to add |
 
-## Current architecture
-
-```mermaid
-flowchart LR
-    Leaders["Leader arms and buttons"] --> Recorder["Teleoperation recorder"]
-    Cameras["Top and two wrist cameras"] --> Recorder
-    Recorder --> Server["ZMQ robot server"]
-    Server --> Followers["Dobot followers and grippers"]
-    Recorder --> Raw["Raw episodes and A/B metadata"]
-    Scanner["Optional dedicated HID scanner"] --> Raw
-    Raw --> Prepare["Validation and HDF5 conversion"]
-    Prepare --> ACT["Vendor ACT trainer"]
-    ACT --> Models["Checkpoints and statistics"]
-    Models --> Inference["Inference entry point"]
-    Cameras --> Inference
-    Inference --> Server
-```
-
-Recording, A/B metadata, conversion, and separate ACT task training are implemented. The poly-mailer baseline uses A, B bin 0, and B bin 1. Destination labels are preserved, but the vendor ACT loader does not consume them. A shared destination-conditioned B model, automatic A/B handoff, and the Diffusion Policy comparison remain future work. Bundled diffusion code is not a tested parcel-sorting pipeline. Existing inference commands both arms.
+## System architecture
+**Policy A** acquires an item, presents it at the reading station, stages it, and retracts. **Policy B** reacquires it and places it in the destination bin.
+**To be filled**
 
 ## File structure and ownership
 
@@ -49,13 +30,10 @@ Recording, A/B metadata, conversion, and separate ACT task training are implemen
 | `dobot_control/`, `ModelTrain/` | Dobot-supplied hardware interfaces and ACT integration; task registration adapted locally |
 | `robomimic-r2d2/`, `third_party/` | Bundled upstream libraries and device SDKs |
 | `docs/guides/`, `tests/` | Capstone operating guides and hardware-free checks |
-| `datasets/`, `ckpt/` | Local data and trained models, excluded from Git |
-
-Capstone additions and adaptations are work developed for Adiel Firqin's project. The supplied SDK and learning algorithms retain their upstream authorship and licenses. "Adapted" identifies a modified Dobot file rather than a wholly original implementation.
 
 ## Quick startup
 
-This is a short checklist. Refer to the supplied **Dobot X-Trainer (Lightweight Base) User Guide**, especially sections 3.5 and 4.1–4.2, and **Dobot X-Trainer Operation Guide and FAQ** for the full startup, calibration and shutdown procedures. These manuals are retained locally.
+This is a short checklist. Refer to the supplied **Dobot X-Trainer (Lightweight Base) User Guide**, and **Dobot X-Trainer Operation Guide and FAQ** to learn how to startup the robot, operate the robot safely, and debugging common issues. 
 
 Use the existing **Python 3.8 Xtrainer environment**. Vendor training modules are distributed as Python 3.8 bytecode; `requirements.txt` is not a complete environment lockfile. On a fresh checkout, copy `scripts/dobot_config/dobot_settings.example.ini` to the local `dobot_settings.ini` only if absent, then configure devices and calibrate. The example is a schema, not working calibration.
 
@@ -70,7 +48,7 @@ cd /path/to/capstone-project-parcel-sorting
 4. **Calibrate only when needed.** For first setup or lost/incorrect calibration, follow the user guide's posture-setting procedure and run `PYTHONPATH=. python3 scripts/2_get_offset.py`. Keep existing working offsets for routine startup.
 5. **Start the server.** In terminal 1, run `python3 experiments/launch_nodes.py` and leave it running. In terminal 2, activate the same environment, enter the repository root, and start the recorder below.
 
-Server startup enables hardware and cycles grippers; recorder startup moves both followers, even when the demonstration uses only one arm. Keep startup paths clear. Yellow/green recording controls are not emergency stops.
+Server startup enables hardware and cycles grippers; recorder startup moves both followers, even when the demonstration uses only one arm. Keep startup paths clear. 
 
 ## Record demonstrations
 
@@ -95,8 +73,8 @@ Add actual project names to `PREPARE_ACT_DATASETS["projects"]` in [scripts/scrip
 
 ```bash
 python3 scripts/count_episodes.py
-python3 scripts/prepare_act_datasets.py --dataset-name second_set_poly_mailer_A
-python3 scripts/prepare_act_datasets.py --dataset-name second_set_poly_mailer_A --convert
+python3 scripts/prepare_act_datasets.py --dataset-name second_set_poly_mailer_A # checks and verifies datasets is ready for conversion  
+python3 scripts/prepare_act_datasets.py --dataset-name second_set_poly_mailer_A --convert # creates ACT training files and review videos
 
 python3 -c "import torch; print(torch.cuda.is_available())"
 # Train when CUDA reports True; use a fresh checkpoint folder.
@@ -111,20 +89,16 @@ Repeat with each B task and a separate output folder. Review demonstration video
 
 `--ckpt_dir` determines where models go. Keep `config.pkl` and `dataset_stats.pkl` with the checkpoints. See the [ACT guide](docs/guides/act_poly_mailer_training.md) and [scripts README](scripts/README.md), including how to train both collection sets together.
 
-## Versions and history
+## Version history
 
-| Component | Recorded information | Status |
+| Component | Version Number | Release Date
 | --- | --- | --- |
-| Capstone software | Unreleased development snapshot; documentation prepared 12 October 2026 | Release number to be assigned |
-| Lightweight-base user guide | Front page: V1.1, 31 July 2024 | Applicable guide to be confirmed |
-| Operation/startup guide and FAQ | No version identified in opening pages | To be confirmed |
-| Dobot SDK | `version.txt` names v1.0.7 and later dated changes | Installed release to be confirmed separately from guide versions |
-| Bundled robomimic | Source reports 0.3.0 | Upstream variant/revision to be confirmed |
+| Lightweight base user guide | 1.1 | 31 Jul 2024 |
+| Operation guide and FAQ | 1.0.0 | N/A |
+| Dobot SDK (Codebase) | 1.0.0 | 11 Dec 2024 |
 
-Development milestones include scanner/A-B metadata integration, non-destructive conversion, episode counting/validation, shared configuration, and separate ACT task registration. These are not numbered releases. Preserve the original [vendor history](version.txt); platform manuals and the proposal remain local reference documents.
+## Citations
 
-## Citations and licenses
+[1] Zhao, T. Z., Kumar, V., Levine, S., and Finn, C. (2023). **Learning Fine-Grained Bimanual Manipulation with Low-Cost Hardware** (ACT). [Paper](https://arxiv.org/abs/2304.13705) · [Code](https://github.com/tonyzhaozh/act).
 
-- Zhao, T. Z., Kumar, V., Levine, S., and Finn, C. (2023). **Learning Fine-Grained Bimanual Manipulation with Low-Cost Hardware** (ACT). [Paper](https://arxiv.org/abs/2304.13705) · [Code](https://github.com/tonyzhaozh/act).
-- Chi, C., et al. (2023; revised 2024). **Diffusion Policy: Visuomotor Policy Learning via Action Diffusion**. [Paper](https://arxiv.org/abs/2303.04137) · [Code](https://github.com/real-stanford/diffusion_policy).
-- Underlying platform software: Dobot. See [LICENSE](LICENSE), [THIRD-PARTY-LICENSES](THIRD-PARTY-LICENSES), and bundled component licenses for retained attribution.
+[2] Chi, C., et al. (2023; revised 2024). **Diffusion Policy: Visuomotor Policy Learning via Action Diffusion**. [Paper](https://arxiv.org/abs/2303.04137) · [Code](https://github.com/real-stanford/diffusion_policy).
