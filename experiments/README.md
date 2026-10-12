@@ -52,7 +52,7 @@ For B, change to stage B, its own project name, and add `--demonstrated-bin 0` o
 3. Press/release green B to start recording, demonstrate the task, then press/release it again to stop.
 4. Finish recording, disable synchronization and confirm stationary followers before exiting or changing tasks.
 
-Both followers move during startup. Both arms remain in the recorded data even when one is unsynchronized. At least one arm must be synchronized to start recording. Unsynchronized recording does not configure left-only inference. See the [recording guide](../docs/guides/barcode_recording_guide.md) for scanner capture and paired episodes.
+Both followers move during startup. Both arms remain in the recorded data even when one is unsynchronized. At least one arm must be synchronized to start recording. Unsynchronized recording does not configure left-only inference. See the [recording guide](../docs/guides/recording_guide.md) for Policy A/B commands and button steps, and the [barcode scanning guide](../docs/guides/barcode_scanning_guide.md) for optional scanner capture and scan-paired episodes.
 
 ## Inference and recovery
 

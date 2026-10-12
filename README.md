@@ -33,44 +33,23 @@ Last-mile parcel sorting is a repetitive and labor-intensive process in which wo
 
 ## Quick startup
 
-This is a short checklist. Refer to these Dobot manuals for full startup instructions, safe operation, and troubleshooting:
+Create an account on the [Dobot Portal](https://portal.dobot-robots.com/home), sign in, and download the **Dobot X-Trainer (Lightweight Base) User Guide** and **Dobot X-Trainer Operation Guide and FAQ** for full setup, operation and troubleshooting instructions.
 
-- **Dobot X-Trainer (Lightweight Base) User Guide**
-- **Dobot X-Trainer Operation Guide and FAQ**
-
-To obtain the manuals, create an account on the [Dobot Portal](https://portal.dobot-robots.com/home), sign in, and download both guides for the X-Trainer.
-
-Use the existing **Python 3.8 Xtrainer environment**. Vendor training modules are distributed as Python 3.8 bytecode; `requirements.txt` is not a complete environment lockfile. On a fresh checkout, copy `scripts/dobot_config/dobot_settings.example.ini` to the local `dobot_settings.ini` only if absent, then configure devices and calibrate. The example is a schema, not working calibration.
+Run from the repository root in the **Python 3.8 Xtrainer environment**:
 
 ```bash
 conda activate Xtrainer
 cd /path/to/capstone-project-parcel-sorting
 ```
 
-1. **Connect and power on.** Secure the arm, gripper and camera cables; power on in the order specified by the user guide. Clear both follower-arm paths and keep the cameras, reading station and bins in their demonstration positions.
-2. **Find ports.** Run `PYTHONPATH=. python3 scripts/1_find_port.py` and wait for it to finish. Repeat after a host restart or USB reconnection; it updates the local hardware settings.
-3. **Position the leaders.** Run `PYTHONPATH=. python3 scripts/3_just_buttonA.py`. Support each leader handle, short-press yellow **A** (below 0.5 seconds) to unlock, manually move it to the calibrated initial posture, then short-press again to lock. Stop the helper with **Ctrl+C** before continuing. This helper controls leader locking; synchronization happens in the recorder.
-4. **Calibrate only when needed.** For first setup or lost/incorrect calibration, follow the user guide's posture-setting procedure and run `PYTHONPATH=. python3 scripts/2_get_offset.py`. Keep existing working offsets for routine startup.
-5. **Start the server.** In terminal 1, run `python3 experiments/launch_nodes.py` and leave it running. In terminal 2, activate the same environment, enter the repository root, and start the recorder below.
+1. **Connect and power on.** Check cables, follow the manual's power-on sequence, and clear both follower-arm paths.
+2. **Find ports.** Run `PYTHONPATH=. python3 scripts/1_find_port.py` and wait for it to finish. Repeat after a host restart or USB reconnection.
+3. **Position the leaders.** Run `PYTHONPATH=. python3 scripts/3_just_buttonA.py`. Support each handle, short-press yellow **A** to unlock, move to the calibrated initial posture, then short-press again to lock. Stop the helper with **Ctrl+C**.
+4. **Calibrate if needed.** For first setup or incorrect/lost calibration, follow the manual and run `PYTHONPATH=. python3 scripts/2_get_offset.py`. Keep working offsets for routine startup.
+5. **Start the server.** In terminal 1, run `python3 experiments/launch_nodes.py` and leave it running.
+6. **Start the recorder.** In terminal 2, activate the same environment, enter the repository root, and run `python3 experiments/run_control.py --show-img` with your chosen recording arguments. See the [recording guide](docs/guides/recording_guide.md) for configuration, Policy A/B commands and button steps.
 
-Server startup enables hardware and cycles grippers; recorder startup moves both followers, even when the demonstration uses only one arm. Keep startup paths clear. 
-
-## Record demonstrations
-
-```bash
-python3 experiments/run_control.py --show-img \
-  --project-name second_set_poly_mailer_A \
-  --policy-stage A --medium poly_mailer --no-capture-barcode
-```
-
-For B, use its own project name, `--policy-stage B`, and `--demonstrated-bin 0` or `1`.
-
-1. With the leader locked in its initial posture, hold yellow **A** for more than 2 seconds and release to enable synchronization; wait for alignment. The current code accepts holds above 1 second; the vendor guide specifies above 2 seconds.
-2. Support the leader and short-press yellow **A** to unlock for teleoperation. Synchronize only the arm needed for that policy; leave the unused arm unsynchronized. At least one arm must be synchronized to record.
-3. Press and release green **B** to start recording. Move the leader to demonstrate the task; squeeze/release its trigger to close/open the follower gripper.
-4. Press and release green **B** again to stop and save. Wait for saving to finish before the next episode. Finish recording and disable synchronization with another long yellow **A** press before exiting.
-
-The button names **A/B** are separate from the policy names **A/B**. Episodes save in `datasets/<project>/collect_data/<timestamp>/`. See the [recording guide](docs/guides/barcode_recording_guide.md) for more detail.
+Startup cycles the grippers and moves both followers, even for a one-arm demonstration. Keep their paths clear. See the [barcode scanning guide](docs/guides/barcode_scanning_guide.md) for optional scanner setup and capture.
 
 ## Prepare and train ACT
 
@@ -78,7 +57,7 @@ Add actual project names to `PREPARE_ACT_DATASETS["projects"]` in [scripts/scrip
 
 ```bash
 python3 scripts/count_episodes.py
-python3 scripts/prepare_act_datasets.py --dataset-name second_set_poly_mailer_A # checks and verifies datasets is ready for conversion  
+python3 scripts/prepare_act_datasets.py --dataset-name second_set_poly_mailer_A # checks and verifies datasets is ready for conversion
 python3 scripts/prepare_act_datasets.py --dataset-name second_set_poly_mailer_A --convert # creates ACT training files and review videos
 
 python3 -c "import torch; print(torch.cuda.is_available())"
