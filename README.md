@@ -51,27 +51,26 @@ cd /path/to/capstone-project-parcel-sorting
 
 Startup cycles the grippers and moves both followers, even for a one-arm demonstration. Keep their paths clear. See the [barcode scanning guide](docs/guides/barcode_scanning_guide.md) for optional scanner setup and capture.
 
-## Prepare and train ACT
+## Dataset preparation and training
 
-Add actual project names to `PREPARE_ACT_DATASETS["projects"]` in [scripts/scripts_config.py](scripts/scripts_config.py). The defaults register three first-set projects. Copy those entries for a second set, preserving A/None, B/0 and B/1. `ModelTrain/constants.py` registers the configured names as training tasks automatically.
+For poly mailers, cartons and envelopes, register each recording folder in `PREPARE_ACT_DATASETS["projects"]` in [scripts/scripts_config.py](scripts/scripts_config.py), using the matching medium, policy stage and destination. Configured folder names become ACT task names automatically.
+
+In the Python 3.8 `Xtrainer` environment, validate a project, convert it once, and review its demonstration videos before training:
 
 ```bash
-python3 scripts/count_episodes.py
-python3 scripts/prepare_act_datasets.py --dataset-name second_set_poly_mailer_A # checks and verifies datasets is ready for conversion
-python3 scripts/prepare_act_datasets.py --dataset-name second_set_poly_mailer_A --convert # creates ACT training files and review videos
+python3 scripts/prepare_act_datasets.py --dataset-name first_set_poly_mailer_A
+python3 scripts/prepare_act_datasets.py --dataset-name first_set_poly_mailer_A --convert
 
 python3 -c "import torch; print(torch.cuda.is_available())"
 # Train when CUDA reports True; use a fresh checkpoint folder.
 PYTHONPATH=. MPLBACKEND=Agg python3 ModelTrain/model_train.py \
-  --task_name second_set_poly_mailer_A \
-  --ckpt_dir ./ckpt/act_second_set_poly_mailer_A \
+  --task_name first_set_poly_mailer_A \
+  --ckpt_dir ./ckpt/act_first_set_poly_mailer_A \
   --batch_size 8 --num_steps 30000 --lr 2e-5 \
   --chunk_size 45 --kl_weight 10 --seed 0
 ```
 
-Repeat with each B task and a separate output folder. Review demonstration videos before training. `--dataset-name` is optional: without it all configured projects are selected. Conversion refuses existing HDF5 outputs; already converted projects need validation only. Defaults are a 400-step horizon, an 80/20 episode split, and three cameras.
-
-`--ckpt_dir` determines where models go. Keep `config.pkl` and `dataset_stats.pkl` with the checkpoints. See the [ACT guide](docs/guides/act_poly_mailer_training.md) and [scripts README](scripts/README.md), including how to train both collection sets together.
+Use your registered project name for both `--dataset-name` and `--task_name`. Train A, B bin 0 and B bin 1 separately, with a fresh checkpoint folder for each run. Existing HDF5 files are not overwritten. Keep `config.pkl` and `dataset_stats.pkl` with the checkpoints. See the [ACT training guide](docs/guides/act_training.md) for configuration, arguments and examples for all three media.
 
 ## Version history
 

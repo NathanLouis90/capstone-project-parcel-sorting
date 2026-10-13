@@ -2,7 +2,7 @@
 
 Policy A picks up a parcel, presents it at the reading station, stages it, and retracts. Policy B reacquires the staged parcel and places it in bin 0 or 1. Scanner capture is optional; the standard workflow below uses manually labelled B destinations.
 
-For scanner setup and optional scan-paired A/B recordings, see the [barcode scanning guide](barcode_scanning_guide.md). For dataset conversion and ACT training, see the [ACT guide](act_poly_mailer_training.md).
+For scanner setup and optional scan-paired A/B recordings, see the [barcode scanning guide](barcode_scanning_guide.md). For dataset conversion and ACT training, see the [ACT guide](act_training.md).
 
 ## 1. Environment and settings
 
@@ -140,7 +140,7 @@ python3 scripts/prepare_act_datasets.py --dataset-name second_set_poly_mailer_A
 python3 scripts/prepare_act_datasets.py --dataset-name second_set_poly_mailer_A --convert
 ```
 
-Finish collecting each set before conversion. Existing HDF5 outputs are refused, and mismatched raw frames are preserved. Review the videos and exclude interrupted, failed or wrong-bin demonstrations. Repeat for both B projects; see the [ACT guide](act_poly_mailer_training.md) for training and combining sets.
+Finish collecting each set before conversion. Existing HDF5 outputs are refused, and mismatched raw frames are preserved. Review the videos and exclude interrupted, failed or wrong-bin demonstrations. Repeat for both B projects; see the [ACT guide](act_training.md) for training and combining sets.
 
 ## 6. Collection consistency and current limits
 

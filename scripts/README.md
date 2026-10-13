@@ -67,7 +67,7 @@ datasets/<project>/
 └── conversion_logs/         # conversion logs
 ```
 
-Finish collecting a set before conversion. The helper enumerates episodes from index 0 and cannot append to an already-converted project. Use a separate project for a later set. A CLI `--root` override affects that invocation only; update the configured root before training elsewhere. See the [ACT guide](../docs/guides/act_poly_mailer_training.md) for commands.
+Finish collecting a set before conversion. The helper enumerates episodes from index 0 and cannot append to an already-converted project. Use a separate project for a later set. A CLI `--root` override affects that invocation only; update the configured root before training elsewhere. See the [ACT guide](../docs/guides/act_training.md) for commands.
 
 ## Train both sets together
 
