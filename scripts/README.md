@@ -2,6 +2,8 @@
 
 Run from the repository root in the Python 3.8 `Xtrainer` environment. Counting and preparation are offline; device setup and calibration access hardware.
 
+For device setup and calibration, use the included [Lightweight Base User Guide](../docs/provided_dobot/Dobot%20X-Trainer%20%28Lightweight%20Base%29%20User%20Guide%20V1.1_20240731_en.pdf) and [Operation Guide and FAQ](../docs/provided_dobot/Dobot%20X-Trainer%20Operation%20Guide%20and%20FAQ.pdf).
+
 ## Files and provenance
 
 | File | Purpose | Origin |

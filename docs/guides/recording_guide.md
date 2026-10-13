@@ -15,7 +15,7 @@ cd /path/to/capstone-project-parcel-sorting
 
 Use the existing Python 3.8 environment: vendor training modules are supplied as Python 3.8 bytecode, and `requirements.txt` is not a complete environment lockfile.
 
-On a fresh checkout, copy `scripts/dobot_config/dobot_settings.example.ini` to `scripts/dobot_config/dobot_settings.ini` only if the actual file is absent. Configure devices and calibrate using the Dobot manuals. The example contains placeholders, not working calibration. Do not overwrite existing working settings.
+On a fresh checkout, copy `scripts/dobot_config/dobot_settings.example.ini` to `scripts/dobot_config/dobot_settings.ini` only if the actual file is absent. Configure devices and calibrate using the included [Lightweight Base User Guide](../provided_dobot/Dobot%20X-Trainer%20%28Lightweight%20Base%29%20User%20Guide%20V1.1_20240731_en.pdf) and [Operation Guide and FAQ](../provided_dobot/Dobot%20X-Trainer%20Operation%20Guide%20and%20FAQ.pdf). The example contains placeholders, not working calibration. Do not overwrite existing working settings.
 
 Defaults live in [experiments/experiments_config.py](../../experiments/experiments_config.py), under `RUN_CONTROL`. CLI arguments override them for that run.
 
@@ -27,7 +27,7 @@ Defaults live in [experiments/experiments_config.py](../../experiments/experimen
 | `--demonstrated-bin` | `0` or `1` for B; omit for A |
 | `--show-img` | Show camera previews |
 | `--no-capture-barcode` | Record without scanner capture, which is the default |
-| `--source-episode` | Optional path to a completed A episode to preserve A/B pairing |
+| `--source-episode` | Optional: link B's metadata to the completed A episode that staged the same parcel; omit for independent training demonstrations |
 
 Recording a new project does not require registering it for ACT yet. Register the exact folder name in `PREPARE_ACT_DATASETS["projects"]` in `scripts/scripts_config.py` before preparing/training it.
 
@@ -96,13 +96,25 @@ Interrupting an active recording marks it incomplete. Review physical success: a
 
 ## 4. Optional A/B pairing
 
-For ordinary separate A/B datasets, `--source-episode` is optional. To preserve the relationship between a completed A and its B demonstration, add the exact A episode directory to the B command:
+Skip this option when collecting independent A and B demonstrations for the current separate ACT models. B only needs its `--demonstrated-bin` and the other standard recording arguments. The current training workflow does not require paired episodes.
+
+Pairing records that two demonstrations belong to the same parcel-handling cycle. For example:
+
+1. Record A picking up a parcel, presenting it and leaving it in the staging area.
+2. Leave that parcel in the staged pose, then record B placing it in its destination bin.
+3. Supply A's saved episode directory when starting the B recorder so its metadata identifies which A recording preceded it.
+
+This link helps review the A-to-B handoff and trace a barcode destination from A into B. It does not join the recordings into one training episode, make the robot run A then B automatically, or prove that either demonstration succeeded.
+
+To link the recordings, add this argument to the full B recorder command:
 
 ```bash
---source-episode datasets/second_set_poly_mailer_A/collect_data/A_EPISODE_ID
+--source-episode datasets/YOUR_A_PROJECT/collect_data/A_EPISODE_ID
 ```
 
-Replace `A_EPISODE_ID` with the recorded directory name. Keep the parcel in its actual staged pose; do not improve the staging before collecting the paired B episode. Without a source, B is standalone with its own cycle ID. If A captured a barcode, B's supplied bin must match that scan.
+Replace `YOUR_A_PROJECT` and `A_EPISODE_ID` with A's actual project and episode directory names. A must be a completed, nonempty recording with the same medium as B. B reuses A's `cycle_id`, stores A's episode ID and metadata path, and copies any accepted scan. Still supply `--demonstrated-bin`; if A captured a barcode, that bin must match the scan. Pairing also works with an unscanned A when barcode capture was disabled and B's destination is supplied manually.
+
+Do not reposition the parcel to improve its staged pose before recording a paired B. Restart the B recorder with the appropriate source path for each new pair: keeping it running with the same argument links subsequent B episodes to the same A. Without `--source-episode`, B has its own cycle ID and no link to an A episode.
 
 Manually supplied destinations are stored as `destination.source = "manual"`; the recorder does not fabricate a scan. A new A recording starts a new cycle and clears previous scans.
 

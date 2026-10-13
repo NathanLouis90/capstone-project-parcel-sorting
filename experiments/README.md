@@ -2,6 +2,8 @@
 
 Run from the repository root in the Python 3.8 `Xtrainer` environment. These entry points connect to real hardware unless explicitly described as offline.
 
+Complete platform setup using the included [Lightweight Base User Guide](../docs/provided_dobot/Dobot%20X-Trainer%20%28Lightweight%20Base%29%20User%20Guide%20V1.1_20240731_en.pdf). Refer to the [Operation Guide and FAQ](../docs/provided_dobot/Dobot%20X-Trainer%20Operation%20Guide%20and%20FAQ.pdf) for operating details and troubleshooting.
+
 ## Files and provenance
 
 | File | Purpose | Origin |

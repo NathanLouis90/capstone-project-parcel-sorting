@@ -18,7 +18,7 @@ Arrange the receiving area, barcode reading station, staging area and destinatio
 
 ## Software setup
 
-For a new PC, follow sections 3–4 of the **Dobot X-Trainer (Lightweight Base) User Guide V1.1**. Download it and the **Operation Guide and FAQ** from the [Dobot Portal](https://portal.dobot-robots.com/home) after signing in.
+For a new PC, follow sections 3–4 of the included [Dobot X-Trainer (Lightweight Base) User Guide V1.1](docs/provided_dobot/Dobot%20X-Trainer%20%28Lightweight%20Base%29%20User%20Guide%20V1.1_20240731_en.pdf). See the [Operation Guide and FAQ](docs/provided_dobot/Dobot%20X-Trainer%20Operation%20Guide%20and%20FAQ.pdf) for troubleshooting.
 
 1. **Install the base software.** Use the guide's Ubuntu 20.04 baseline and install [Anaconda](https://www.anaconda.com/download). For training, install an NVIDIA driver compatible with the GPU, CUDA 11.8 and matching cuDNN following the guide. Use the environment below because required vendor modules are supplied as Python 3.8 bytecode.
 2. **Clone the repository and install dependencies.** Install Git and build tools, authenticate with a GitHub account that has access to this repository, then run:
@@ -61,7 +61,7 @@ See the [scripts README](scripts/README.md) for device settings and helper detai
 
 ## Quick startup
 
-Create an account on the [Dobot Portal](https://portal.dobot-robots.com/home), sign in, and download the **Dobot X-Trainer (Lightweight Base) User Guide** and **Dobot X-Trainer Operation Guide and FAQ** for full setup, operation and troubleshooting instructions.
+Use the included [Lightweight Base User Guide](docs/provided_dobot/Dobot%20X-Trainer%20%28Lightweight%20Base%29%20User%20Guide%20V1.1_20240731_en.pdf) and [Operation Guide and FAQ](docs/provided_dobot/Dobot%20X-Trainer%20Operation%20Guide%20and%20FAQ.pdf) for full setup, operation and troubleshooting instructions.
 
 Run from the repository root in the **Python 3.8 Xtrainer environment**:
 

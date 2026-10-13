@@ -27,5 +27,3 @@ __pycache__/
 .env
 .env.*
 
-# Local proposal and supplied manuals
-/docs/*.pdf
