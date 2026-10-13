@@ -2,19 +2,47 @@
 
 Last-mile parcel sorting is a repetitive and labor-intensive process in which workers scan parcels and manually place them into the correct delivery bins. This project explores robotic automation of this task using imitation learning (behavior cloning). Human demonstrations consisting of images and robot joint states are recorded to train policies that replicate expert actions. The project currently evaluates and compares two imitation learning approaches: Action Chunking with Transformers (ACT) and Diffusion Policy (DP).
 
-## Setup
-**To be filled**
+## Hardware setup
 
-## Hardware
+Arrange the receiving area, barcode reading station, staging area and destination bins within the robot's working area. The following items support demonstration recording and parcel pick-and-place tasks.
 
 | Item | Use | Specifications and purchasing details |
 | --- | --- | --- |
-| Dobot X-Trainer | Two leader arms, two follower arms, supplied parallel-jaw grippers, and top/left-wrist/right-wrist cameras | Model, hardware revision and supplier: to add |
-| DL envelopes | Thin mail medium | Dimensions, material and Shopee/Lazada link: to add |
-| Poly mailer bags | Compliant parcel medium | Dimensions, material and Shopee/Lazada link: to add |
-| Carton boxes | Rigid parcel medium | Dimensions, material and Shopee/Lazada link: to add |
-| Rectangular basins | Destination bins 0 and 1 | Quantity, dimensions, placement and Shopee/Lazada link: to add |
-| Barcode scanner | Reads destination labels at the reading station | Model, interface, mounting and Shopee/Lazada link: to add |
+| Dobot X-Trainer | Records human demonstrations through the leader arms and performs parcel pick-and-place with the follower arms, grippers and cameras | Model, hardware revision and supplier: to add |
+| DL envelopes | Thin parcels used to demonstrate and evaluate envelope pickup, staging and sorting | Dimensions, material and Shopee/Lazada link: to add |
+| Poly mailer bags | Flexible parcels used to demonstrate and evaluate pickup, staging and sorting of compliant packaging | Dimensions, material and Shopee/Lazada link: to add |
+| Carton boxes | Rigid parcels used to demonstrate and evaluate box pickup, staging and sorting | Dimensions, material and Shopee/Lazada link: to add |
+| Storage bins (elevated platforms) | Provide raised receiving and staging surfaces: parcels start at the receiving area and rest at staging between Policy A and Policy B | Quantity, dimensions, height, placement and Shopee/Lazada link: to add |
+| Rectangular basins | Receive sorted parcels as destination bins 0 and 1 | Quantity, dimensions, placement and Shopee/Lazada link: to add |
+| Barcode scanner | Reads parcel labels at the reading station to identify the destination bin | Model, interface, mounting and Shopee/Lazada link: to add |
+
+## Software setup
+
+For a new PC, follow sections 3–4 of the **Dobot X-Trainer (Lightweight Base) User Guide V1.1**. Download it and the **Operation Guide and FAQ** from the [Dobot Portal](https://portal.dobot-robots.com/home) after signing in.
+
+1. **Install the base software.** Use the guide's Ubuntu 20.04 baseline and install [Anaconda](https://www.anaconda.com/download). For training, install an NVIDIA driver compatible with the GPU, CUDA 11.8 and matching cuDNN following the guide. Use the environment below because required vendor modules are supplied as Python 3.8 bytecode.
+2. **Clone the repository and install dependencies.** Install Git and build tools, authenticate with a GitHub account that has access to this repository, then run:
+
+   ```bash
+   sudo apt update
+   sudo apt install git build-essential linux-libc-dev libxcb-cursor0
+   git clone https://github.com/NathanLouis90/capstone-project-parcel-sorting.git
+   cd capstone-project-parcel-sorting
+   conda create -n Xtrainer python=3.8.10
+   conda activate Xtrainer
+   python3 -m pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
+   python3 -m pip install -r requirements.txt
+   python3 -m pip install -e third_party/DynamixelSDK/python
+   python3 -m pip install -e ModelTrain/detr
+   python3 -m pip install -e robomimic-r2d2
+   python3 -c "import torch; print('CUDA available:', torch.cuda.is_available())"
+   ```
+
+   Confirm `CUDA available: True` before training. `requirements.txt` alone does not install the complete training stack.
+3. **Configure the robot network.** Using DobotStudio Pro, configure the left and right followers as `192.168.5.1` and `192.168.5.2`, set their initial poses and payload as described in the guide, and enable TCP/IP secondary development mode. Give the PC's robot-facing Ethernet connection an unused address on `192.168.5.xxx` with subnet mask `255.255.255.0`. Match these addresses and the shared server port in [experiments/experiments_config.py](experiments/experiments_config.py).
+4. **Configure cameras, USB ports and calibration.** On the fresh checkout, copy `scripts/dobot_config/dobot_settings.example.ini` to `scripts/dobot_config/dobot_settings.ini`, fill in the three camera serial numbers and local device settings, and configure USB device access following the guide. Run `PYTHONPATH=. python3 scripts/1_find_port.py` to detect leader/gripper ports. Position and lock the leaders with `scripts/3_just_buttonA.py`, stop that helper, then run `PYTHONPATH=. python3 scripts/2_get_offset.py` for first-time calibration. Check camera images with `PYTHONPATH=. python3 scripts/5_camera_read.py` and stop the preview before recording. Keep the actual INI local and preserve working calibration on subsequent setups.
+
+See the [scripts README](scripts/README.md) for device settings and helper details, then follow **Quick startup** below.
 
 ## System architecture
 **Policy A** acquires an item, presents it at the reading station, stages it, and retracts. **Policy B** reacquires it and places it in the destination bin.
@@ -53,24 +81,11 @@ Startup cycles the grippers and moves both followers, even for a one-arm demonst
 
 ## Dataset preparation and training
 
-For poly mailers, cartons and envelopes, register each recording folder in `PREPARE_ACT_DATASETS["projects"]` in [scripts/scripts_config.py](scripts/scripts_config.py), using the matching medium, policy stage and destination. Configured folder names become ACT task names automatically.
+Register the recording folders and their medium, policy stage and destination in [scripts/scripts_config.py](scripts/scripts_config.py). Validate completed episodes with `scripts/prepare_act_datasets.py`, then add `--convert` to create HDF5 training files and review videos. Review the demonstrations before training; existing HDF5 files are not overwritten.
 
-In the Python 3.8 `Xtrainer` environment, validate a project, convert it once, and review its demonstration videos before training:
+Train each registered task with `ModelTrain/model_train.py` in the Python 3.8 `Xtrainer` environment with CUDA available. Keep A, B bin 0 and B bin 1 separate, use a fresh checkpoint folder for each run, and retain its configuration and dataset statistics with the model.
 
-```bash
-python3 scripts/prepare_act_datasets.py --dataset-name first_set_poly_mailer_A
-python3 scripts/prepare_act_datasets.py --dataset-name first_set_poly_mailer_A --convert
-
-python3 -c "import torch; print(torch.cuda.is_available())"
-# Train when CUDA reports True; use a fresh checkpoint folder.
-PYTHONPATH=. MPLBACKEND=Agg python3 ModelTrain/model_train.py \
-  --task_name first_set_poly_mailer_A \
-  --ckpt_dir ./ckpt/act_first_set_poly_mailer_A \
-  --batch_size 8 --num_steps 30000 --lr 2e-5 \
-  --chunk_size 45 --kl_weight 10 --seed 0
-```
-
-Use your registered project name for both `--dataset-name` and `--task_name`. Train A, B bin 0 and B bin 1 separately, with a fresh checkpoint folder for each run. Existing HDF5 files are not overwritten. Keep `config.pkl` and `dataset_stats.pkl` with the checkpoints. See the [ACT training guide](docs/guides/act_training.md) for configuration, arguments and examples for all three media.
+Read the [scripts README](scripts/README.md) for preparation details and the [ACT training guide](docs/guides/act_training.md) for training arguments and examples.
 
 ## Version history
 
