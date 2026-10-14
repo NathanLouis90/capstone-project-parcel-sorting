@@ -115,7 +115,7 @@ python3 experiments/run_control.py \
 
 The recorder confirms scanner access before camera/robot startup. If capture fails, resolve that error before restarting. The server in terminal 1 stays running.
 
-Use the [recording guide's synchronization steps](recording_guide.md#3-synchronize-and-record), then follow the scan-specific sequence below. The example uses carton projects; choose `poly_mailer` or `envelope` and matching project names for other media.
+Use the [recording guide's synchronization steps](recording_guide.md#align-and-synchronize-the-leaders), then follow the scan-specific sequence below. The example uses carton projects; choose `poly_mailer` or `envelope` and matching project names for other media.
 
 ### Present, scan and stage
 
@@ -159,7 +159,7 @@ python3 -m barcode_scanning.recording --inspect-episode \
 
 Expect stage A, medium carton, the accepted barcode/bin, and a nonzero matching frame count. Inspection does not prove physical grasping or staging success; review the images and conversion videos.
 
-Record A and each B bin in separate projects; combine them for unified A and conditioned B training with robomimic. Separate B-bin models are the vendor ACT baseline. Register their names in `scripts/scripts_config.py`, then validate and convert as described in the [recording guide](recording_guide.md#5-check-and-prepare-episodes). Existing HDF5 files are refused; mismatched raw frames are preserved.
+Record A and each B bin in separate projects; combine them for unified A and conditioned B training with robomimic. The Dobot ACT trainer needs a separate model for each B bin because it does not read a destination input. Register their names in `scripts/scripts_config.py`, then validate and convert as described in the [dataset preparation guide](dataset_preparation.md). Existing HDF5 files are refused; mismatched raw frames are preserved.
 
 ## 4. Pair B with a scanned A
 
@@ -179,7 +179,7 @@ python3 experiments/run_control.py \
 
 For a source scanned to bin 1, use `--demonstrated-bin 1` and a separate project such as `barcode_test_B_bin_1`. A source with missing scans, interruption, wrong medium, mapping mismatch, zero recorded frames, or scanner failure is refused before recorder robot/camera startup. The bin argument must match A's scan. It records your intended placement, not an automatic measurement of actual placement.
 
-1. Start from the same agreed home configuration. Re-enable teleoperation one arm at a time using the [recording guide](recording_guide.md#3-synchronize-and-record).
+1. Start from the same agreed home configuration. Re-enable teleoperation one arm at a time using the [recording guide](recording_guide.md#align-and-synchronize-the-leaders).
 2. Confirm the terminal's fixed B destination.
 3. Press/release B and confirm recording starts.
 4. Teleoperate to the staged parcel, grasp, lift, and transport it to the reported bin.
@@ -187,15 +187,15 @@ For a source scanned to bin 1, use `--demonstrated-bin 1` and a separate project
 6. Press/release B to stop. Disable synchronization and confirm the followers stop before manual resets.
 7. Inspect the new B episode with `python3 -m barcode_scanning.recording --inspect-episode ...`. Confirm its cycle ID matches A and its source episode identifies A.
 8. Review actual placement. A wrong-bin demonstration must be excluded even if its metadata says the intended bin was correct.
-9. Register and prepare each separate project using the [recording guide](recording_guide.md#5-check-and-prepare-episodes). Review converted videos before training.
+9. Register and prepare each separate project using the [dataset preparation guide](dataset_preparation.md). Review converted videos before training.
 
-Both manually labelled and scanner-paired B HDF5 files contain `/observations/destination`, a constant float32 vector per timestep: `[1, 0]` for bin 0 and `[0, 1]` for bin 1. Raw metadata is retained in HDF5 attributes. The vendor ACT loader ignores this observation and therefore requires separate B-bin baselines. The main robomimic ACT/DP path consumes destination as a low-dimensional input and combines both B bins; see the [training guide](diffusion_policy_training.md).
+Both manually labelled and scanner-paired B HDF5 files contain `/observations/destination`, a constant float32 vector per timestep: `[1, 0]` for bin 0 and `[0, 1]` for bin 1. Raw metadata is retained in HDF5 attributes. The Dobot ACT trainer does not read this observation, so it needs a separate B checkpoint for each bin. The main robomimic ACT/DP path consumes destination as a low-dimensional input and combines both B bins; see the [training guide](act_dp_training.md).
 
 ## 5. Collection consistency and inference limits
 
 Keep destination mappings fixed between paired episodes and preserve metadata when copying recordings. Balance both bins for each medium and exclude interrupted, failed-scan and wrong-bin episodes from successful paired examples. A new A recording clears old scans; select the source episode belonging to the parcel actually on staging.
 
-The reader can be embedded in a future supervisor, but standalone capture does not run policies. A supervisor must select A, open a scan window, verify staging/retraction and the destination, then start B. It must reset policy action queues at transitions and handle failures; elapsed time alone does not prove stage completion. Destination-conditioned training and offline checking use robomimic-r2d2. The vendor inference entry point requires explicit task/checkpoint selection; robomimic robot deployment and autonomous A/B handoff are not implemented.
+The reader can be embedded in a future supervisor, but standalone capture does not run policies. A supervisor must select A, open a scan window, verify staging/retraction and the destination, then start B. It must reset policy action queues at transitions and handle failures; elapsed time alone does not prove stage completion. Destination-conditioned training and offline checking use robomimic-r2d2. The Dobot ACT robot runner requires explicit task/checkpoint selection; robomimic robot deployment and autonomous A/B handoff are not implemented.
 
 ## 6. Hardware-free verification
 

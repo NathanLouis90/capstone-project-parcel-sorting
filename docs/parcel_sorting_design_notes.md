@@ -7,9 +7,13 @@ Updated: 2026-10-14. These notes retain user decisions and implementation findin
 - Policy A is one unified policy across envelopes, poly mailers and cartons. For mailers/cartons, only the left arm picks from receiving, presents the label, places at staging and returns home. The right arm remains home with its gripper closed.
 - Envelope A uses both arms sequentially. The left arm slides an edge toward the right arm and returns fully home. After a short pause, the right arm tilts, grasps the edge, presents the label, places at staging with an overhanging edge and returns home.
 - Policy B is one right-arm policy across all media and both bins. Destination is a constant one-hot observation: `[1, 0]` for bin 0 and `[0, 1]` for bin 1. The left arm stays home with its gripper closed.
-- Main ACT and Diffusion Policy experiments use robomimic-r2d2 with the same loader, normalization and frozen train/validation split. Medium-specific A policies are only the O6 ablation. Separate B-bin policies are only the specialist baseline and the vendor ACT option.
+- The ACT/DP comparison uses robomimic-r2d2 so both models train on the same recordings, scale joint values consistently and reserve the same episodes for validation. Optional comparisons train A on just one parcel type or B on just one bin. Dobot ACT cannot use a destination input and therefore requires separate B-bin checkpoints.
 - Recording remains one stage/bin per project, with `--demonstrated-bin 0` or `1` for B. Projects are combined during offline conversion. The recorder CLI is unchanged.
 - Scanner output never enters policy observations. A supervisor supplies B's destination. Its design below is documented, not implemented.
+
+## Current collection plan
+
+Early robot tests use poly mailers only. Carton and envelope demonstrations have not yet been added to Policy A. The current test milestones are 25, 50, 75 and 100 recorded demonstrations, but collection sizes and folder names are optional. Report accepted-recording and actual training/validation counts separately. See the [Policy A guide](guides/policy_a.md), [Policy B guide](guides/policy_b.md) and [Dobot ACT guide](guides/act_training.md).
 
 ## Demonstration rules
 

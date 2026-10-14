@@ -89,3 +89,23 @@ def test_vendor_base_dimensions_removed_and_grippers_clipped():
     action = prepare_vendor_action(prediction)
     assert action.shape == (14,)
     np.testing.assert_array_equal(action[[6, 13]], [0, 1])
+
+
+def test_combined_task_supplies_inference_arm_metadata():
+    from experiments.inference_safety import resolve_task_metadata
+    combined = {'combined': {'policy_stage': 'A', 'medium': 'poly_mailer', 'bin_index': None}}
+    assert resolve_task_metadata('combined', combined, {}) == combined['combined']
+
+
+def test_recording_metadata_still_supported():
+    from experiments.inference_safety import resolve_task_metadata
+    projects = {'parcel': {'policy_stage': 'B', 'medium': 'carton', 'bin_index': 1}}
+    assert resolve_task_metadata('parcel', {'parcel': {'episode_len': 400}}, projects) == projects['parcel']
+
+
+@pytest.mark.parametrize('metadata', [{}, {'policy_stage': 'A', 'medium': 'unknown'},
+                                     {'policy_stage': 'B', 'medium': 'poly_mailer', 'bin_index': None}])
+def test_inference_refuses_incomplete_task_metadata(metadata):
+    from experiments.inference_safety import resolve_task_metadata
+    with pytest.raises(ValueError):
+        resolve_task_metadata('task', {'task': metadata}, {})

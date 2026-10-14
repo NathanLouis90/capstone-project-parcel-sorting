@@ -61,6 +61,9 @@ for project_name, project in PREPARE_ACT_DATASETS['projects'].items():
         'episode_len': project['episode_len'],
         'train_ratio': project['train_ratio'],
         'camera_names': list(project['camera_names']),
+        'policy_stage': project['policy_stage'],
+        'medium': project['medium'],
+        'bin_index': project['bin_index'],
     }
 
 ###  fixed constants

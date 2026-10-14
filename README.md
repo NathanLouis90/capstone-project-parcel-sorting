@@ -10,7 +10,7 @@ Arrange the receiving area, barcode reading station, staging area and destinatio
 | --- | --- | --- |
 | Dobot X-Trainer | Records human demonstrations through the leader arms and performs parcel pick-and-place with the follower arms, grippers and cameras | Model, hardware revision and supplier: to add |
 | DL envelopes | Thin parcels used to demonstrate and evaluate envelope pickup, staging and sorting | Dimensions, material and Shopee/Lazada link: to add |
-| Poly mailer bags | Flexible parcels used to demonstrate and evaluate pickup, staging and sorting of compliant packaging | Dimensions, material and Shopee/Lazada link: to add |
+| Poly mailer bags | Used to record and test pickup, staging and sorting of poly mailer bags | Dimensions, material and Shopee/Lazada link: to add |
 | Carton boxes | Rigid parcels used to demonstrate and evaluate box pickup, staging and sorting | Dimensions, material and Shopee/Lazada link: to add |
 | Storage bins (elevated platforms) | Provide raised receiving and staging surfaces: parcels start at the receiving area and rest at staging between Policy A and Policy B | Quantity, dimensions, height, placement and Shopee/Lazada link: to add |
 | Rectangular basins | Receive sorted parcels as destination bins 0 and 1 | Quantity, dimensions, placement and Shopee/Lazada link: to add |
@@ -20,7 +20,7 @@ Arrange the receiving area, barcode reading station, staging area and destinatio
 
 For a new PC, follow sections 3–4 of the included [Dobot X-Trainer (Lightweight Base) User Guide V1.1](docs/provided_dobot/Dobot%20X-Trainer%20%28Lightweight%20Base%29%20User%20Guide%20V1.1_20240731_en.pdf). See the [Operation Guide and FAQ](docs/provided_dobot/Dobot%20X-Trainer%20Operation%20Guide%20and%20FAQ.pdf) for troubleshooting.
 
-1. **Install the base software.** Use the guide's Ubuntu 20.04 baseline and install [Anaconda](https://www.anaconda.com/download). For training, install an NVIDIA driver compatible with the GPU, CUDA 11.8 and matching cuDNN following the guide. Use the environment below because required vendor modules are supplied as Python 3.8 bytecode.
+1. **Install the base software.** Use the guide's Ubuntu 20.04 baseline and install [Anaconda](https://www.anaconda.com/download). For training, install an NVIDIA driver compatible with the GPU, CUDA 11.8 and matching cuDNN following the guide. Use the environment below because parts of the Dobot training software require Python 3.8.
 2. **Clone the repository and install dependencies.** Install Git and build tools, then clone the public repository:
 
    ```bash
@@ -45,23 +45,27 @@ For a new PC, follow sections 3–4 of the included [Dobot X-Trainer (Lightweigh
 
 See the [scripts README](scripts/README.md) for device settings and helper details, then follow **Quick startup** below.
 
-## System architecture
-One unified **Policy A** handles all three media: the left arm picks, presents, stages and returns home for poly mailers and cartons. For envelopes, the left arm slides an edge toward the right arm and returns home before the right arm grasps, presents and stages the envelope with an overhanging edge. The arms move sequentially.
+## How the task works
 
-One destination-conditioned **Policy B** uses the right arm to sort all media into either bin. Its destination is constant throughout an episode: `[1, 0]` for bin 0, `[0, 1]` for bin 1. Idle arms stay home with closed grippers. Scanner data never enters policy observations; a future supervisor resolves destinations and handles the A/B transition.
+**Policy A moves a parcel from receiving to the scanner, then to staging.** Poly mailer bags and carton boxes use only the left arm. Envelopes use both arms: the left slides the envelope and returns home; the right then grabs it, presents the label and places it at staging with an edge overhanging.
 
-The main ACT versus Diffusion Policy comparison uses the same robomimic-r2d2 loader, normalization and frozen split. Medium-specific A policies are the O6 ablation; separate B-bin models are a specialist baseline. Dobot's vendor ACT trainer remains available for shakedown runs.
+**Policy B moves the staged parcel into bin 0 or bin 1 using only the right arm.** It is given the chosen bin at every step. Any unused arm stays home with its gripper closed. Both policies start and finish at home.
 
-## File structure and ownership
+The intended final models handle all three parcel types. Current early tests use poly mailer bags; carton and envelope demonstrations have not yet been added to Policy A. Recording 25 demonstrations at a time is one way to compare performance at 25, 50, 75 and 100 recordings; you can choose any collection size.
 
-| Path | Purpose and provenance |
+## Where to find things
+
+| Folder | What it does |
 | --- | --- |
-| [experiments/](experiments/README.md) | Adapted Dobot server, recorder and inference entry points; custom configuration and terminal homing |
-| [scripts/](scripts/README.md) | Adapted Dobot setup/conversion helpers; custom counting, validation and configuration |
-| `barcode_scanning/` | Capstone additions: labels, HID reader, A/B metadata and destination preservation |
-| `dobot_control/`, `ModelTrain/` | Dobot-supplied hardware interfaces and ACT integration; task registration adapted locally |
-| `robomimic-r2d2/`, `third_party/` | Bundled upstream libraries and device SDKs |
-| `docs/guides/`, `tests/` | Capstone operating guides and hardware-free checks |
+| [experiments/](experiments/README.md) | Starts the robot server, records demonstrations, runs a trained model on the robot, and checks or restores the home pose |
+| [scripts/](scripts/README.md) | Finds device ports, calibrates leaders, previews cameras, counts recordings, and converts recordings into training files |
+| `barcode_scanning/` | Generates parcel labels and reads the barcode scanner to identify the destination bin |
+| `dobot_control/` | Connects to the robot arms, grippers, leaders and cameras |
+| `ModelTrain/` | Trains ACT models with the Dobot training software |
+| `robomimic-r2d2/` | Trains ACT and Diffusion Policy models using the same data-reading tools |
+| `third_party/` | Contains the motor communication software and ACT model code needed by other folders |
+| `docs/guides/` | Step-by-step operating guides |
+| `tests/` | Checks software behavior without moving the robot |
 
 ## Quick startup
 
@@ -79,19 +83,21 @@ cd /path/to/capstone-project-parcel-sorting
 3. **Position the leaders.** Run `PYTHONPATH=. python3 scripts/3_just_buttonA.py`. Support each handle, short-press yellow **A** to unlock, move to the calibrated initial posture, then short-press again to lock. Stop the helper with **Ctrl+C**.
 4. **Calibrate if needed.** For first setup or incorrect/lost calibration, follow the manual and run `PYTHONPATH=. python3 scripts/2_get_offset.py`. Keep working offsets for routine startup.
 5. **Start the server.** In terminal 1, run `python3 experiments/launch_nodes.py` and leave it running.
-6. **Start the recorder.** In terminal 2, activate the same environment, enter the repository root, and run `python3 experiments/run_control.py --show-img` with your chosen recording arguments. See the [recording guide](docs/guides/recording_guide.md) for configuration, Policy A/B commands and button steps.
+6. **Start the recorder.** In terminal 2, activate the same environment, enter the repository root, and run `python3 experiments/run_control.py --show-img` with your chosen recording arguments. Choose the recorder command from the [Policy A](docs/guides/policy_a.md) or [Policy B](docs/guides/policy_b.md) guide; the [recording guide](docs/guides/recording_guide.md) explains button operation.
 
 Startup cycles the grippers and moves both followers, even for a one-arm demonstration. Keep their paths clear. See the [barcode scanning guide](docs/guides/barcode_scanning_guide.md) for optional scanner setup and capture.
 
-## Dataset preparation and training
+## Record, prepare and train
 
-Register recording projects and per-project episode limits in [scripts/scripts_config.py](scripts/scripts_config.py). Recording remains separate by stage and B bin. Review raw demonstrations, mark accepted episodes with `scripts/prepare_act_datasets.py`, then convert them to vendor HDF5. Preparation reports timing, home/idle-arm and joint-limit warnings; existing outputs are never overwritten.
+Follow the [Policy A guide](docs/guides/policy_a.md) or [Policy B guide](docs/guides/policy_b.md) from recording through evaluation. Each guide explains which arm to use, how to name recording folders, and which training route to choose.
 
-For the main comparison, combine projects into `policy_A_unified` or `policy_B_conditioned`, then generate matched ACT and DP configurations with one frozen split. Follow the [ACT and Diffusion Policy training guide](docs/guides/diffusion_policy_training.md). [Vendor ACT](docs/guides/act_training.md) is for shakedown and the separate-bin B baseline; its loader ignores destination observations.
+For early tests that run a model on the robot, use [Dobot ACT training](docs/guides/act_training.md). For the ACT versus Diffusion Policy comparison, use the [ACT and DP training guide](docs/guides/act_dp_training.md). That comparison uses the same recordings, the same scaling of joint values, and the same recordings held aside for checking both models.
 
-## Inference and evaluation
+## Run a model and measure success
 
-Follow the [inference and evaluation guide](docs/guides/inference_evaluation.md) for checkpoint selection, home-state checks, supervised vendor ACT trials and success metrics. Vendor deployment requires explicit `--task-name` and `--checkpoint-dir`; recording and inference share a 40 ms period (25 Hz). Run the offline destination-swap check before evaluating conditioned B. Robomimic checkpoints currently support offline evaluation only; robot deployment and the autonomous A-to-B supervisor are not implemented.
+The [inference and evaluation guide](docs/guides/inference_evaluation.md) explains how to select a checkpoint, run it on the robot and record whether the task succeeded. Stay at the robot during these tests, with access to the emergency stop.
+
+The robot runner currently supports Dobot ACT checkpoints. Models trained through robomimic can be checked using recorded data, but cannot yet run the robot. Automatic switching from Policy A to Policy B is also not implemented.
 
 ## Version history
 

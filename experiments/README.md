@@ -1,69 +1,61 @@
-# Experiment entry points
+# Robot operation
 
-Run from the repository root in the Python 3.8 `Xtrainer` environment. These entry points connect to real hardware unless explicitly described as offline.
+These programs start the robot server, record demonstrations and run trained models. Run from the repository root in the Python 3.8 `Xtrainer` environment.
 
-Complete platform setup using the included [Lightweight Base User Guide](../docs/provided_dobot/Dobot%20X-Trainer%20%28Lightweight%20Base%29%20User%20Guide%20V1.1_20240731_en.pdf). Refer to the [Operation Guide and FAQ](../docs/provided_dobot/Dobot%20X-Trainer%20Operation%20Guide%20and%20FAQ.pdf) for operating details and troubleshooting.
+Start with the main README's [software setup](../README.md#software-setup) and [quick startup](../README.md#quick-startup). Use the [Policy A guide](../docs/guides/policy_a.md) or [Policy B guide](../docs/guides/policy_b.md) for task-specific commands.
 
-## Files and provenance
+## Choose a program
 
-| File | Purpose | Origin |
-| --- | --- | --- |
-| `launch_nodes.py` | Enables both followers/grippers and serves the bimanual robot through ZMQ | Dobot entry point, adapted for folder configuration |
-| `run_control.py` | Leader teleoperation, three-camera/state/action recording, optional A/B and barcode metadata | Dobot recorder, adapted for paths, buttons, metadata, scanner support and configuration |
-| `run_inference.py` | Loads an ACT checkpoint and commands robot actions from camera/state observations | Dobot inference example, adapted for configuration |
-| `robot_home.py` | Terminal status, pose checks and explicitly requested recovery, homing or short base-Z withdrawal | Capstone addition using the Dobot V3 protocol |
-| `experiments_config.py` | Editable defaults grouped by source file | Capstone addition |
-
-Capstone additions and adaptations are work developed for Adiel Firqin's project. The underlying Dobot control stack and learning algorithms retain upstream authorship.
+| File | What it does |
+| --- | --- |
+| `launch_nodes.py` | Starts the robot server so other programs can communicate with both follower arms and grippers |
+| `run_control.py` | Uses the leader handles to move the followers and record three camera views, joint states and demonstrated actions |
+| `run_inference.py` | Loads a Dobot ACT checkpoint and runs one task on the robot |
+| `robot_home.py` | Reads controller status, checks poses, and performs homing or recovery when explicitly requested |
+| `experiments_config.py` | Holds robot addresses, recording settings, camera settings and motion limits |
 
 ## Configure settings
 
-Edit `experiments_config.py`, then restart the program. Supported CLI flags override defaults.
+Edit [experiments_config.py](experiments_config.py), then restart the affected program. Command-line arguments override the settings that support them.
 
-| Section | Settings |
+| Section | What to configure |
 | --- | --- |
-| `LAUNCH_NODES` | Controller IPs, ZMQ host/port and robot configuration |
-| `RUN_CONTROL` | Dataset root/project name, A/B stage, medium, scanner capture, demonstrated bin, optional source episode, display, camera flips, workspace limits and button thresholds |
-| `RUN_INFERENCE` | Checkpoint directory/file, horizon, startup poses, camera settings and motion/workspace limits |
-| `ROBOT_HOME` | Arm IPs/targets, selected arm, ports, speed, timeouts, polling and sample counts |
+| `LAUNCH_NODES` | Robot IP addresses and the server host/port |
+| `RUN_CONTROL` | Recording location, display, camera flips, button timing and allowed working area |
+| `RUN_INFERENCE` | Checkpoint filename, camera settings, initial gripper values and allowed robot movement |
+| `CONTROL` | Time between recording/model steps; default 40 ms, or 25 steps per second |
+| `ROBOT_HOME` | Home poses, selected arm, speed and timeouts |
 
-Camera serials, device ports and calibrated leader/gripper values come from the local `scripts/dobot_config/dobot_settings.ini`. Start with the example INI on a fresh checkout and complete calibration. Scanner identity, destination mapping and scan timing are in `barcode_scanning/barcode_scanning_config.py`.
-
-`RUN_CONTROL["project_name"]` names a recording folder. It is separate from the scripts configuration used to prepare/train data. Recording a new project does not require registering it for training first. Use medium `poly_mailer`, `carton`, or `envelope`. A has no demonstrated bin; B needs bin 0/1 or a valid source episode.
+Camera serials, USB ports and calibration come from your local `scripts/dobot_config/dobot_settings.ini`. See [device settings](../scripts/README.md#device-settings). Scanner settings are in `barcode_scanning/barcode_scanning_config.py`.
 
 ## Record demonstrations
 
-Terminal 1:
+Start the server in terminal 1:
 
 ```bash
 python3 experiments/launch_nodes.py
 ```
 
-Terminal 2:
+In terminal 2, run the recorder command from your policy guide. Choose a project name for each collection; it does not need to contain a set number or episode count.
+
+The yellow **A** and green **B** buttons are hardware controls, not policy names:
+
+1. Support a leader handle. A short yellow press toggles its lock.
+2. A long yellow press enables or disables follower synchronization. Wait for alignment before moving the leader.
+3. A green press/release starts recording; the next press/release stops it.
+4. Stop recording and disable synchronization before exiting or resetting the parcel by hand.
+
+See the [recording guide](../docs/guides/recording_guide.md) for exact button timing. Both followers can move during startup, including an arm you will not use in the demonstration. Keep both paths clear. Use the physical emergency stop when needed.
+
+## Run a model or return home
+
+`run_inference.py` requires a registered `--task-name` and an explicit `--checkpoint-dir`. It uses that task's arm configuration and refuses a run longer than its configured training length. It checks proposed joint angles and gripper positions before sending each action to the robot.
+
+Follow the [inference and evaluation guide](../docs/guides/inference_evaluation.md). The runner accepts Dobot ACT checkpoints; robomimic model deployment and automatic A/B switching are not available yet.
+
+`robot_home.py` reads status without movement when run without motion flags. Use its [homing and recovery guide](../docs/guides/robot_home_guide.md) before requesting movement. Help does not start either program:
 
 ```bash
-python3 experiments/run_control.py \
-  --show-img --project-name second_set_poly_mailer_A \
-  --policy-stage A --medium poly_mailer --no-capture-barcode
-```
-
-For B, change to stage B, its own project name, and add `--demonstrated-bin 0` or `1`. CLI overrides let you select each recording project without editing the defaults.
-
-1. Support the leader; short yellow A presses below 0.5 seconds toggle its torque lock if needed.
-2. Hold yellow A above 1 second and release to synchronize the required arm, then wait for alignment.
-3. Press/release green B to start recording, demonstrate the task, then press/release it again to stop.
-4. Finish recording, disable synchronization and confirm stationary followers before exiting or changing tasks.
-
-Both followers move during startup. Both arms remain in the recorded data even when one is unsynchronized. At least one arm must be synchronized to start recording. Unsynchronized recording does not configure left-only inference. See the [recording guide](../docs/guides/recording_guide.md) for Policy A/B commands and button steps, and the [barcode scanning guide](../docs/guides/barcode_scanning_guide.md) for optional scanner capture and scan-paired episodes.
-
-## Inference and recovery
-
-Vendor ACT deployment requires `--task-name` and `--checkpoint-dir`; optionally select `--model-name` and `--episode-len`. The horizon defaults to the registered training task and cannot exceed it. Both arms must be homed before launch. Registered mailer/carton A parks the right arm; B parks the left arm; envelope A uses both. Joint jumps and commanded jaw-tip bounds are checked before motion. The shared period is 40 ms (25 Hz).
-
-Follow the [inference and evaluation guide](../docs/guides/inference_evaluation.md). The entry point does not run robomimic checkpoints, destination-conditioned B, or an A/B supervisor. Homing and other hardware commands remain explicit operator actions.
-
-`python3 experiments/robot_home.py` reads controller status without movement. `--inspect-pose` adds pose checks. These commands connect to controllers. Recovery/motion requires explicit flags; read the [terminal robot guide](../docs/guides/robot_home_guide.md) first. Help is hardware-free:
-
-```bash
+python3 experiments/run_inference.py --help
 python3 experiments/robot_home.py --help
 ```

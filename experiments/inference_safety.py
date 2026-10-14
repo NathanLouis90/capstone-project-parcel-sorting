@@ -62,3 +62,14 @@ def resolve_episode_length(task, requested, tasks):
     if length <= 0 or length > limit:
         raise ValueError('Requested length must be in 1..{} for {}'.format(limit, task))
     return length
+
+
+def resolve_task_metadata(task, tasks, recording_projects):
+    """Resolve arm-selection details for a recording or combined training task."""
+    metadata = recording_projects.get(task, tasks.get(task, {}))
+    if (metadata.get('policy_stage') not in ('A', 'B')
+            or metadata.get('medium') not in ('poly_mailer', 'carton', 'envelope')):
+        raise ValueError('Task requires policy_stage and medium for robot deployment: {}'.format(task))
+    if metadata['policy_stage'] == 'B' and metadata.get('bin_index') not in (0, 1):
+        raise ValueError('Dobot ACT B deployment requires a single bin_index (0 or 1)')
+    return metadata

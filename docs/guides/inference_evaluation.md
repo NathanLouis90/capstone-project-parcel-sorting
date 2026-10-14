@@ -1,77 +1,62 @@
-# Inference and evaluation
+# Run a model and evaluate the result
 
-A model succeeds only when the parcel reaches the required physical state. Validation loss and offline predictions are diagnostic evidence. This repository currently supports supervised single-stage real-robot trials with vendor ACT checkpoints, and offline evaluation with robomimic ACT/DP checkpoints. The conditioned robomimic robot runtime and autonomous A-to-B supervisor are not implemented.
+**Inference** means using a trained model to predict the robot's next actions. **Evaluation** means measuring whether those actions complete the parcel task.
 
-## Choose the checkpoint path
+| Checkpoint | What you can do now |
+| --- | --- |
+| Dobot ACT `.ckpt`, with its matching `config.pkl` and `dataset_stats.pkl` | Run one task on the real robot |
+| Robomimic ACT/DP `.pth` | Check predictions using recorded data; robot deployment is not implemented |
 
-| Checkpoint | Available evaluation | Entry point |
-| --- | --- | --- |
-| Vendor ACT `.ckpt`, with matching `config.pkl` and `dataset_stats.pkl` | Supervised real-robot A or specialist B-bin trial | `experiments/run_inference.py` |
-| Robomimic ACT/DP `.pth` | Held-out predictions and conditioned-B destination swap | `scripts/check_destination_swap.py` |
+Use the [Policy A guide](policy_a.md) or [Policy B guide](policy_b.md) for task-specific preparation and success criteria. Automatic switching between A and B is not implemented.
 
-Use [vendor training](act_training.md) for early shakedown or the separate B-bin baseline. Use [robomimic training](diffusion_policy_training.md) for the main unified A / conditioned B comparison. Do not pass one framework's checkpoint to the other runtime. Keep the training dataset, frozen split, configuration and normalization statistics with each checkpoint.
+## Run a Dobot ACT model
 
-## Offline checks first
+1. Select a [registered recording or combined task](act_training.md) and its trained checkpoint. Check that the task's parcel type, bin and maximum steps match the checkpoint's training configuration.
+2. Stop the recorder, camera preview and other camera owners. Start `python3 experiments/launch_nodes.py` in another terminal. Server startup accesses the robot and cycles its grippers.
+3. Follow the [homing guide](robot_home_guide.md) to put both arms at home. Close both grippers. Place A's parcel at receiving or B's parcel at staging; an envelope at staging needs an overhanging edge.
+4. Keep the camera positions/flips and starting pose consistent with recording. Verify `RUN_INFERENCE["robot_types"]` matches your robot before relying on its position checks. Stay near the physical emergency stop throughout the test.
 
-Run hardware-free checks without starting the robot server:
-
-```bash
-conda activate Xtrainer
-python3 -m pytest -q tests
-python3 experiments/run_inference.py --help
-python3 scripts/prepare_act_datasets.py --dataset-name first_set_poly_mailer_A
-```
-
-Confirm accepted demonstrations start/end near home, idle arms stay home/closed, and their measured rate is near 25 Hz. Review timing warnings: historical recordings may have been captured faster than the now-paced loop. Do not assume a model trained on those recordings will reproduce the same physical speed at 25 Hz.
-
-For a conditioned B `.pth`, run the [destination-swap check](diffusion_policy_training.md#offline-destination-swap-check) on held-out episodes. Investigate a small right-arm swap response, high action error or inference latency exceeding 40 ms. Averages can hide slow chunk-generation steps; the real-robot runtime reports each overrun. Offline swap results are diagnostic, not a physical success rate.
-
-## Prepare a supervised vendor trial
-
-1. Register the parcel task in `PREPARE_ACT_DATASETS["projects"]` with the correct stage, medium, bin and training `episode_len`. Keep the matching camera framing/flips and checkpoint files. The runner refuses unregistered parcel metadata, missing checkpoint files and a rollout longer than the configured training horizon. Verify the task's horizon also matches the saved checkpoint training configuration; selecting a task does not automatically prove that correspondence.
-2. Clear the workspace and keep the physical emergency stop within reach. Stop recording, camera preview and other camera owners. Start the robot server in its own terminal using `python3 experiments/launch_nodes.py`; startup accesses hardware and can move followers/cycle grippers.
-3. Home both followers using the [terminal robot guide](robot_home_guide.md), following its explicit motion flags. Confirm both grippers closed. Place A's parcel at receiving, or B's parcel at staging. Stage envelopes with an overhanging edge.
-4. Verify `RUN_INFERENCE["robot_types"]` matches each actual controller before relying on forward kinematics. Configure limits only from reviewed geometry. The legacy width formula conflicts with driver commands; inference checks the full possible jaw span conservatively. FK endpoint bounds do not prove that an entire motion path is collision-free.
-5. Confirm the initial gripper observations match your recordings. Defaults are `[0.99114583, 0.97942708]`, measured from existing first frames; the closed command is `1.0`. The driver does not provide trustworthy live gripper observations through its joint-state getter. New calibration/datasets may require updating these values.
-
-Launch one explicitly chosen A checkpoint:
+Set the values for your trained model, then run from the repository root in `Xtrainer`:
 
 ```bash
+TASK="your_registered_task"
+CHECKPOINT_DIR="./ckpt/your_model_name"
 PYTHONPATH=. python3 experiments/run_inference.py \
-  --task-name first_set_poly_mailer_A \
-  --checkpoint-dir ./ckpt/act_first_set_poly_mailer_A \
-  --model-name policy_best.ckpt --episode-len 400 --show-img
+  --task-name "$TASK" --checkpoint-dir "$CHECKPOINT_DIR" \
+  --model-name policy_best.ckpt --show-img
 ```
 
-For the vendor B-bin-0 baseline, choose its corresponding trained task/checkpoint:
+The runner loads the model, checks that both arms are at home, and runs up to the task's configured `episode_len`. An optional `--episode-len` can shorten the run but cannot exceed that limit. A completed run length is not proof that the task succeeded.
 
-```bash
-PYTHONPATH=. python3 experiments/run_inference.py \
-  --task-name first_set_poly_mailer_B_bin_0 \
-  --checkpoint-dir ./ckpt/act_first_set_poly_mailer_B_bin_0 \
-  --model-name policy_best.ckpt --episode-len 400 --show-img
-```
+For poly mailer/carton A, only the left arm runs. Envelope A uses both arms. B uses only the right arm. Predictions for an unused arm are ignored, and its target stays home/closed. For B, select the checkpoint trained for the intended bin; this runner does not supply a bin input to the Dobot model.
 
-Use B-bin-1's matching files for bin 1. This baseline selects a checkpoint manually; it does not feed destination into the vendor model. Envelope A uses both arms; mailer/carton A enables only the left arm, and B enables only the right. The unused arm's predictions are ignored and its target remains home/closed. Both followers are checked for home before launch. Model loading happens before camera/robot access.
+Press `q` in the preview or use Ctrl+C to end the process. Neither replaces the physical emergency stop. Inspect the arms and parcel before recovery; the runner does not automatically return home after the test.
 
-Recording and inference share `CONTROL["control_period_ms"] = 40` in `experiments/experiments_config.py`. Every iteration sleeps for its remaining period or warns on an overrun. Review videos use the same period. Inference prints step/overrun totals on exit. It checks finite action shape, absolute joint increments, J3/J4 limits and commanded jaw-tip workspace bounds before policy motion. A failure stops further policy commands; it does not trigger automatic recovery or guarantee an immediate hardware emergency stop. Use the physical stop when required.
+## Understand safety and timing messages
 
-Press `q` in the preview to end a supervised rollout. Use Ctrl+C to interrupt the process. A finished horizon only means the loop ended: inspect the parcel and arm positions before recovery. The runner does not return home automatically after a trial, and a software interruption does not replace the hardware stop procedure.
+The runner refuses invalid numeric predictions, large changes in joint angle, angles outside configured limits, and proposed gripper-tip positions outside the allowed workspace. “J3/J4” refers to the third and fourth joints of each arm. A software refusal stops further policy commands; use the hardware stop for immediate emergency stopping.
 
-## Score physical trials
+Limits and initial gripper values are in `RUN_INFERENCE` in `experiments/experiments_config.py`. Existing first-frame gripper observations were `[0.99114583, 0.97942708]`; the closed command is `1.0`. Check these against new recordings/calibration. The position calculation checks the full possible jaw span because the older gripper-width formula disagrees with the driver convention. These checks do not prove an entire movement path is collision-free.
 
-Fix the evaluation protocol before comparing algorithms: same held-out parcels, media/bin balance, starting-pose distribution, cameras, control period and trial count. Keep evaluation parcels/demonstrations outside training. Use a consistent number of trials in every medium × destination cell and record all attempts, including safety stops, no-reads and timeouts. A failed attempt followed by a recovery is not an autonomous success.
+Recording and inference aim for one step every 40 ms, or 25 Hz. An **overrun** means a step took longer than 40 ms. The runner prints overruns and a total at exit. Review recordings captured at another rate before testing their models: the robot may move at a different speed from the demonstrations.
 
-For A, count success only when the parcel is acquired, the label is presented without searching/wiggling, the parcel is released correctly at staging and both arms return home. Envelope staging must leave a graspable overhanging edge. Report scan read success separately when the scanner is used.
+## Record the result
 
-For B, count success only when the right arm grasps the staged parcel, releases it inside the intended bin and returns home while the left remains home/closed. Report correct-bin success by medium and bin. Wrong-bin placement is a failure even if pickup succeeded.
+Choose the same test parcels, starting-pose variations and number of attempts when comparing models. Keep test examples out of training. For your data-size test, train models at the chosen milestones, such as 25/50/75/100 recorded demonstrations, then apply the same test procedure to each.
 
-For a future complete A-to-B cycle, additionally require a valid scan, reset of both arms/grippers to the training state, a reset of B's policy buffers and the correct fixed destination. No-read cycles must stop without guessing. Until that supervisor and the robomimic robot adapter exist, manual A/B switching measures stage performance rather than autonomous full-cycle success.
+| Task | Count success only when |
+| --- | --- |
+| A | The parcel is picked up, the label is presented steadily, the parcel is released correctly at staging, and both arms return home. Envelopes must leave an overhanging edge. |
+| B | The parcel is grasped from staging, released inside the intended bin, and the right arm returns home while the left stays home/closed. |
 
-Keep a CSV outside tracked source files, for example `ckpt/evaluation/trials.csv`, with:
+Record barcode-read success separately when using the scanner. Wrong-bin placement, safety stops, timeouts and manual help are failures for an autonomous attempt. Log all attempts, not only successful ones.
+
+A useful CSV under `ckpt/evaluation/` can record:
 
 ```text
-trial_id,cycle_id,algorithm,checkpoint,policy_stage,medium,intended_bin,scan_token,scan_valid,grasp_success,staging_success,overhang_ok,correct_bin,release_success,returned_home,idle_arm_ok,duration_s,steps,overruns,operator_intervention,outcome,failure_reason
+trial_id,checkpoint,accepted_recordings,training_episodes,validation_episodes,policy_stage,medium,intended_bin,scan_success,task_success,manual_help,duration_s,overruns,failure_reason
 ```
 
-Compute success as successful trials divided by all attempted trials. Report numerator/denominator per medium/bin, overall success, intervention rate, no-read rate, wrong-bin rate, timing and overrun counts. Keep physical evaluation videos and failed trials for review. Compare specialist A only as the O6 ablation and separate B-bin policies as the baseline.
+Report successful attempts divided by all attempts, separately for each parcel type and B bin. Keep videos of failures. Manual switching between A and B measures stage performance; it does not establish autonomous full-cycle success.
+
+For robomimic B, the [requested-bin check](act_dp_training.md#5-check-whether-b-uses-the-requested-bin) compares predictions on recorded data after changing only the bin input. It helps diagnose whether the model uses that input; it is not a physical success test.

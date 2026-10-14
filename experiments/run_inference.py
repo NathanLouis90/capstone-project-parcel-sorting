@@ -1,4 +1,4 @@
-"""Run one explicitly selected vendor ACT task on the robot."""
+"""Run one explicitly selected Dobot ACT task on the robot."""
 import argparse
 from pathlib import Path
 import sys
@@ -9,7 +9,9 @@ import numpy as np
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 from experiments.experiments_config import CONTROL, RUN_INFERENCE
-from experiments.inference_safety import validate_action, resolve_episode_length, prepare_vendor_action
+from experiments.inference_safety import (
+    validate_action, resolve_episode_length, prepare_vendor_action, resolve_task_metadata,
+)
 from scripts.control_timing import wait_period
 from scripts.scripts_config import MANIPULATE_UTILS, PREPARE_ACT_DATASETS
 
@@ -30,9 +32,7 @@ def main(args):
     # Reject invalid requests and load the checkpoint before opening any hardware.
     from ModelTrain.constants import TASK_CONFIGS
     episode_len = resolve_episode_length(args.task_name, args.episode_len, TASK_CONFIGS)
-    project = PREPARE_ACT_DATASETS['projects'].get(args.task_name)
-    if project is None:
-        raise ValueError('Register parcel task metadata in PREPARE_ACT_DATASETS before deployment')
+    project = resolve_task_metadata(args.task_name, TASK_CONFIGS, PREPARE_ACT_DATASETS['projects'])
     checkpoint_dir = args.checkpoint_dir.expanduser().resolve()
     if not (checkpoint_dir / args.model_name).is_file():
         raise ValueError('Missing checkpoint: {}'.format(checkpoint_dir / args.model_name))
