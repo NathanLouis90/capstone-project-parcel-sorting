@@ -10,7 +10,8 @@ import sys
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from barcode_scanning.recording import inspect_episode, write_metadata
+from barcode_scanning.recording import inspect_episode
+from scripts.review_episodes import set_review_status
 from barcode_scanning.barcode_scanning_config import RECORDING
 from scripts.dataset_checks import episode_warnings
 from scripts.scripts_config import PREPARE_ACT_DATASETS
@@ -34,12 +35,8 @@ def main(argv=None):
     if args.review_episode is not None or args.review_status is not None:
         if args.review_episode is None or args.review_status is None or args.convert:
             parser.error("Use --review-episode and --review-status together without --convert")
-        if args.review_status == "accepted":
-            inspect_episode(args.review_episode)
-        path = args.review_episode / RECORDING["metadata_filename"]
-        metadata = json.loads(path.read_text())
-        metadata["review_status"] = args.review_status
-        write_metadata(path, metadata)
+        matched = set_review_status(args.review_episode, args.review_status)
+        print("Synchronized {} matching HDF5 review statuses".format(matched))
         print("{}: {}".format(args.review_episode, args.review_status))
         return 0
     root = args.root.expanduser().resolve()

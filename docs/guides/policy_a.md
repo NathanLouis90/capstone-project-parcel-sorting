@@ -48,11 +48,11 @@ Edit `scripts/scripts_config.py` and paste the Python entry below inside its exi
 },
 ```
 
-Choose `episode_len` from the length of your demonstrations. Follow [dataset preparation](dataset_preparation.md) to check each episode, mark successful ones accepted and convert them:
+Choose `episode_len` from the length of your demonstrations. Follow [dataset preparation](dataset_preparation.md) to check episodes, use one-key video review to accept/reject them, and convert accepted episodes. Existing converted files get their review status synchronized automatically:
 
 ```bash
 python3 scripts/prepare_act_datasets.py --dataset-name "$PROJECT"
-# After reviewing and accepting individual episodes:
+# Only if the project has not already been converted:
 python3 scripts/prepare_act_datasets.py --dataset-name "$PROJECT" --convert
 ```
 

@@ -202,6 +202,8 @@ def main(root_dir, dataset_name, date_collect, idx):
     with h5py.File(dataset_path + '.hdf5', 'x', rdcc_nbytes=SCRIPT_COLLECT2TRAIN["hdf5_cache_bytes"]) as root:
         root.attrs['sim'] = is_sim
         root.attrs['compress'] = COMPRESS
+        root.attrs['jpeg_quality'] = SCRIPT_COLLECT2TRAIN['jpeg_quality']
+        root.attrs['mirror_state_multiply'] = MIRROR_STATE_MULTIPLY
         obs = root.create_group('observations')
         write_hdf5_metadata(root, episode_metadata, max_timesteps)
         image = obs.create_group('images')

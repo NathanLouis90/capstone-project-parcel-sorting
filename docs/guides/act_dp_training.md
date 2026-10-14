@@ -76,6 +76,8 @@ python3 scripts/convert_to_robomimic.py \
 
 Run only one of these conversion commands. Later variable-based commands still need their variables set.
 
+If every file is skipped as "not accepted", use the [review tool](dataset_preparation.md#review-all-episodes-with-one-command) to record your decisions and synchronize the existing HDF5 files. Merely creating HDF5 files does not mark episodes accepted.
+
 The converter combines accepted episodes, turns compressed camera images into RGB images, and keeps the joint states and demonstrated actions. B's bin input stays constant throughout an episode: `[1, 0]` for bin 0 or `[0, 1]` for bin 1. It refuses a conditioned-B dataset with only one bin.
 
 A **split** divides accepted recordings into two groups:

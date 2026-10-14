@@ -45,7 +45,37 @@ Preparation also reports warnings for review:
 
 Joint limits are in `RUN_INFERENCE` in `experiments/experiments_config.py`. For example, the right arm's fourth joint must stay below `0.6` radians. Do not widen limits solely to suppress a warning; inspect the demonstrated motion and clearance.
 
-Review the raw camera images in frame order, or an existing review video. Reject failed grasping, wrong-bin placement, interrupted motion and searching/wiggling at the scanner. Save your decision for each episode:
+### Review all episodes with one command
+
+Run this Bash command after setting `PROJECT` above. It plays the three raw camera views for each unreviewed episode:
+
+```bash
+python3 scripts/review_episodes.py --project "datasets/$PROJECT"
+```
+
+Click the video window so it receives your key presses. Use **a** to accept, **r** to reject, **s** to skip, **p** to replay, **space** to pause/resume, or **q** to quit. At the end, the last frame stays visible until you choose. Decisions are saved immediately; running the command again resumes with unreviewed episodes. Add `--include-reviewed` to revisit earlier choices.
+
+The tool saves the decision in the raw episode and any matching HDF5 files. Before accepting an existing conversion, it verifies episode details, joint/action data and camera data against the raw recording. It changes review fields only; camera and action datasets are not rewritten. If data or conversion settings differ, it refuses synchronization and asks you to rebuild that conversion. Playback size and speed are in `REVIEW_EPISODES` in `scripts/scripts_config.py`.
+
+No project registration is needed just to review a folder. Preparation and Dobot training still need the registration described above. With no graphical display, use `--terminal-only` after watching the existing videos elsewhere; it asks for decisions in the terminal.
+
+### Batch decisions for recordings you already reviewed
+
+If you have already watched the selected recordings and confirmed they all succeeded, you can save their decisions together:
+
+```bash
+python3 scripts/review_episodes.py --project "datasets/$PROJECT" --set-status accepted
+```
+
+This explicitly marks the selected unreviewed episodes accepted; it does not judge physical success automatically. Prior accepted/rejected decisions are left alone by default. Use `--episodes EPISODE_ID_1 EPISODE_ID_2` to select particular episode folder names. Add `--dry-run` to check the operation without changing files. For a batch operation, all selected files are checked before any decision is written.
+
+If raw episodes already contain your decisions but the HDF5 files still say unreviewed, synchronize them without choosing new statuses:
+
+```bash
+python3 scripts/review_episodes.py --project "datasets/$PROJECT" --sync-review-status
+```
+
+The individual command remains available and now also updates matching HDF5 review fields:
 
 ```bash
 python3 scripts/prepare_act_datasets.py \
@@ -53,9 +83,11 @@ python3 scripts/prepare_act_datasets.py \
   --review-status accepted
 ```
 
-Use `rejected` instead of `accepted` for a failed episode. Repeat for each episode; this command marks only the selected one.
+Use `rejected` for failed episodes. Review decisions are yours; file checks do not prove successful grasping or placement. In particular, reject wrong-bin placement, interrupted motion and searching/wiggling at the scanner.
 
 ## 3. Convert accepted recordings
+
+If matching HDF5 files already exist and the review tool synchronized them, skip this step and continue to training or robomimic conversion. For recordings that have not been converted yet, run:
 
 ```bash
 python3 scripts/prepare_act_datasets.py --dataset-name "$PROJECT" --convert
@@ -63,7 +95,9 @@ python3 scripts/prepare_act_datasets.py --dataset-name "$PROJECT" --convert
 
 Only accepted episodes are converted. Outputs are HDF5 files in `train_data/`, videos in `output_videos/` and logs in `conversion_logs/`. Review the videos before training.
 
-Finish collecting the project before conversion. The helper refuses existing output files rather than replacing them. For another collection, use another project folder. If review decisions change after conversion, rebuild in a fresh output project; changing a raw review status does not update an existing HDF5 file.
+Finish collecting the project before conversion. The conversion helper refuses existing output files rather than replacing them. For another collection, use another project folder. For review-status changes alone, use the review tool to synchronize existing conversions; rebuilding images is unnecessary when its data checks pass. If the raw recording itself changed, rebuild in a fresh output project. If you already created a robomimic dataset/split, create a new one after changing review decisions.
+
+Robomimic conversion excludes rejected episodes. The Dobot ACT trainer reads all files in its training folder, so rebuild an accepted-only training project before retraining with that software if existing converted files include rejected episodes.
 
 Without `--dataset-name`, the tool selects every registered project. A `--root PATH` override affects preparation only; update the configured root too if training from that location.
 

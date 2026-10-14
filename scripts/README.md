@@ -30,6 +30,7 @@ Use the [Dobot setup manual](../docs/provided_dobot/Dobot%20X-Trainer%20%28Light
 | `5_camera_read.py` | Shows the three camera views so you can check their position and orientation |
 | `count_episodes.py` | Counts recorded demonstrations in each project and reports complete or interrupted recordings |
 | `prepare_act_datasets.py` | Checks a recording project, saves review decisions, and converts accepted recordings to HDF5 training files and videos |
+| `review_episodes.py` | Plays recordings for one-key review, supports batch decisions, and synchronizes review status with existing HDF5 files |
 | `convert_to_robomimic.py` | Combines converted projects into one dataset for ACT or Diffusion Policy |
 | `configure_robomimic.py` | Creates ACT and DP training configurations from that dataset |
 | `check_destination_swap.py` | Checks whether changing the requested bin changes a trained model's predictions, using recorded data |

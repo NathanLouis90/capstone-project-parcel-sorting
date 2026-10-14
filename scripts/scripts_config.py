@@ -181,3 +181,11 @@ ROBOMIMIC = {
     "swap_max_episodes": 12,
     "swap_max_steps": 100,
 }
+
+# review_episodes.py: offline playback and review decisions.
+REVIEW_EPISODES = {
+    "preview_camera_size": [240, 320],  # Height, width in pixels per camera.
+    "playback_speed": 1.0,
+    "fallback_period_ms": CONTROL["control_period_ms"],
+    "window_name": "Episode review: a accept, r reject, s skip, p replay, space pause, q quit",
+}

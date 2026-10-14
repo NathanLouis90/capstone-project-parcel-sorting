@@ -50,11 +50,11 @@ Edit `scripts/scripts_config.py` and paste the Python entry below inside its exi
 },
 ```
 
-Register the other bin separately with `bin_index=1`. Choose recording limits from your actual episode lengths. Follow [dataset preparation](dataset_preparation.md) to review, accept and convert episodes in each project:
+Register the other bin separately with `bin_index=1`. Choose recording limits from your actual episode lengths. Follow [dataset preparation](dataset_preparation.md) to review episodes with one-key decisions, synchronize existing HDF5 review status, and convert accepted episodes in each project:
 
 ```bash
 python3 scripts/prepare_act_datasets.py --dataset-name "$PROJECT"
-# After reviewing and accepting individual episodes:
+# Only if the project has not already been converted:
 python3 scripts/prepare_act_datasets.py --dataset-name "$PROJECT" --convert
 ```
 

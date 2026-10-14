@@ -45,7 +45,7 @@ These values are starting settings, not required settings:
 
 `episode_len`, camera inputs and `train_ratio` come from the registered task, not this command. Always specify the task and output directory: the trainer's defaults refer to an old cube example. Use `ModelTrain/model_train.py --help` for additional arguments.
 
-Outputs include `policy_best.ckpt`, `policy_last.ckpt`, `config.pkl`, `dataset_stats.pkl` and loss plots. Keep the configuration and statistics with the checkpoint. A low validation loss does not prove physical task success.
+Outputs include `policy_best.ckpt`, `policy_last.ckpt`, `config.pkl`, `dataset_stats.pkl` and loss plots. Keep the configuration and statistics with the checkpoint. A low validation loss does not prove physical task success. This trainer reads all HDF5 files in its training folder; if review rejects an already-converted episode, rebuild an accepted-only project before retraining.
 
 ## 3. Add more recordings
 
