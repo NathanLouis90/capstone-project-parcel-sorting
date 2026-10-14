@@ -1,7 +1,7 @@
 from pathlib import Path as _ConfigPath
 import sys as _config_sys
 _config_sys.path.insert(0, str(_ConfigPath(__file__).resolve().parent))
-from experiments_config import RUN_CONTROL
+from experiments_config import RUN_CONTROL, CONTROL
 
 import sys
 import os
@@ -146,62 +146,7 @@ def run_thread_cam(rs_cam, which_cam):
 
 
 
-def dh_transformation_matrix(theta, d, a, alpha):
-    """
-    Create the DH transformation matrix
-    """
-    cos_theta = np.cos(theta)
-    sin_theta = np.sin(theta)
-    cos_alpha = np.cos(alpha)
-    sin_alpha = np.sin(alpha)
-    return np.array([
-        [cos_theta, -sin_theta * cos_alpha, sin_theta * sin_alpha, a * cos_theta],
-        [sin_theta, cos_theta * cos_alpha, -cos_theta * sin_alpha, a * sin_theta],
-        [0, sin_alpha, cos_alpha, d],
-        [0, 0, 0, 1]
-    ])
-
-def claw_width(coef):
-    """
-    Calculate the claw width
-    """
-    claw_servo = 2.3818 - coef * 1.5401
-    cos_claw_servo = np.cos(claw_servo)
-    claw_wid = 0.03 * cos_claw_servo + 0.5 * np.sqrt(0.0036 * cos_claw_servo ** 2 + 0.0028)
-    return claw_wid
-
-def forward_kinematics(q0, q1, q2, q3, q4, q5, y, r_type):
-    """
-    Compute the forward kinematics
-    """
-    if r_type == "Nova 2":
-        dh_params = [
-            (q0, 0.2234, 0, np.pi / 2),
-            (q1 - np.pi / 2, 0, -0.280, 0),
-            (q2, 0, -0.225, 0),
-            (q3 - np.pi / 2, 0.1175, 0, np.pi / 2),
-            (q4, 0.120, 0, -np.pi / 2),
-            (q5, 0.088, 0, 0)
-        ]
-    if r_type == "Nova 5":
-        dh_params = [
-            (q0, 0.240, 0, np.pi / 2),
-            (q1 - np.pi / 2, 0, -0.400, 0),
-            (q2, 0, -0.330, 0),
-            (q3 - np.pi / 2, 0.135, 0, np.pi / 2),
-            (q4, 0.120, 0, -np.pi / 2),
-            (q5, 0.088, 0, 0)
-        ]
-
-    t = np.eye(4)
-    for params in dh_params:
-        t = np.dot(t, dh_transformation_matrix(*params))
-    t_tool = np.eye(4)
-    t_tool[:3, 3] = np.array([0, y, 0.2])
-    t_final = np.dot(t, t_tool)
-    pos = t_final[:3, 3]
-    return pos
-
+from experiments.kinematics import claw_width, forward_kinematics
 
 def calculate_vel_pos(action, last_action, total_time, r_type):
     """
@@ -390,7 +335,7 @@ def _run_control(args, recording_session=None):
 
     last_recording = False
     while 1:
-        tic = time.time()
+        tic = time.monotonic()
         with recording_lock:
             recording = bool(what_to_do[0, 2])
             episode_timestamp = dt_time[0]
@@ -501,8 +446,14 @@ def _run_control(args, recording_session=None):
             if key == ord('s') and recording_session is not None:
                 recording_session.rearm()
 
-        toc = time.time()
-        total_time = toc-tic
+        elapsed = time.monotonic() - tic
+        if elapsed > CONTROL["control_period_ms"] / 1000:
+            print("[Warn]: recording control period overrun: {:.1f} ms".format(elapsed * 1000))
+            if recording_session is not None and recording_session.active:
+                recording_session.metadata["control_overruns"] += 1
+        wait_period(CONTROL["control_period_ms"], tic, clock=time.monotonic)
+        # Include pacing in the previous sample interval used by FK velocity checks.
+        total_time = time.monotonic() - tic
         print("total time: ", total_time)
 
 

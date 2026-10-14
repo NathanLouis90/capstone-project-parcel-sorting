@@ -52,8 +52,14 @@ class ACT(BC_VAE):
         for k in self.proprio_keys:
             self.proprio_dim += self.obs_key_shapes[k][0]
 
+        from pathlib import Path
+        import sys
+        backend = Path(__file__).resolve().parents[3] / "third_party" / "act"
+        sys.path.insert(0, str(backend))
         from act.detr.main import build_ACT_model_and_optimizer
-        policy_config = {'num_queries': self.chunk_size,
+        policy_config = {'device': self.device,
+                         'pretrained_backbone': self.algo_config.act.pretrained_backbone,
+                         'num_queries': self.chunk_size,
                          'hidden_dim': self.algo_config.act.hidden_dim,
                          'dim_feedforward': self.algo_config.act.dim_feedforward,
                          'backbone': self.algo_config.act.backbone,
@@ -128,7 +134,7 @@ class ACT(BC_VAE):
             images.append(image)
         images = torch.cat(images, axis=1)
 
-        env_state = torch.zeros([qpos.shape[0], 10]).cuda()  # this is not used
+        env_state = torch.zeros([qpos.shape[0], 10], device=qpos.device)  # this is not used
 
         actions = batch['actions']
         is_pad = batch['obs']['pad_mask'] == 0  # from 1.0 or 0 to False and True
@@ -174,7 +180,7 @@ class ACT(BC_VAE):
             images.append(image)
         images = torch.cat(images, axis=1)
 
-        env_state = torch.zeros([qpos.shape[0], 10]).cuda() # not used
+        env_state = torch.zeros([qpos.shape[0], 10], device=qpos.device) # not used
 
         if self._step_counter % self.query_frequency == 0:
             a_hat, is_pad_hat, (mu, logvar) = self.nets["policy"](qpos, images, env_state)

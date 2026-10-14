@@ -119,7 +119,7 @@ class SequenceDataset(torch.utils.data.Dataset):
 
         # set up lang and language embedding
         self.lang = lang
-        self._lang_emb = LangUtils.get_lang_emb(self.lang)
+        self._lang_emb = LangUtils.get_lang_emb(self.lang) if "lang_emb" in self.obs_keys else None
 
         self.n_frame_stack = frame_stack
         assert self.n_frame_stack >= 1
@@ -339,13 +339,14 @@ class SequenceDataset(torch.utils.data.Dataset):
 
         # Run through all trajectories. For each one, compute minimal observation statistics, and then aggregate
         # with the previous statistics.
+        keys = [k for k in self.obs_keys if ObsUtils.key_is_obs_modality(k, "low_dim")]
         ep = self.demos[0]
-        obs_traj = {k: self.hdf5_file["data/{}/obs/{}".format(ep, k)][()].astype('float32') for k in self.obs_keys}
+        obs_traj = {k: self.hdf5_file["data/{}/obs/{}".format(ep, k)][()].astype('float32') for k in keys}
         obs_traj = ObsUtils.process_obs_dict(obs_traj)
         merged_stats = _compute_traj_stats(obs_traj)
         print("SequenceDataset: normalizing observations...")
         for ep in LogUtils.custom_tqdm(self.demos[1:]):
-            obs_traj = {k: self.hdf5_file["data/{}/obs/{}".format(ep, k)][()].astype('float32') for k in self.obs_keys}
+            obs_traj = {k: self.hdf5_file["data/{}/obs/{}".format(ep, k)][()].astype('float32') for k in keys}
             obs_traj = ObsUtils.process_obs_dict(obs_traj)
             traj_stats = _compute_traj_stats(obs_traj)
             merged_stats = _aggregate_traj_stats(merged_stats, traj_stats)
@@ -540,7 +541,8 @@ class SequenceDataset(torch.utils.data.Dataset):
 
         # language embedding
         T = meta["actions"].shape[0]
-        meta["obs"]["lang_emb"] = np.tile(self._lang_emb, (T, 1))
+        if self._lang_emb is not None:
+            meta["obs"]["lang_emb"] = np.tile(self._lang_emb, (T, 1))
 
         return meta
 
@@ -964,7 +966,8 @@ class R2D2Dataset(SequenceDataset):
 
         # language embedding
         T = meta["actions"].shape[0]
-        meta["obs"]["lang_emb"] = np.tile(self._lang_emb, (T, 1))
+        if self._lang_emb is not None:
+            meta["obs"]["lang_emb"] = np.tile(self._lang_emb, (T, 1))
 
         return meta
 

@@ -27,3 +27,7 @@ __pycache__/
 .env
 .env.*
 
+
+# Editor swap files
+*.swp
+*.swo

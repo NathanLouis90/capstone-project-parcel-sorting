@@ -461,6 +461,22 @@ def get_processed_shape(obs_modality, input_shape):
     return list(process_obs(obs=np.zeros(input_shape), obs_modality=obs_modality).shape)
 
 
+def normalize_obs_dict(observations, stats):
+    """Apply training mean/std to registered low-dimensional keys only."""
+    result = dict(observations)
+    for key, statistics in stats.items():
+        if key not in result:
+            continue
+        value = result[key]
+        mean = statistics["mean"][0]
+        std = statistics["std"][0]
+        if isinstance(value, torch.Tensor):
+            mean = torch.as_tensor(mean, dtype=value.dtype, device=value.device)
+            std = torch.as_tensor(std, dtype=value.dtype, device=value.device)
+        result[key] = (value - mean) / std
+    return result
+
+
 def normalize_dict(dict, normalization_stats):
     """
     Normalize dict using the provided "offset" and "scale" entries 

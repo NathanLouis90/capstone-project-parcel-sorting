@@ -108,22 +108,19 @@ def load_data_for_training(config, obs_keys):
 
     # load the dataset into memory
     if config.experiment.validate:
-        assert not config.train.hdf5_normalize_obs, "no support for observation normalization with validation data yet"
-        assert (train_filter_by_attribute is not None) and (valid_filter_by_attribute is not None), \
-            "did not specify filter keys corresponding to train and valid split in dataset" \
-            " - please fill config.train.hdf5_filter_key and config.train.hdf5_validation_filter_key"
-        train_demo_keys = FileUtils.get_demos_for_filter_key(
-            hdf5_path=os.path.expanduser(config.train.data),
-            filter_key=train_filter_by_attribute,
-        )
-        valid_demo_keys = FileUtils.get_demos_for_filter_key(
-            hdf5_path=os.path.expanduser(config.train.data),
-            filter_key=valid_filter_by_attribute,
-        )
-        assert set(train_demo_keys).isdisjoint(set(valid_demo_keys)), "training demonstrations overlap with " \
-            "validation demonstrations!"
+        assert train_filter_by_attribute is not None and valid_filter_by_attribute is not None
+        for dataset_cfg in config.train.data:
+            if dataset_cfg.get("filter_key") is not None:
+                raise ValueError("Per-dataset filter_key overrides train/valid filters")
+            path = os.path.expanduser(dataset_cfg["path"])
+            train_keys = FileUtils.get_demos_for_filter_key(path, train_filter_by_attribute)
+            valid_keys = FileUtils.get_demos_for_filter_key(path, valid_filter_by_attribute)
+            if not train_keys or not valid_keys or not set(train_keys).isdisjoint(valid_keys):
+                raise ValueError("Train/valid filters must be nonempty and disjoint: " + path)
         train_dataset = dataset_factory(config, obs_keys, filter_by_attribute=train_filter_by_attribute)
         valid_dataset = dataset_factory(config, obs_keys, filter_by_attribute=valid_filter_by_attribute)
+        # Validation must use training action statistics, never held-out min/max.
+        valid_dataset.set_action_normalization_stats(train_dataset.get_action_normalization_stats())
     else:
         train_dataset = dataset_factory(config, obs_keys, filter_by_attribute=train_filter_by_attribute)
         valid_dataset = None

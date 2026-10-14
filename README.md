@@ -21,7 +21,7 @@ Arrange the receiving area, barcode reading station, staging area and destinatio
 For a new PC, follow sections 3–4 of the included [Dobot X-Trainer (Lightweight Base) User Guide V1.1](docs/provided_dobot/Dobot%20X-Trainer%20%28Lightweight%20Base%29%20User%20Guide%20V1.1_20240731_en.pdf). See the [Operation Guide and FAQ](docs/provided_dobot/Dobot%20X-Trainer%20Operation%20Guide%20and%20FAQ.pdf) for troubleshooting.
 
 1. **Install the base software.** Use the guide's Ubuntu 20.04 baseline and install [Anaconda](https://www.anaconda.com/download). For training, install an NVIDIA driver compatible with the GPU, CUDA 11.8 and matching cuDNN following the guide. Use the environment below because required vendor modules are supplied as Python 3.8 bytecode.
-2. **Clone the repository and install dependencies.** Install Git and build tools, authenticate with a GitHub account that has access to this repository, then run:
+2. **Clone the repository and install dependencies.** Install Git and build tools, then clone the public repository:
 
    ```bash
    sudo apt update
@@ -34,7 +34,8 @@ For a new PC, follow sections 3–4 of the included [Dobot X-Trainer (Lightweigh
    python3 -m pip install -r requirements.txt
    python3 -m pip install -e third_party/DynamixelSDK/python
    python3 -m pip install -e ModelTrain/detr
-   python3 -m pip install -e robomimic-r2d2
+   python3 -m pip install -r requirements-robomimic.txt
+   python3 -m pip install --no-deps -e robomimic-r2d2
    python3 -c "import torch; print('CUDA available:', torch.cuda.is_available())"
    ```
 
@@ -45,8 +46,11 @@ For a new PC, follow sections 3–4 of the included [Dobot X-Trainer (Lightweigh
 See the [scripts README](scripts/README.md) for device settings and helper details, then follow **Quick startup** below.
 
 ## System architecture
-**Policy A** acquires an item, presents it at the reading station, stages it, and retracts. **Policy B** reacquires it and places it in the destination bin.
-**To be filled**
+One unified **Policy A** handles all three media: the left arm picks, presents, stages and returns home for poly mailers and cartons. For envelopes, the left arm slides an edge toward the right arm and returns home before the right arm grasps, presents and stages the envelope with an overhanging edge. The arms move sequentially.
+
+One destination-conditioned **Policy B** uses the right arm to sort all media into either bin. Its destination is constant throughout an episode: `[1, 0]` for bin 0, `[0, 1]` for bin 1. Idle arms stay home with closed grippers. Scanner data never enters policy observations; a future supervisor resolves destinations and handles the A/B transition.
+
+The main ACT versus Diffusion Policy comparison uses the same robomimic-r2d2 loader, normalization and frozen split. Medium-specific A policies are the O6 ablation; separate B-bin models are a specialist baseline. Dobot's vendor ACT trainer remains available for shakedown runs.
 
 ## File structure and ownership
 
@@ -81,11 +85,13 @@ Startup cycles the grippers and moves both followers, even for a one-arm demonst
 
 ## Dataset preparation and training
 
-Register the recording folders and their medium, policy stage and destination in [scripts/scripts_config.py](scripts/scripts_config.py). Validate completed episodes with `scripts/prepare_act_datasets.py`, then add `--convert` to create HDF5 training files and review videos. Review the demonstrations before training; existing HDF5 files are not overwritten.
+Register recording projects and per-project episode limits in [scripts/scripts_config.py](scripts/scripts_config.py). Recording remains separate by stage and B bin. Review raw demonstrations, mark accepted episodes with `scripts/prepare_act_datasets.py`, then convert them to vendor HDF5. Preparation reports timing, home/idle-arm and joint-limit warnings; existing outputs are never overwritten.
 
-Train each registered task with `ModelTrain/model_train.py` in the Python 3.8 `Xtrainer` environment with CUDA available. Keep A, B bin 0 and B bin 1 separate, use a fresh checkpoint folder for each run, and retain its configuration and dataset statistics with the model.
+For the main comparison, combine projects into `policy_A_unified` or `policy_B_conditioned`, then generate matched ACT and DP configurations with one frozen split. Follow the [ACT and Diffusion Policy training guide](docs/guides/diffusion_policy_training.md). [Vendor ACT](docs/guides/act_training.md) is for shakedown and the separate-bin B baseline; its loader ignores destination observations.
 
-Read the [scripts README](scripts/README.md) for preparation details and the [ACT training guide](docs/guides/act_training.md) for training arguments and examples.
+## Inference and evaluation
+
+Follow the [inference and evaluation guide](docs/guides/inference_evaluation.md) for checkpoint selection, home-state checks, supervised vendor ACT trials and success metrics. Vendor deployment requires explicit `--task-name` and `--checkpoint-dir`; recording and inference share a 40 ms period (25 Hz). Run the offline destination-swap check before evaluating conditioned B. Robomimic checkpoints currently support offline evaluation only; robot deployment and the autonomous A-to-B supervisor are not implemented.
 
 ## Version history
 

@@ -47,7 +47,7 @@ Edit `scripts_config.py`, then restart the affected program. `SCRIPT_1_FIND_PORT
 | `train_ratio` | Training fraction for a single-folder task |
 | `camera_names` | ACT camera inputs |
 
-For a second set, copy the first-set entries and rename the copies to `second_set_poly_mailer_A`, `second_set_poly_mailer_B_bin_0`, and `second_set_poly_mailer_B_bin_1`. Retain A/None, B/0 and B/1 respectively. Carton projects use `medium="carton"`. Keep both sets registered to train them individually, or list only the projects you currently want to prepare. Removing a configuration entry does not delete data.
+Recording projects remain separated by stage and B destination; robomimic combines them into unified A and conditioned B during conversion. For a second set, copy the first-set entries and rename the copies to `second_set_poly_mailer_A`, `second_set_poly_mailer_B_bin_0`, and `second_set_poly_mailer_B_bin_1`. Retain A/None, B/0 and B/1 respectively. Carton projects use `medium="carton"`. Keep both sets registered to train them individually, or list only the projects you currently want to prepare. Removing a configuration entry does not delete data.
 
 ## Count, validate and convert
 
@@ -90,4 +90,10 @@ for suffix in ("A", "B_bin_0", "B_bin_1"):
 
 This is a recipe, not configuration already installed by the helper. Convert both sets first. No file merging/renaming is needed. Select `--task_name combined_poly_mailer_A` and a fresh `--ckpt_dir ./ckpt/act_combined_poly_mailer_A`; repeat for both B tasks.
 
-The vendor multi-folder loader holds out validation only from the first folder. With 25 episodes in each and `train_ratio=0.8`, this gives 45 training and 5 validation episodes, not 40/10. Holding out examples from both sets requires another layout or loader change. Keep A, B bin 0 and B bin 1 separate for this baseline because ACT destination conditioning is not implemented.
+The vendor multi-folder loader holds out validation only from the first folder. With 25 episodes in each and `train_ratio=0.8`, this gives 45 training and 5 validation episodes, not 40/10. Holding out examples from both sets requires another layout or loader change. Keep stages and B bins separate for this vendor-ACT baseline because its loader ignores destination. The main [robomimic path](../docs/guides/diffusion_policy_training.md) trains unified A and conditioned B using shared ACT/DP inputs, normalization and splits. Medium-specific A is only the O6 ablation.
+
+## Reviewed conversion and main training path
+
+`prepare_act_datasets.py` reports measured Hz, home/idle-arm drift and inference J3/J4 violations. Set each project's `episode_len` independently, especially for longer envelope A episodes. Mark raw episodes with `--review-episode PATH --review-status accepted` or `rejected`; `--convert` skips every other status. Review raw camera sequences or existing review videos before accepting an episode.
+
+Use `convert_to_robomimic.py` with several `--projects` and a named `ROBOMIMIC["recipes"]` entry. `configure_robomimic.py` generates ACT and DP configs from the frozen split. `check_destination_swap.py` evaluates held-out B episodes offline. See the [training guide](../docs/guides/diffusion_policy_training.md) for complete commands.

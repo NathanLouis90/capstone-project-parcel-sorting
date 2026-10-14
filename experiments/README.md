@@ -58,7 +58,9 @@ Both followers move during startup. Both arms remain in the recorded data even w
 
 ## Inference and recovery
 
-Set `RUN_INFERENCE["checkpoint_dir"]` and `model_name` to the chosen model, keeping its configuration/statistics alongside it. Set `episode_len` no higher than its training horizon: at most 400 for a 400-step task. The default checkpoint path still points to the vendor cube example; training does not switch it automatically. Inference currently commands both arms and has no autonomous A/B handoff or destination-conditioned B input.
+Vendor ACT deployment requires `--task-name` and `--checkpoint-dir`; optionally select `--model-name` and `--episode-len`. The horizon defaults to the registered training task and cannot exceed it. Both arms must be homed before launch. Registered mailer/carton A parks the right arm; B parks the left arm; envelope A uses both. Joint jumps and commanded jaw-tip bounds are checked before motion. The shared period is 40 ms (25 Hz).
+
+Follow the [inference and evaluation guide](../docs/guides/inference_evaluation.md). The entry point does not run robomimic checkpoints, destination-conditioned B, or an A/B supervisor. Homing and other hardware commands remain explicit operator actions.
 
 `python3 experiments/robot_home.py` reads controller status without movement. `--inspect-pose` adds pose checks. These commands connect to controllers. Recovery/motion requires explicit flags; read the [terminal robot guide](../docs/guides/robot_home_guide.md) first. Help is hardware-free:
 

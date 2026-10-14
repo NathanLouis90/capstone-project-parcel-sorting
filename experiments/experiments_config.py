@@ -21,6 +21,8 @@ LAUNCH_NODES = {
     "robot_number": 2,
 }
 
+CONTROL = {"control_period_ms": 40}
+
 # run_control.py
 RUN_CONTROL = {
     "using_sensor_protection": False,
@@ -46,7 +48,7 @@ RUN_CONTROL = {
     "short_press_s": 0.5,
     "long_press_s": 1,
     "jpeg_quality": 50,
-    "initial_control_period_s": 0.04,
+    "initial_control_period_s": CONTROL["control_period_ms"] / 1000,
     'camera_startup_s': 2,
     'minimum_z_velocity_m_s': -1,
     "flip_top_right": True,
@@ -61,8 +63,10 @@ RUN_INFERENCE = {
     "hostname": "127.0.0.1",
     "show_img": True,
     "model_name": 'policy_last.ckpt',
-    "episode_len": 900,
-    "checkpoint_dir": './ckpt/ckpt_move_cube_new',
+    # First observed frame in the existing recordings; commands near 1 close the grippers.
+    "starting_gripper_observation": [0.99114583, 0.97942708],
+    "closed_gripper_command": 1.0,
+    "robot_types": ["Nova 2", "Nova 2"],
     "safe_joints_left_deg": [-90, 30, -110, 20, 90, 90, 0],
     "safe_joints_right_deg": [90, -30, 110, -20, -90, -90, 0],
     "photo_joints_left_deg": [-90, 0, -90, 0, 90, 90, 57],

@@ -282,7 +282,7 @@ def train(config, device):
         # Evaluate the model on validation set
         if config.experiment.validate:
             with torch.no_grad():
-                step_log = TrainUtils.run_epoch(model=model, data_loader=valid_loader, epoch=epoch, validate=True, num_steps=valid_num_steps)
+                step_log = TrainUtils.run_epoch(model=model, data_loader=valid_loader, epoch=epoch, validate=True, num_steps=valid_num_steps, obs_normalization_stats=obs_normalization_stats)
             for k, v in step_log.items():
                 if k.startswith("Time_"):
                     data_logger.record("Timing_Stats/Valid_{}".format(k[5:]), v, epoch)
@@ -463,6 +463,8 @@ def main(args):
         train(config, device=device)
     except Exception as e:
         res_str = "run failed with error:\n{}\n\n{}".format(e, traceback.format_exc())
+        print(res_str)
+        raise
     print(res_str)
 
 

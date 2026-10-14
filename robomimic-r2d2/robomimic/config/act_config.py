@@ -36,6 +36,8 @@ class ACTConfig(BaseConfig):
         self.algo.loss.l1_weight = 1.0      # L1 loss weight
         self.algo.loss.cos_weight = 0.0     # cosine loss weight
 
+        self.algo.act.pretrained_backbone = True
+
         # ACT policy settings
         self.algo.act.hidden_dim = 512                              # length of (s, a) seqeunces to feed to transformer - should usually match train.frame_stack
         self.algo.act.dim_feedforward = 3200                        # dimension for embeddings used by transformer

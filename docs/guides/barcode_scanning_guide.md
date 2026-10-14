@@ -159,7 +159,7 @@ python3 -m barcode_scanning.recording --inspect-episode \
 
 Expect stage A, medium carton, the accepted barcode/bin, and a nonzero matching frame count. Inspection does not prove physical grasping or staging success; review the images and conversion videos.
 
-Use separate A, B bin 0 and B bin 1 projects for training. Register their names in `scripts/scripts_config.py`, then validate and convert as described in the [recording guide](recording_guide.md#5-check-and-prepare-episodes). Existing HDF5 files are refused; mismatched raw frames are preserved.
+Record A and each B bin in separate projects; combine them for unified A and conditioned B training with robomimic. Separate B-bin models are the vendor ACT baseline. Register their names in `scripts/scripts_config.py`, then validate and convert as described in the [recording guide](recording_guide.md#5-check-and-prepare-episodes). Existing HDF5 files are refused; mismatched raw frames are preserved.
 
 ## 4. Pair B with a scanned A
 
@@ -189,13 +189,13 @@ For a source scanned to bin 1, use `--demonstrated-bin 1` and a separate project
 8. Review actual placement. A wrong-bin demonstration must be excluded even if its metadata says the intended bin was correct.
 9. Register and prepare each separate project using the [recording guide](recording_guide.md#5-check-and-prepare-episodes). Review converted videos before training.
 
-Both manually labelled and scanner-paired B HDF5 files contain `/observations/destination`, a constant float32 vector per timestep: `[1, 0]` for bin 0 and `[0, 1]` for bin 1. Raw metadata is retained in HDF5 attributes. The current vendor model/loader does not automatically consume this new dataset; conditioning support and retraining are still needed.
+Both manually labelled and scanner-paired B HDF5 files contain `/observations/destination`, a constant float32 vector per timestep: `[1, 0]` for bin 0 and `[0, 1]` for bin 1. Raw metadata is retained in HDF5 attributes. The vendor ACT loader ignores this observation and therefore requires separate B-bin baselines. The main robomimic ACT/DP path consumes destination as a low-dimensional input and combines both B bins; see the [training guide](diffusion_policy_training.md).
 
 ## 5. Collection consistency and inference limits
 
 Keep destination mappings fixed between paired episodes and preserve metadata when copying recordings. Balance both bins for each medium and exclude interrupted, failed-scan and wrong-bin episodes from successful paired examples. A new A recording clears old scans; select the source episode belonging to the parcel actually on staging.
 
-The reader can be embedded in a future supervisor, but standalone capture does not run policies. A supervisor must select A, open a scan window, verify staging/retraction and the destination, then start B. It must reset policy action queues at transitions and handle failures; elapsed time alone does not prove stage completion. Destination-conditioned training, checkpoint selection and autonomous A/B handoff are not implemented in the current inference entry point.
+The reader can be embedded in a future supervisor, but standalone capture does not run policies. A supervisor must select A, open a scan window, verify staging/retraction and the destination, then start B. It must reset policy action queues at transitions and handle failures; elapsed time alone does not prove stage completion. Destination-conditioned training and offline checking use robomimic-r2d2. The vendor inference entry point requires explicit task/checkpoint selection; robomimic robot deployment and autonomous A/B handoff are not implemented.
 
 ## 6. Hardware-free verification
 

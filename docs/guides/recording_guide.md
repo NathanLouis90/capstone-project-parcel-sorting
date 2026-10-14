@@ -21,7 +21,7 @@ Defaults live in [experiments/experiments_config.py](../../experiments/experimen
 
 | Argument | What to set |
 | --- | --- |
-| `--project-name` | Recording folder name; use separate projects for A, B bin 0 and B bin 1 |
+| `--project-name` | Recording folder name; record A and each B bin separately, then combine projects with the robomimic recipes |
 | `--policy-stage` | `A` or `B`; omitting it uses legacy recording without A/B metadata |
 | `--medium` | `envelope` (including DL envelopes), `poly_mailer`, or `carton` |
 | `--demonstrated-bin` | `0` or `1` for B; omit for A |
@@ -96,7 +96,7 @@ Interrupting an active recording marks it incomplete. Review physical success: a
 
 ## 4. Optional A/B pairing
 
-Skip this option when collecting independent A and B demonstrations for the current separate ACT models. B only needs its `--demonstrated-bin` and the other standard recording arguments. The current training workflow does not require paired episodes.
+Skip this option when collecting independent A and B demonstrations for unified A and conditioned B training, or the vendor ACT baseline. B only needs its `--demonstrated-bin` and the other standard recording arguments. The current training workflow does not require paired episodes.
 
 Pairing records that two demonstrations belong to the same parcel-handling cycle. For example:
 
@@ -158,4 +158,10 @@ Finish collecting each set before conversion. Existing HDF5 outputs are refused,
 
 Balance bins 0 and 1 for each medium. Vary parcel poses within the intended range while keeping cameras, staging, bins and policy starting configurations consistent. Preserve A/B metadata when copying episodes, and keep destination mappings fixed for paired recordings.
 
-The current baseline trains separate A, B bin 0 and B bin 1 tasks. B conversion preserves a constant `/observations/destination` vector per timestep: `[1, 0]` for bin 0 and `[0, 1]` for bin 1. The vendor ACT loader does not consume it automatically. A shared destination-conditioned B model and autonomous A/B handoff require further work. Existing inference commands both arms.
+The main comparison trains unified A and destination-conditioned B through robomimic-r2d2. Recording remains separate by stage and B bin. Conversion preserves a constant `/observations/destination` vector: `[1, 0]` for bin 0 and `[0, 1]` for bin 1. The vendor ACT loader ignores it and supports separate B-bin baselines. Registered vendor inference parks unused arms; robomimic robot deployment and autonomous A/B handoff are not implemented.
+
+## Review status and demonstration rules
+
+Review raw camera sequences before accepting each episode. Set its status with `python3 scripts/prepare_act_datasets.py --review-episode datasets/<project>/collect_data/<episode> --review-status accepted` or `rejected`. `--convert` skips unreviewed and rejected episodes; do not train on stale converted copies after changing review status. Home, idle-arm, timing and J3/J4 warnings require operator review.
+
+Start and end with both arms home and both grippers closed. Keep idle arms unsynchronized. For envelope A, slide with the left arm, return it fully home, pause, then move the right arm; never move both simultaneously. Stage an overhanging edge. B uses only the right arm. Match labels to demonstrated bins, balance both B bins within each medium, and discard scanner searching/wiggling. See the [settled design](../parcel_sorting_design_notes.md).

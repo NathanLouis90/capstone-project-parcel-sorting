@@ -104,16 +104,7 @@ def gripper_cacheData_readPosition(writePath, data, last_read_time):
     f.close()
 
 
-def wait_period(delay_time, start_t) -> None:
-    delta_time_ = delay_time/1000
-    start, end = 0, 0  # 声明变量
-    start = time.time()  # servoJ发送结束时间; 精度延时开始计时时间
-    # print("sss: ", start - start_t)
-    if (start - start_t) < delta_time_:
-        t = (delta_time_ - (start-start_t))   # 将输入t的单位转换为秒，-3是时间补偿
-        # print(t)
-        while end - start < t:  # 循环至时间差值大于或等于设定值时
-            end = time.time()  # 记录结束时间
+from scripts.control_timing import wait_period
 
 
 def save_videos(video, dt, video_path=None):

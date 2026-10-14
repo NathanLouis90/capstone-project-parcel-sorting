@@ -1,6 +1,6 @@
 # Third-Party Licenses
 
-This project uses code from other projects under the MIT license. Here are the details for each:
+This project uses code from other projects under the licenses listed below. Here are the details for each:
 
 ## GELLO: A General, Low-Cost, and Intuitive Teleoperation Framework for Robot Manipulators
 
@@ -21,3 +21,11 @@ This project uses code from other projects under the MIT license. Here are the d
 ## License Texts
 
 For the full text of the licenses, please refer to the original repositories or the LICENSE files included with their distributions.
+
+ACT robomimic backend (third_party/act/)
+Source: https://github.com/tonyzhaozh/act/tree/robomimic
+Revision: 20fc6e990698534b89a41c2c85f54b7ff4b0c280
+ACT: MIT License, copyright Tony Z. Zhao.
+DETR model sources: Apache License 2.0, copyright Facebook, Inc. and affiliates.
+See third_party/act/LICENSE and third_party/act/act/detr/LICENSE.
+Local adaptations support device selection and optional pretrained weights.

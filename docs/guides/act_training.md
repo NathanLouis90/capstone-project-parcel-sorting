@@ -1,6 +1,6 @@
 # ACT dataset preparation and training
 
-Use this workflow for poly mailers, cartons and envelopes. For each medium and collection set, train separate tasks for Policy A, Policy B bin 0 and Policy B bin 1. The current ACT loader does not use destination observations, so both B destinations must remain separate tasks.
+This guide covers the vendor ACT trainer for shakedown runs and specialist baselines. The main comparison trains unified A and destination-conditioned B with both ACT and Diffusion Policy through [robomimic-r2d2](diffusion_policy_training.md). The vendor loader ignores destination observations, so its B-bin models must remain separate. Per-medium A models are the O6 ablation, not the main design.
 
 ## 1. Prepare the environment
 
@@ -161,7 +161,7 @@ PYTHONPATH=. MPLBACKEND=Agg python3 ModelTrain/model_train.py \
   --chunk_size 45 --kl_weight 10 --seed 0
 ```
 
-For each medium, repeat with its A, B bin 0 and B bin 1 task names and distinct checkpoint folders. Replace `first_set` with another registered collection set when needed. Wait for each run to finish before starting the next. If GPU memory runs out, retry in a fresh folder with `--batch_size 4`.
+For vendor shakedown or specialist runs, repeat with the selected A or B-bin task names and distinct checkpoint folders. Replace `first_set` with another registered collection set when needed. Wait for each run to finish before starting the next. If GPU memory runs out, retry in a fresh folder with `--batch_size 4`.
 
 The trainer prints the split, validation loss and step progress. Outputs include `config.pkl`, `dataset_stats.pkl`, periodic checkpoints, `policy_last.ckpt`, `policy_best.ckpt` and loss plots. Keep the configuration and normalization statistics with their matching checkpoint.
 
@@ -182,12 +182,12 @@ for suffix in ("A", "B_bin_0", "B_bin_1"):
     }
 ```
 
-This is a configuration example, not an installed combined task. Use `--task_name combined_carton_A` and a fresh `--ckpt_dir ./ckpt/act_combined_carton_A`; repeat for both B tasks. Replace `carton` with `poly_mailer` or `envelope` for those media. No HDF5 merging or renaming is needed. Keep each policy stage and B destination separate.
+This is a configuration example, not an installed combined task. Use `--task_name combined_carton_A` and a fresh `--ckpt_dir ./ckpt/act_combined_carton_A`; repeat for both B tasks. Replace `carton` with `poly_mailer` or `envelope` for those media. No HDF5 merging or renaming is needed. Keep stages and B destinations separate in this vendor baseline; use the robomimic recipes for unified A and conditioned B.
 
 The vendor multi-folder loader holds out validation only from the first folder. With 25 episodes per folder and `train_ratio=0.8`, two sets give 45 training and 5 validation episodes, not 40/10. Holding out examples from both sets requires another layout or a loader change.
 
-## 7. Evaluate separately
+## 7. Evaluate the vendor baseline
 
-Low validation loss does not establish task success. Evaluate each policy with its intended camera framing and starting pose, including differences between recording and inference scenes.
+Low validation loss does not establish task success. Use the [inference and evaluation guide](inference_evaluation.md) for supervised trials, explicit checkpoint arguments, home checks and per-medium/bin metrics. Vendor inference parks the unused arm for registered tasks; envelope A uses both arms. It has no A/B supervisor or destination-conditioned B input.
 
-`experiments/run_inference.py` commands real robots and currently commands both arms. Do not launch it solely to inspect a checkpoint. One-arm deployment requires changes to ignore the unused arm's predicted commands and keep that follower parked. Training does not implement autonomous A/B handoff or destination-conditioned B inference.
+For the main comparison, evaluate held-out robomimic episodes using the destination-swap check. Robomimic real-robot inference is out of scope for this pass.

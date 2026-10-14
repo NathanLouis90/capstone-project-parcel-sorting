@@ -8,6 +8,7 @@ Protocol constants, array indices, and mathematical constants remain in code.
 """
 
 from pathlib import Path
+from experiments.experiments_config import CONTROL
 
 # All dataset defaults are rooted inside this repository.
 DATASETS_DIR = Path(__file__).resolve().parent.parent / "datasets"
@@ -24,6 +25,10 @@ COUNT_EPISODES = {
 # Use medium="carton" for cartons; bin_index=None does not check a bin.
 PREPARE_ACT_DATASETS = {
     "root_dir": str(DATASETS_DIR),
+    "home_tolerance_rad": 0.12,
+    "idle_tolerance_rad": 0.12,
+    "gripper_tolerance": 0.08,
+    "rate_tolerance_fraction": 0.10,
     "projects": {
         "first_set_poly_mailer_A": {
             "policy_stage": "A",
@@ -133,7 +138,46 @@ SCRIPT_COLLECT2TRAIN = {
     "dataset_name": "dataset_package_test",
     "date_collect": "20241010",
     "jpeg_quality": 50,
-    "video_frame_period_s": 0.02,
+    "video_frame_period_s": CONTROL["control_period_ms"] / 1000,
     "episode_index": '0',
     "hdf5_cache_bytes": 2097152,
+}
+
+# Shared parcel dataset recipes and ACT / Diffusion Policy training defaults.
+ROBOMIMIC = {
+    "recipes": {
+        "policy_A_unified": {"stage": "A", "medium": None, "bin": None, "destination": False},
+        "policy_B_conditioned": {"stage": "B", "medium": None, "bin": None, "destination": True},
+        "policy_A_envelope": {"stage": "A", "medium": "envelope", "bin": None, "destination": False},
+        "policy_A_poly_mailer": {"stage": "A", "medium": "poly_mailer", "bin": None, "destination": False},
+        "policy_A_carton": {"stage": "A", "medium": "carton", "bin": None, "destination": False},
+        "policy_B_bin_0": {"stage": "B", "medium": None, "bin": 0, "destination": False},
+        "policy_B_bin_1": {"stage": "B", "medium": None, "bin": 1, "destination": False},
+    },
+    "train_fraction": 0.8,
+    "seed": 0,
+    "image_size": [128, 128],  # Shared resize for both algorithms; HWC uint8 RGB.
+    "cameras": ["top", "left_wrist", "right_wrist"],
+    "balance_ratio_warning": 1.5,
+    "batch_size": 8,
+    "epochs": 1000,
+    "steps_per_epoch": 100,
+    "validation_steps": 10,
+    "action_chunk": 16,
+    "observation_horizon": 2,
+    "action_horizon": 8,
+    "learning_rate": 0.0001,
+    "visual_feature_dimension": 64,
+    "save_every_epochs": 50,
+    "smoke_epochs": 1,
+    "smoke_steps": 2,
+    "smoke_batch_size": 2,
+    "smoke_act_hidden_dim": 64,
+    "smoke_act_feedforward_dim": 128,
+    "smoke_act_layers": 1,
+    "smoke_unet_down_dims": [32, 64, 128],
+    "smoke_diffusion_steps": 10,
+    "swap_joint_rms_warning_rad": 0.01,
+    "swap_max_episodes": 12,
+    "swap_max_steps": 100,
 }

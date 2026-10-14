@@ -11,6 +11,7 @@ import time
 import uuid
 
 from .barcode_scanning_config import RECORDING
+from experiments.experiments_config import CONTROL
 from .scanner_reader import ScanWindow, destination_mapping
 
 
@@ -99,7 +100,8 @@ class RecordingSession:
         cycle = uuid.uuid4().hex if self.source is None else self.source['cycle_id']
         self.path = episode_dir / RECORDING['metadata_filename']
         self.metadata = {
-            'schema_version': 2, 'episode_id': episode_dir.name, 'cycle_id': cycle,
+            'schema_version': 2, 'control_overruns': 0,
+            'control_period_ms': CONTROL['control_period_ms'], 'episode_id': episode_dir.name, 'cycle_id': cycle,
             'policy_stage': self.stage, 'medium': self.medium,
             'started_at': time.time(), 'recording_complete': False,
             'review_status': 'unreviewed', 'scanner_error': None, 'frame_count': 0,

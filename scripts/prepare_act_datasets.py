@@ -1,6 +1,8 @@
 """Validate and convert the ACT projects configured in scripts_config.py offline."""
 
 import argparse
+import json
+import pickle
 from pathlib import Path
 import subprocess
 import sys
@@ -8,7 +10,9 @@ import sys
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from barcode_scanning.recording import inspect_episode
+from barcode_scanning.recording import inspect_episode, write_metadata
+from barcode_scanning.barcode_scanning_config import RECORDING
+from scripts.dataset_checks import episode_warnings
 from scripts.scripts_config import PREPARE_ACT_DATASETS
 
 
@@ -24,7 +28,20 @@ def main(argv=None):
                         help='Prepare one project; by default prepare all configured projects')
     parser.add_argument('--convert', action='store_true',
                         help='Write HDF5 files and review videos after validation')
+    parser.add_argument("--review-episode", type=Path, help="Raw episode folder to review")
+    parser.add_argument("--review-status", choices=("accepted", "rejected", "unreviewed"))
     args = parser.parse_args(argv)
+    if args.review_episode is not None or args.review_status is not None:
+        if args.review_episode is None or args.review_status is None or args.convert:
+            parser.error("Use --review-episode and --review-status together without --convert")
+        if args.review_status == "accepted":
+            inspect_episode(args.review_episode)
+        path = args.review_episode / RECORDING["metadata_filename"]
+        metadata = json.loads(path.read_text())
+        metadata["review_status"] = args.review_status
+        write_metadata(path, metadata)
+        print("{}: {}".format(args.review_episode, args.review_status))
+        return 0
     root = args.root.expanduser().resolve()
     names = [args.dataset_name] if args.dataset_name else list(PROJECTS)
     plan = []
@@ -42,6 +59,13 @@ def main(argv=None):
         expected_bin = project['bin_index']
         for index, episode in enumerate(episodes):
             try:
+                metadata = json.loads((episode / RECORDING['metadata_filename']).read_text())
+            except (OSError, ValueError) as error:
+                parser.error('{}: {}'.format(episode, error))
+            if args.convert and metadata.get('review_status') != 'accepted':
+                print('Skip {}: review status is {}'.format(episode.name, metadata.get('review_status')))
+                continue
+            try:
                 report = inspect_episode(episode)
             except (OSError, ValueError, KeyError) as error:
                 parser.error('{}: {}'.format(episode, error))
@@ -52,13 +76,29 @@ def main(argv=None):
             if report['frames'] > project['episode_len']:
                 parser.error('{} exceeds the configured {}-step episode length'.format(
                     episode, project['episode_len']))
+            frames = sorted((episode / 'observation').glob('*.pkl'), key=lambda p: int(p.stem))
+            qpos = []
+            for frame in frames:
+                # Pickles are trusted local recordings, never untrusted downloaded files.
+                with frame.open('rb') as stream:
+                    qpos.append(pickle.load(stream)['joint_positions'])
+            hz, warnings = episode_warnings(qpos, metadata)
+            print('{}: {} frames, {} Hz, {} overruns, review={}'.format(
+                episode.name, report['frames'], 'unknown' if hz is None else '{:.2f}'.format(hz),
+                metadata.get('control_overruns', 'unknown'), report['review_status']))
+            for warning in warnings:
+                print('[Warn]: {}: {}'.format(episode.name, warning))
+            lengths.append(report['frames'])
             target = root / name / 'train_data' / 'episode_init_{}.hdf5'.format(index)
             if args.convert and target.exists():
                 parser.error('Refuse to overwrite {}; use an unused output project or inspect existing conversion'.format(target))
-            lengths.append(report['frames'])
             plan.append((name, episode, index))
+        if not lengths:
+            print('{}: no accepted episodes to convert'.format(name))
+            continue
         print('{}: {} episodes, {}-{} frames, {} total frames'.format(
-            name, len(episodes), min(lengths), max(lengths), sum(lengths)), flush=True)
+            name, len(lengths), min(lengths), max(lengths), sum(lengths)), flush=True)
+        print('Longest episode: {} / {} configured steps'.format(max(lengths), project['episode_len']))
 
     if not args.convert:
         print('Validation passed. Add --convert to create HDF5 files and review videos.')
