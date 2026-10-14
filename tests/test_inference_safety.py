@@ -71,3 +71,21 @@ def test_inference_cli_requires_task_and_checkpoint():
         parse_args([])
     with pytest.raises(SystemExit):
         parse_args(['--task-name', 'parcel'])
+
+
+@pytest.mark.parametrize('value', [np.nan, np.inf, -np.inf])
+def test_nonfinite_gripper_prediction_rejected_before_clipping(value):
+    from experiments.inference_safety import prepare_vendor_action
+    prediction = np.zeros(16)
+    prediction[6] = value
+    with pytest.raises(ValueError, match='finite'):
+        prepare_vendor_action(prediction)
+
+
+def test_vendor_base_dimensions_removed_and_grippers_clipped():
+    from experiments.inference_safety import prepare_vendor_action
+    prediction = np.zeros(16)
+    prediction[[6, 13]] = [-1, 2]
+    action = prepare_vendor_action(prediction)
+    assert action.shape == (14,)
+    np.testing.assert_array_equal(action[[6, 13]], [0, 1])

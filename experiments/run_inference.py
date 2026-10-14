@@ -9,7 +9,7 @@ import numpy as np
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 from experiments.experiments_config import CONTROL, RUN_INFERENCE
-from experiments.inference_safety import validate_action, resolve_episode_length
+from experiments.inference_safety import validate_action, resolve_episode_length, prepare_vendor_action
 from scripts.control_timing import wait_period
 from scripts.scripts_config import MANIPULATE_UTILS, PREPARE_ACT_DATASETS
 
@@ -93,12 +93,8 @@ def main(args):
                 cv2.imshow('Inference', np.hstack([images[k] for k in ('left_wrist', 'right_wrist', 'top')]))
                 if cv2.waitKey(1) & 0xff == ord('q'):
                     break
-            prediction = np.asarray(model.predict(observation, t)).reshape(-1)
             # Vendor loader appends two base-action dimensions; robots have 14 DoF.
-            if prediction.size not in (14, 16):
-                raise ValueError('Expected 14 or 16 vendor action dimensions')
-            action = prediction[:14].copy()
-            action[[6, 13]] = np.clip(action[[6, 13]], 0, 1)
+            action = prepare_vendor_action(model.predict(observation, t))
             for offset, enabled in zip((0, 7), active):
                 if not enabled:
                     action[offset:offset + 7] = home[offset:offset + 7]

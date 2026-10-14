@@ -42,6 +42,18 @@ def validate_action(action, previous, config=RUN_INFERENCE):
         raise ValueError('Commanded jaw tips exceed configured workspace')
 
 
+def prepare_vendor_action(prediction):
+    """Validate vendor outputs before clipping grippers or parking unused arms."""
+    prediction = np.asarray(prediction).reshape(-1)
+    if prediction.size not in (14, 16):
+        raise ValueError('Expected 14 or 16 vendor action dimensions')
+    action = prediction[:14].copy()
+    if not np.isfinite(action).all():
+        raise ValueError('Predicted robot action must contain finite values')
+    action[[6, 13]] = np.clip(action[[6, 13]], 0, 1)
+    return action
+
+
 def resolve_episode_length(task, requested, tasks):
     if task not in tasks:
         raise ValueError('Unknown task: {}'.format(task))
