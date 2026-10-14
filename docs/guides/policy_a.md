@@ -11,7 +11,7 @@ For envelopes, the arms move one after the other, never simultaneously. Start an
 
 ## 1. Choose a recording folder
 
-Run commands from the repository root in `Xtrainer`. Set these variables in the terminal where you run the commands:
+Replace the example values below, then paste and run this block in a Bash terminal at the repository root with `Xtrainer` activated. These lines only set terminal variables. Run later Bash blocks in that same terminal; set the variables again if you open another:
 
 ```bash
 SET_ID="set01"
@@ -35,7 +35,7 @@ Use green button press/releases to start and stop each episode. Present the labe
 
 ## 3. Register, review and prepare
 
-Add an entry under `PREPARE_ACT_DATASETS["projects"]` in `scripts/scripts_config.py`. Replace the key and medium with the values you chose above; the shell variables do not edit this Python file:
+Edit `scripts/scripts_config.py` and paste the Python entry below inside its existing `PREPARE_ACT_DATASETS["projects"]` dictionary. Replace the key and medium to match your terminal values. This is a file edit; do not paste it into the terminal:
 
 ```python
 "set01_poly_mailer_A": {
@@ -58,7 +58,7 @@ python3 scripts/prepare_act_datasets.py --dataset-name "$PROJECT" --convert
 
 ## 4. Train
 
-For the current robot test, train with the Dobot ACT software. Choose a fresh checkpoint directory:
+For the current robot test, train with the Dobot ACT software. Run the whole block below in the same Bash terminal. The first line sets `CHECKPOINT_DIR`; the next command starts training. Choose a fresh directory for each run:
 
 ```bash
 CHECKPOINT_DIR="./ckpt/act_${PROJECT}"

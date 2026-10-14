@@ -1,5 +1,7 @@
 # Return to the Xtrainer initial pose from a terminal
 
+Run the `bash` command blocks below in a terminal from the repository root with `Xtrainer` activated. Commands with motion flags move hardware; follow the preparation steps before running them.
+
 `experiments/robot_home.py` connects directly to the existing Dobot V3 TCP/IP
 interfaces. It does not require DobotStudio, leader arms, cameras, gripper
 initialization, or the ZMQ robot server. The computer must still have network

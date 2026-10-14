@@ -8,7 +8,7 @@ For ACT versus Diffusion Policy, use the [shared ACT/DP guide](act_dp_training.m
 
 Follow the [Policy A guide](policy_a.md) or [Policy B guide](policy_b.md) to record, register and prepare a project. Any folder name and collection size are allowed. An optional naming pattern is `<set_id>_<medium>_<policy_stage>`, with `_bin_<number>` added for B.
 
-Run from the repository root in Python 3.8 `Xtrainer`. The Dobot trainer requires a working GPU:
+Run `bash` blocks in a Bash terminal from the repository root in Python 3.8 `Xtrainer`. Replace example values before pasting; keep assignments and commands that use them in the same terminal. Python blocks below are edits to the specified configuration file. The Dobot trainer requires a working GPU:
 
 ```bash
 conda activate Xtrainer
@@ -20,7 +20,7 @@ Require `CUDA available: True`. Stop recording before training; training does no
 
 ## 2. Train a registered project
 
-Replace the two values below. `TASK` must match a registered project or combined task. Use a fresh checkpoint directory for each model:
+Replace `your_recording_folder` and `your_model_name`, then run the entire block below in the Bash terminal. The first two lines set `TASK` and `CHECKPOINT_DIR`; the Python command uses them. `TASK` must match a registered project or combined task. Use a fresh checkpoint directory for each model:
 
 ```bash
 TASK="your_recording_folder"
@@ -51,7 +51,7 @@ Outputs include `policy_best.ckpt`, `policy_last.ckpt`, `config.pkl`, `dataset_s
 
 A **set** is a collection you choose. It need not contain 25 demonstrations. The project's current plan is to compare models after collecting 25, 50, 75 and 100 demonstrations; these are test milestones, not software limits. The current test uses poly mailers only, before adding cartons and envelopes to Policy A.
 
-To combine converted recording folders, add a task after the project-registration loop in `ModelTrain/constants.py`, before `DT` and `FPS`. Replace the source names and combined task name in this example:
+To combine converted recording folders, edit `ModelTrain/constants.py`. Paste the Python block below after the project-registration loop and before `DT` and `FPS`; do not paste it into the terminal. Replace the source names and combined task name first:
 
 ```python
 source_names = ["your_recording_folder", "another_recording_folder"]

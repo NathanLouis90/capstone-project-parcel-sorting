@@ -2,6 +2,8 @@
 
 These programs start the robot server, record demonstrations and run trained models. Run from the repository root in the Python 3.8 `Xtrainer` environment.
 
+Run `bash` blocks in a Bash terminal. Variable assignments belong in the same terminal as the commands that use them; Python configuration changes belong in the named `.py` file. Replace example values before pasting. See [command examples](../README.md#how-to-use-command-examples).
+
 Start with the main README's [software setup](../README.md#software-setup) and [quick startup](../README.md#quick-startup). Use the [Policy A guide](../docs/guides/policy_a.md) or [Policy B guide](../docs/guides/policy_b.md) for task-specific commands.
 
 ## Choose a program

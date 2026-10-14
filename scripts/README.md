@@ -2,6 +2,8 @@
 
 Use these tools to configure devices, check recordings and create training files. Run commands from the repository root in the Python 3.8 `Xtrainer` environment.
 
+Run the `bash` blocks in a Bash terminal, after replacing example values. A line such as `PROJECT="your_folder"` sets a variable for later commands in that same terminal. If an instruction names a Python configuration file, edit that file instead. See [command examples](../README.md#how-to-use-command-examples).
+
 For complete task workflows, use the [Policy A guide](../docs/guides/policy_a.md) or [Policy B guide](../docs/guides/policy_b.md).
 
 ## Device settings
@@ -54,7 +56,7 @@ Edit other sections of `scripts_config.py` for camera/video conversion and helpe
 
 ## Count and prepare
 
-Replace the example variable with an actual registered folder name:
+Replace `your_recording_folder` with an actual registered folder name, then run the whole block in a Bash terminal. The first line sets `PROJECT`; the following commands use it:
 
 ```bash
 PROJECT="your_recording_folder"

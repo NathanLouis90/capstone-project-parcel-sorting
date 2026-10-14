@@ -4,6 +4,8 @@ This guide covers the dedicated USB HID scanner, destination labels, standalone 
 
 Scanner capture is disabled by default in demonstrations. Standalone capture commands no robot hardware and does not automatically attach scans to a recording or autonomous policy.
 
+Run `bash` blocks in a Bash terminal from the repository root with `Xtrainer` activated. Edit the named Python configuration file for `python` blocks; do not paste those blocks into the terminal. Replace example paths before running commands.
+
 ## 1. Files and settings
 
 - `barcode_scanning/scanner_reader.py`: standalone capture and reusable reader thread. It commands no robot hardware.

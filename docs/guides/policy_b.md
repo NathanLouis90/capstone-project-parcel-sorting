@@ -8,7 +8,7 @@ Record each bin in its own folder. You can then combine both bins when training 
 
 ## 1. Choose a folder and destination
 
-Run from the repository root in `Xtrainer`. Set variables in the terminal where you use them:
+Replace the example values below, then paste and run this block in a Bash terminal at the repository root with `Xtrainer` activated. These lines only set terminal variables. Run later Bash blocks in that same terminal; set the variables again if you open another:
 
 ```bash
 SET_ID="set01"
@@ -37,7 +37,7 @@ Repeat with `BIN=1` and update `PROJECT` before starting the other bin's recorde
 
 ## 3. Register, review and prepare
 
-Add an entry under `PREPARE_ACT_DATASETS["projects"]` in `scripts/scripts_config.py`. Replace the key, medium and bin to match your recording:
+Edit `scripts/scripts_config.py` and paste the Python entry below inside its existing `PREPARE_ACT_DATASETS["projects"]` dictionary. Replace the key, medium and bin to match your recording. This is a file edit; do not paste it into the terminal:
 
 ```python
 "set01_poly_mailer_B_bin_0": {
@@ -60,7 +60,7 @@ python3 scripts/prepare_act_datasets.py --dataset-name "$PROJECT" --convert
 
 ## 4. Train
 
-For a model that can run the robot now, train this bin's Dobot ACT checkpoint:
+For a model that can run the robot now, train this bin's Dobot ACT checkpoint. Run the whole block below in the same Bash terminal: its first line sets `CHECKPOINT_DIR`, then the next command starts training. Choose a fresh directory for each run:
 
 ```bash
 CHECKPOINT_DIR="./ckpt/act_${PROJECT}"

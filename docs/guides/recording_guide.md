@@ -1,6 +1,6 @@
 # Recording demonstrations
 
-Use the [Policy A guide](policy_a.md) or [Policy B guide](policy_b.md) for the task, arm selection and recorder command. This page covers shared controls and optional links between episodes. Run commands from the repository root in Python 3.8 `Xtrainer`.
+Use the [Policy A guide](policy_a.md) or [Policy B guide](policy_b.md) for the task, arm selection and recorder command. This page covers shared controls and optional links between episodes. Run Bash commands in a terminal at the repository root with Python 3.8 `Xtrainer` activated. Variable assignments are run in that terminal; configuration changes are edits to the named Python file. See [command examples](../../README.md#how-to-use-command-examples).
 
 ## Prepare the hardware
 

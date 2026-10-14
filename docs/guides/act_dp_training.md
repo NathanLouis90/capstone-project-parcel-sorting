@@ -42,7 +42,18 @@ SPLIT_FILE="datasets/training/${DATASET_NAME}.split.json"
 CONFIG_DIR="ckpt/${DATASET_NAME}_configs"
 ```
 
-For B, change the first line to `RECIPE="policy_B_conditioned"` and list B projects from both bins. Run this variable block first, then run the conversion command below in the **same terminal**. The block only sets variables; it does not convert data or start training. If you open another terminal, run the variable block there again.
+For B, change the first line to `RECIPE="policy_B_conditioned"` and list B projects from both bins. Run this variable block first, then the conversion command in the **same terminal**. It only sets variables; it does not convert data or start training. Run the block again in a new terminal, or after changing `DATASET_NAME` so its derived paths update.
+
+The variable names are shortcuts, not required Python settings. This table shows what the commands need:
+
+| Variable | Meaning | Needed when? |
+| --- | --- | --- |
+| `RECIPE` | Which task's recordings and inputs to select | Required by conversion as `--recipe` |
+| `PROJECTS` | Existing converted project folders; one or more entries are allowed | Set this to choose your inputs. `--projects` is optional; omitting it selects all registered projects. |
+| `DATASET_NAME` | A label used to build the output paths | Optional convenience; it is not a script argument |
+| `DATASET` | Output `.hdf5` training file to create | Required by conversion as `--output`; used again for training setup |
+| `SPLIT_FILE` | Output `.json` file listing training and validation episodes | Required as `--split-file` for conversion and training setup; generated automatically |
+| `CONFIG_DIR` | Folder for generated training configurations and model runs | Needed later as `--output-dir`; not used by conversion |
 
 ## 3. Convert and reserve validation episodes
 
@@ -54,13 +65,35 @@ python3 scripts/convert_to_robomimic.py \
   --output "$DATASET" --split-file "$SPLIT_FILE"
 ```
 
+You can also write values directly in the command, without setting variables. For an A dataset from one project, replace the example folder and output names, then run this Bash block:
+
+```bash
+python3 scripts/convert_to_robomimic.py \
+  --recipe policy_A_unified --projects datasets/your_recording_folder \
+  --output datasets/training/your_dataset_name.hdf5 \
+  --split-file datasets/training/your_dataset_name.split.json
+```
+
+Run only one of these conversion commands. Later variable-based commands still need their variables set.
+
 The converter combines accepted episodes, turns compressed camera images into RGB images, and keeps the joint states and demonstrated actions. B's bin input stays constant throughout an episode: `[1, 0]` for bin 0 or `[0, 1]` for bin 1. It refuses a conditioned-B dataset with only one bin.
 
-The split file records exactly which episodes train the models and which validate them. Both algorithms use that same list. By default, approximately 80% are used for training and 20% for validation, with each parcel type represented in both groups. B also keeps each parcel-type/bin combination represented. Each group needs at least two independent parcel cycles; recordings linked to the same cycle stay together.
+A **split** divides accepted recordings into two groups:
+
+- **Training episodes:** the model learns its actions from these recordings.
+- **Validation episodes:** the model predicts actions on these reserved recordings, and training reports how closely they match the recorded actions. They are not used for training updates.
+
+For example, 25 accepted, independent poly-mailer A recordings at an 80/20 split give 20 training episodes and 5 validation episodes. A “25-recording model” therefore does not necessarily train on all 25. Validation measures prediction error; real-robot task success still needs separate trials.
+
+The converter creates the split file automatically. You choose its filename, not the episode lists. ACT and DP use that same file so one algorithm is not checked on a different set of recordings. Keep it with the dataset and model configuration; do not edit its lists manually.
+
+The default training fraction is `ROBOMIMIC["train_fraction"] = 0.8` in `scripts/scripts_config.py`. Each parcel type appears in both groups; B also represents each parcel-type/bin combination. Each combination needs at least two independent parcel cycles before splitting. Recordings linked to one cycle stay together, so actual counts can differ from an exact 80/20 ratio. Change the fraction before converting to a new dataset. Dobot ACT uses its separate per-project `train_ratio` setting.
 
 Use a new `DATASET_NAME` when changing the included recordings. Existing datasets are not replaced, and reusing a split with changed source files is refused. A warning about missing parcel types means the dataset covers only an early, partial test.
 
 ## 4. Generate configurations and train
+
+Run this block in the same Bash terminal where you set `DATASET`, `SPLIT_FILE`, `CONFIG_DIR` and `RECIPE`. The first command writes configuration files; the next two train ACT and DP:
 
 ```bash
 python3 scripts/configure_robomimic.py \
@@ -78,7 +111,7 @@ The configs select all three cameras and joint positions. Conditioned B adds the
 
 Check for `finished run successfully!`, finite training/validation losses, and saved `.pth` files under `<config-dir>/runs/<experiment>/<timestamp>/models/`. Keep the dataset, split and config with the checkpoint. The trainer asks before replacing an existing run; use a fresh directory or a fresh `--name` on retry.
 
-To check installation and data handling with two training updates, generate smaller models in a new directory:
+To check installation and data handling with two training updates, run this block in the same Bash terminal. Its first line sets `SMOKE_DIR`, then the commands create and train smaller models in that directory:
 
 ```bash
 SMOKE_DIR="ckpt/${DATASET_NAME}_installation_check"
@@ -95,7 +128,7 @@ These reduced models only check that the pipeline runs. They are not task-perfor
 
 ## 5. Check whether B uses the requested bin
 
-This check applies only to `policy_B_conditioned`. Choose a saved `.pth` from either trained algorithm:
+This check applies only to `policy_B_conditioned`. Replace the example checkpoint path with a saved `.pth` from either trained algorithm, then run the whole block in the same Bash terminal. The first line sets `CHECKPOINT`; the next command performs the check:
 
 ```bash
 CHECKPOINT="ckpt/path_to_your_saved_checkpoint.pth"

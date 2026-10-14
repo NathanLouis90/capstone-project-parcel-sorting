@@ -1,12 +1,12 @@
 # Prepare recordings for training
 
-Use this guide after recording with [Policy A](policy_a.md) or [Policy B](policy_b.md). All commands run from the repository root in `Xtrainer`; no robot connection is needed.
+Use this guide after recording with [Policy A](policy_a.md) or [Policy B](policy_b.md). Run `bash` blocks in a Bash terminal from the repository root with `Xtrainer` activated. Replace example values, then run assignments and commands in order in that same terminal; repeat assignments in a new terminal. No robot connection is needed.
 
 A project contains episodes, where one episode is one demonstration. Choose any number of episodes per project. Optional names are `<set_id>_<medium>_A` and `<set_id>_<medium>_B_bin_<bin>`; set IDs label collections, not a required size.
 
 ## 1. Register the project
 
-Add the exact recording folder name to `PREPARE_ACT_DATASETS["projects"]` in [scripts/scripts_config.py](../../scripts/scripts_config.py). The policy guides show the task-specific values. Do this before running preparation or training.
+Edit [scripts/scripts_config.py](../../scripts/scripts_config.py) to add the exact recording folder name under `PREPARE_ACT_DATASETS["projects"]`. This is a file edit, not a terminal command. The policy guides show the task-specific values. Do this before running preparation or training.
 
 | Field | Meaning |
 | --- | --- |
@@ -21,7 +21,7 @@ Add the exact recording folder name to `PREPARE_ACT_DATASETS["projects"]` in [sc
 
 ## 2. Check and review
 
-Replace both values below with names from your recordings:
+Replace `your_recording_folder` and `your_episode_folder` below, then paste and run the entire block in your Bash terminal. These lines set `PROJECT` and `EPISODE_ID` for this and later commands:
 
 ```bash
 PROJECT="your_recording_folder"

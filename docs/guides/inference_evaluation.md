@@ -16,7 +16,7 @@ Use the [Policy A guide](policy_a.md) or [Policy B guide](policy_b.md) for task-
 3. Follow the [homing guide](robot_home_guide.md) to put both arms at home. Close both grippers. Place A's parcel at receiving or B's parcel at staging; an envelope at staging needs an overhanging edge.
 4. Keep the camera positions/flips and starting pose consistent with recording. Verify `RUN_INFERENCE["robot_types"]` matches your robot before relying on its position checks. Stay near the physical emergency stop throughout the test.
 
-Set the values for your trained model, then run from the repository root in `Xtrainer`:
+Replace the example task and checkpoint directory, then paste the entire block into a Bash terminal at the repository root with `Xtrainer` activated. The first two lines set terminal variables; the next command starts the model on the robot. No Python-file edit is needed for this block:
 
 ```bash
 TASK="your_registered_task"

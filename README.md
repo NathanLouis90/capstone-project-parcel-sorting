@@ -67,6 +67,12 @@ The intended final models handle all three parcel types. Current early tests use
 | `docs/guides/` | Step-by-step operating guides |
 | `tests/` | Checks software behavior without moving the robot |
 
+## How to use command examples
+
+Run `bash` code blocks in a Bash terminal from the repository root, with `Xtrainer` activated. Replace example names and paths before pasting. Lines such as `PROJECT="your_folder"` set terminal variables; run them before commands that use `$PROJECT`, in the same terminal. If you open another terminal, set those variables again.
+
+Python configuration blocks are edits to the file named in the instructions. They do not go in the terminal. Variables only make commands easier to reuse; you can also put actual names and paths directly in a command.
+
 ## Quick startup
 
 Use the included [Lightweight Base User Guide](docs/provided_dobot/Dobot%20X-Trainer%20%28Lightweight%20Base%29%20User%20Guide%20V1.1_20240731_en.pdf) and [Operation Guide and FAQ](docs/provided_dobot/Dobot%20X-Trainer%20Operation%20Guide%20and%20FAQ.pdf) for full setup, operation and troubleshooting instructions.
