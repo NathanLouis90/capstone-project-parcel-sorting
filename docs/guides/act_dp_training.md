@@ -29,7 +29,9 @@ A **recipe** selects the recordings and model inputs:
 
 For final A, include poly mailer, carton and envelope projects. You can start with poly mailers only, but that only tests poly mailers. For B, include both bins for each parcel type and aim for similar episode counts in each bin.
 
-Replace the values in this block. `PROJECTS` contains converted project folders, each with `train_data/`; add or remove entries as needed:
+Run the following block in a **Bash terminal**, from the repository root with `Xtrainer` activated. It defines terminal variables for the commands below; do not paste it into a Python file or `scripts_config.py`.
+
+Before pasting it, replace the example folder names in `PROJECTS` with your actual converted project folders, each containing `train_data/`. Add or remove folders as needed. Replace `your_dataset_name` with a name for the combined dataset. The last three lines build the output paths automatically:
 
 ```bash
 RECIPE="policy_A_unified"
@@ -40,9 +42,11 @@ SPLIT_FILE="datasets/training/${DATASET_NAME}.split.json"
 CONFIG_DIR="ckpt/${DATASET_NAME}_configs"
 ```
 
-For B, choose `RECIPE="policy_B_conditioned"` and list B projects from both bins. These variables are examples, not configured project names. Keep them in the same terminal or set them again before later commands.
+For B, change the first line to `RECIPE="policy_B_conditioned"` and list B projects from both bins. Run this variable block first, then run the conversion command below in the **same terminal**. The block only sets variables; it does not convert data or start training. If you open another terminal, run the variable block there again.
 
 ## 3. Convert and reserve validation episodes
+
+After running the variable block, paste this command into that same terminal. `$RECIPE`, `${PROJECTS[@]}`, `$DATASET` and `$SPLIT_FILE` use the values you set above:
 
 ```bash
 python3 scripts/convert_to_robomimic.py \
