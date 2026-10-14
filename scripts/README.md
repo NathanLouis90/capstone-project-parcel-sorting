@@ -73,7 +73,7 @@ To review every unreviewed recording, run this in the same terminal after settin
 python3 scripts/review_episodes.py --project "datasets/$PROJECT"
 ```
 
-Click the video window, then press **a** to accept or **r** to reject. Decisions are saved immediately. Rejected recordings and existing converted files remain on disk; preparation and robomimic conversion exclude them from new outputs. Existing datasets and checkpoints remain unchanged. Dobot ACT reads every HDF5 file in its training folder, so follow the [rejection guide](../docs/guides/dataset_preparation.md#what-happens-to-rejected-recordings) before retraining if rejected files were already converted. Add `--include-reviewed` to revisit previous decisions.
+Click the video window, then press **a** to accept or **r** to reject. Decisions are saved immediately. Rejected recordings and existing converted files remain on disk; preparation and robomimic conversion exclude them from new outputs. Existing datasets and checkpoints remain unchanged. Dobot ACT reads every HDF5 file in its training folder, so follow the [rejection guide](../docs/guides/dataset_preparation.md#what-happens-to-rejected-recordings) before retraining if rejected files were already converted. Add `--only-rejected` to review only rejected recordings, or `--include-reviewed` to revisit all previous decisions.
 
 ```text
 datasets/<project>/

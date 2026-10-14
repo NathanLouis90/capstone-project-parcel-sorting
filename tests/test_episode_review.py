@@ -130,6 +130,46 @@ def test_batch_defaults_keep_prior_rejection(tmp_path):
     assert statuses(rejected, rejected_file) == ('rejected', 'rejected')
 
 
+def test_only_rejected_cli_accepts_rejections_and_keeps_other_files(tmp_path, monkeypatch, capsys):
+    project = tmp_path / 'project'
+    accepted = recording(project, '001', 'accepted')
+    pending = recording(project, '002')
+    rejected = recording(project, '003', 'rejected')
+    untouched = [(episode / RECORDING['metadata_filename'], converted)
+                 for episode, converted in (accepted, pending)]
+    before = {path: path.read_bytes() for pair in untouched for path in pair}
+    seen = []
+    monkeypatch.setattr(review, 'play_episode',
+                        lambda episode, metadata: seen.append(episode.name) or 'accepted')
+    assert review.main(['--project', str(project), '--only-rejected']) == 0
+    assert seen == ['003']
+    assert statuses(*rejected) == ('accepted', 'accepted')
+    assert all(path.read_bytes() == content for path, content in before.items())
+    # Running again excludes the recording just accepted and opens no window.
+    assert review.main(['--project', str(project), '--only-rejected']) == 0
+    assert seen == ['003']
+    assert 'No rejected episodes selected.' in capsys.readouterr().out
+
+
+def test_only_rejected_intersects_explicit_episode_selection(tmp_path):
+    project = tmp_path / 'project'
+    recording(project, '001', 'accepted')
+    selected = recording(project, '002', 'rejected')
+    excluded = recording(project, '003', 'rejected')
+    seen = []
+    review.review_project(project, episode_ids=['001', '002'], only_rejected=True,
+                          decision_fn=lambda episode, metadata: seen.append(episode.name) or 'accepted')
+    assert seen == ['002']
+    assert statuses(*selected) == ('accepted', 'accepted')
+    assert statuses(*excluded) == ('rejected', 'rejected')
+
+
+def test_only_rejected_conflicts_with_include_reviewed(tmp_path):
+    with pytest.raises(SystemExit) as error:
+        review.main(['--project', str(tmp_path), '--only-rejected', '--include-reviewed'])
+    assert error.value.code == 2
+
+
 def test_sync_uses_existing_decision_without_modifying_raw_file(tmp_path):
     project = tmp_path / 'project'
     episode, converted = recording(project, '001')

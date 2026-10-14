@@ -63,13 +63,15 @@ No project registration is needed just to review a folder. Preparation and Dobot
 
 Rejecting an episode marks its review status as `rejected` in the raw episode and matching converted HDF5 files. It does not delete or move recordings, images, videos or converted files. Preparation does not convert rejected raw episodes, and robomimic conversion skips rejected episodes when building a new dataset.
 
-The review command normally shows only unreviewed episodes. To reconsider a rejected recording, run this in the same terminal and accept it only if it meets the task criteria:
+The review command normally shows only unreviewed episodes. To review only rejected recordings, run this in the same terminal:
 
 ```bash
-python3 scripts/review_episodes.py --project "datasets/$PROJECT" --include-reviewed
+python3 scripts/review_episodes.py --project "datasets/$PROJECT" --only-rejected
 ```
 
-This includes both previously accepted and rejected recordings. Changing a decision does not update an existing robomimic dataset, its train/validation split or a trained checkpoint. Create a new dataset and split from the current accepted recordings, then retrain to apply the change to a model.
+Press **a** to accept a recording after confirming it meets the task criteria, **r** to keep it rejected, or **s** to leave its status unchanged. Accepted and unreviewed recordings are excluded from this queue. Running the command again shows only recordings still marked rejected. To review one specific episode, use `--episodes EPISODE_ID`; to revisit all decisions, use `--include-reviewed` instead of `--only-rejected`.
+
+Changing a decision does not update an existing robomimic dataset, its train/validation split or a trained checkpoint. Create a new dataset and split from the current accepted recordings, then retrain to apply the change to a model.
 
 The Dobot ACT trainer reads every HDF5 file in its training folder and does not filter by review status. If you reject an already-converted episode, prepare a fresh training project containing only accepted recordings before retraining with Dobot ACT. Keep the original project for reviewing or reconsidering its recordings.
 

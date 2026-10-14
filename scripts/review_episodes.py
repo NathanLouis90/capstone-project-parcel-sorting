@@ -218,7 +218,9 @@ def terminal_decision(episode, metadata):
 
 
 def review_project(project, episode_ids=None, status=None, sync=False, include_reviewed=False,
-                   dry_run=False, decision_fn=None):
+                   dry_run=False, decision_fn=None, only_rejected=False):
+    if only_rejected and include_reviewed:
+        raise ValueError('Use --only-rejected or --include-reviewed, not both')
     project = Path(project).expanduser().resolve()
     collect = project / 'collect_data'
     if not collect.is_dir():
@@ -233,12 +235,18 @@ def review_project(project, episode_ids=None, status=None, sync=False, include_r
         episodes = [episode for episode in episodes if episode.name in requested]
     converted = converted_index(project)
     selected = [(episode, read_metadata(episode)) for episode in episodes]
-    if not sync and not include_reviewed and not episode_ids:
+    if only_rejected:
+        selected = [(episode, metadata) for episode, metadata in selected
+                    if metadata.get('review_status') == 'rejected']
+    elif not sync and not include_reviewed and not episode_ids:
         selected = [(episode, metadata) for episode, metadata in selected
                     if metadata.get('review_status', 'unreviewed') == 'unreviewed']
     summary = dict(accepted=0, rejected=0, unreviewed=0, skipped=0, errors=0, converted=0)
     if not selected:
-        print('No episodes selected; use --include-reviewed to review earlier decisions.')
+        if only_rejected:
+            print('No rejected episodes selected.')
+        else:
+            print('No episodes selected; use --include-reviewed to review earlier decisions.')
         return summary
     # Batch changes are checked for the entire selection before writing any decision.
     checked_counts = {}
@@ -283,7 +291,9 @@ def main(argv=None):
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument('--set-status', choices=STATUSES, help='Batch decision for episodes you have already reviewed')
     mode.add_argument('--sync-review-status', action='store_true', help='Copy existing raw decisions into matching HDF5 files')
-    parser.add_argument('--include-reviewed', action='store_true', help='Include previously accepted/rejected episodes')
+    selection = parser.add_mutually_exclusive_group()
+    selection.add_argument('--include-reviewed', action='store_true', help='Include previously accepted/rejected episodes')
+    selection.add_argument('--only-rejected', action='store_true', help='Review only episodes currently marked rejected')
     parser.add_argument('--terminal-only', action='store_true', help='Ask in the terminal without opening video; review videos elsewhere first')
     parser.add_argument('--dry-run', action='store_true', help='Check a batch operation without changing files')
     args = parser.parse_args(argv)
@@ -294,7 +304,8 @@ def main(argv=None):
     try:
         summary = review_project(args.project, args.episodes, args.set_status, args.sync_review_status,
                                  args.include_reviewed, args.dry_run,
-                                 terminal_decision if args.terminal_only else None)
+                                 terminal_decision if args.terminal_only else None,
+                                 only_rejected=args.only_rejected)
         return 1 if summary['errors'] else 0
     except (OSError, ValueError, KeyError, RuntimeError, cv2.error) as error:
         print('Review failed: {}'.format(error), file=sys.stderr)
