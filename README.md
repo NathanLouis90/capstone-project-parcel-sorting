@@ -97,6 +97,8 @@ Startup cycles the grippers and moves both followers, even for a one-arm demonst
 
 Follow the [Policy A guide](docs/guides/policy_a.md) or [Policy B guide](docs/guides/policy_b.md) from recording through evaluation. Each guide explains which arm to use, how to name recording folders, and which training route to choose.
 
+Before training, [review recordings](docs/guides/dataset_preparation.md#review-all-episodes-with-one-command) and accept successful demonstrations. Rejected recordings stay on disk but are excluded from future preparation and robomimic conversion. Existing datasets and checkpoints do not change when you reject a recording. The [rejection guide](docs/guides/dataset_preparation.md#what-happens-to-rejected-recordings) explains how to update training data, including the extra step needed for Dobot ACT.
+
 For early tests that run a model on the robot, use [Dobot ACT training](docs/guides/act_training.md). For the ACT versus Diffusion Policy comparison, use the [ACT and DP training guide](docs/guides/act_dp_training.md). That comparison uses the same recordings, the same scaling of joint values, and the same recordings held aside for checking both models.
 
 ## Run a model and measure success

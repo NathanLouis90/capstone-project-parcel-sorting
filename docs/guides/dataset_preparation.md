@@ -59,6 +59,20 @@ The tool saves the decision in the raw episode and any matching HDF5 files. Befo
 
 No project registration is needed just to review a folder. Preparation and Dobot training still need the registration described above. With no graphical display, use `--terminal-only` after watching the existing videos elsewhere; it asks for decisions in the terminal.
 
+### What happens to rejected recordings
+
+Rejecting an episode marks its review status as `rejected` in the raw episode and matching converted HDF5 files. It does not delete or move recordings, images, videos or converted files. Preparation does not convert rejected raw episodes, and robomimic conversion skips rejected episodes when building a new dataset.
+
+The review command normally shows only unreviewed episodes. To reconsider a rejected recording, run this in the same terminal and accept it only if it meets the task criteria:
+
+```bash
+python3 scripts/review_episodes.py --project "datasets/$PROJECT" --include-reviewed
+```
+
+This includes both previously accepted and rejected recordings. Changing a decision does not update an existing robomimic dataset, its train/validation split or a trained checkpoint. Create a new dataset and split from the current accepted recordings, then retrain to apply the change to a model.
+
+The Dobot ACT trainer reads every HDF5 file in its training folder and does not filter by review status. If you reject an already-converted episode, prepare a fresh training project containing only accepted recordings before retraining with Dobot ACT. Keep the original project for reviewing or reconsidering its recordings.
+
 ### Batch decisions for recordings you already reviewed
 
 If you have already watched the selected recordings and confirmed they all succeeded, you can save their decisions together:

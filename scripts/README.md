@@ -67,6 +67,14 @@ python3 scripts/prepare_act_datasets.py --dataset-name "$PROJECT"
 
 Then [review the recordings and convert accepted episodes](../docs/guides/dataset_preparation.md). Checking and conversion do not require the robot server or scanner. Without `--dataset-name`, preparation selects every registered project; selecting one explicitly is easier when projects are at different stages.
 
+To review every unreviewed recording, run this in the same terminal after setting `PROJECT` above:
+
+```bash
+python3 scripts/review_episodes.py --project "datasets/$PROJECT"
+```
+
+Click the video window, then press **a** to accept or **r** to reject. Decisions are saved immediately. Rejected recordings and existing converted files remain on disk; preparation and robomimic conversion exclude them from new outputs. Existing datasets and checkpoints remain unchanged. Dobot ACT reads every HDF5 file in its training folder, so follow the [rejection guide](../docs/guides/dataset_preparation.md#what-happens-to-rejected-recordings) before retraining if rejected files were already converted. Add `--include-reviewed` to revisit previous decisions.
+
 ```text
 datasets/<project>/
 ├── collect_data/<episode_id>/  # Camera images, joint data and episode details
