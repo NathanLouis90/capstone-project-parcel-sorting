@@ -49,7 +49,7 @@ Outputs include `policy_best.ckpt`, `policy_last.ckpt`, `config.pkl`, `dataset_s
 
 ## 3. Add more recordings
 
-A **set** is a collection you choose. It need not contain 25 demonstrations. The project's current plan is to compare models after collecting 25, 50, 75 and 100 demonstrations; these are test milestones, not software limits. The current test uses poly mailers only, before adding cartons and envelopes to Policy A.
+A **set** is a collection you choose. The current comparison uses 50 and 100 accepted demonstrations, with training and validation counts reported separately. Reuse preliminary recordings only after review and compatibility checks. The [curation guide](dataset_curation.md) explains moving accepted set02 episodes into set01, replenishing rejections and building fresh `train50_...` / `train100_...` snapshots. Curation marks previous conversions stale; the trainer refuses stale or incomplete training folders.
 
 To combine converted recording folders, edit `ModelTrain/constants.py`. Paste the Python block below after the project-registration loop and before `DT` and `FPS`; do not paste it into the terminal. Replace the source names and combined task name first:
 

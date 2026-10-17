@@ -1,5 +1,8 @@
 import argparse
-from module.train_module import train
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from scripts.dataset_integrity import require_training_folders
 
 def arg_config():
     parser = argparse.ArgumentParser()
@@ -28,4 +31,10 @@ def arg_config():
 
 if __name__ == '__main__':
     args = arg_config()
+    from ModelTrain.constants import TASK_CONFIGS
+    task = TASK_CONFIGS[args['task_name']]
+    require_training_folders(task['dataset_dir'])
+    if 'stats_dir' in task:
+        require_training_folders(task['stats_dir'])
+    from module.train_module import train
     train(args)

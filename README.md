@@ -51,7 +51,7 @@ See the [scripts README](scripts/README.md) for device settings and helper detai
 
 **Policy B moves the staged parcel into bin 0 or bin 1 using only the right arm.** It is given the chosen bin at every step. Any unused arm stays home with its gripper closed. Both policies start and finish at home.
 
-The intended final models handle all three parcel types. Current early tests use poly mailer bags; carton and envelope demonstrations have not yet been added to Policy A. Recording 25 demonstrations at a time is one way to compare performance at 25, 50, 75 and 100 recordings; you can choose any collection size.
+The intended final models handle all three parcel types. Current model comparisons target 50 and 100 accepted demonstrations. Reviewed preliminary recordings can replenish the main sets. Preliminary carton folders exist, but their recorded medium/stage metadata needs review before reuse; see the [curation guide](docs/guides/dataset_curation.md).
 
 ## Where to find things
 
@@ -59,6 +59,7 @@ The intended final models handle all three parcel types. Current early tests use
 | --- | --- |
 | [experiments/](experiments/README.md) | Starts the robot server, records demonstrations, runs a trained model on the robot, and checks or restores the home pose |
 | [scripts/](scripts/README.md) | Finds device ports, calibrates leaders, previews cameras, counts recordings, and converts recordings into training files |
+| [Dataset curation](docs/guides/dataset_curation.md) | Quarantines rejected recordings, moves accepted episodes between preliminary/set projects, and rebuilds fresh training snapshots |
 | `barcode_scanning/` | Generates parcel labels and reads the barcode scanner to identify the destination bin |
 | `dobot_control/` | Connects to the robot arms, grippers, leaders and cameras |
 | `ModelTrain/` | Trains ACT models with the Dobot training software |
@@ -97,7 +98,7 @@ Startup cycles the grippers and moves both followers, even for a one-arm demonst
 
 Follow the [Policy A guide](docs/guides/policy_a.md) or [Policy B guide](docs/guides/policy_b.md) from recording through evaluation. Each guide explains which arm to use, how to name recording folders, and which training route to choose.
 
-Before training, [review recordings](docs/guides/dataset_preparation.md#review-all-episodes-with-one-command) and accept successful demonstrations. Rejected recordings stay on disk but are excluded from future preparation and robomimic conversion. Existing datasets and checkpoints do not change when you reject a recording. The [rejection guide](docs/guides/dataset_preparation.md#what-happens-to-rejected-recordings) explains how to update training data, including the extra step needed for Dobot ACT.
+Before training, [review recordings](docs/guides/dataset_preparation.md#review-all-episodes-with-one-command) and accept successful demonstrations. Rejected recordings stay on disk but are excluded from future preparation and robomimic conversion. Use the [curation tool](docs/guides/dataset_curation.md) to quarantine rejections, transfer accepted preliminary/set02 episodes into set01, and build fresh 50/100 training snapshots. Existing datasets and checkpoints do not change when you reject a recording. The [rejection guide](docs/guides/dataset_preparation.md#what-happens-to-rejected-recordings) explains how to update training data, including the extra step needed for Dobot ACT.
 
 For early tests that run a model on the robot, use [Dobot ACT training](docs/guides/act_training.md). For the ACT versus Diffusion Policy comparison, use the [ACT and DP training guide](docs/guides/act_dp_training.md). That comparison uses the same recordings, the same scaling of joint values, and the same recordings held aside for checking both models.
 

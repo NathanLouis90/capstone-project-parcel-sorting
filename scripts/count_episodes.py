@@ -40,6 +40,8 @@ def main(argv=None):
     parser.add_argument('--root', type=Path,
                         default=Path(COUNT_EPISODES['root_dir']),
                         help='Dataset root containing project folders')
+    parser.add_argument('--project', help='Show one exact project folder name')
+    parser.add_argument('--details', action='store_true', help='Print each episode stage, medium, bin and review status')
     args = parser.parse_args(argv)
     root = args.root.expanduser().resolve()
     if not root.is_dir():
@@ -47,6 +49,10 @@ def main(argv=None):
 
     projects = sorted(path for path in root.iterdir()
                       if path.is_dir() and (path / 'collect_data').is_dir())
+    if args.project:
+        projects = [path for path in projects if path.name == args.project]
+        if not projects:
+            parser.error('No project with collect_data: {}'.format(args.project))
     print('Dataset root: {}'.format(root))
     if not projects:
         print('No projects with collect_data folders found.')
@@ -59,6 +65,19 @@ def main(argv=None):
         stage, counts = count_project(project / 'collect_data')
         print(row.format(project.name, stage, counts['total'], counts['complete'],
                          counts['incomplete'], counts['unknown'], width=width))
+        if args.details:
+            for episode in sorted((project / 'collect_data').iterdir()):
+                if not episode.is_dir() or episode.name.startswith('.'):
+                    continue
+                try:
+                    metadata = json.loads((episode / RECORDING['metadata_filename']).read_text())
+                    destination = metadata.get('destination') or {}
+                    print('  {}: stage={}, medium={}, bin={}, review={}{}'.format(
+                        episode.name, metadata.get('policy_stage'), metadata.get('medium'),
+                        destination.get('bin_index'), metadata.get('review_status', 'unreviewed'),
+                        ' [episode_id differs from folder name]' if metadata.get('episode_id') != episode.name else ''))
+                except (OSError, ValueError) as error:
+                    print('  {}: {}'.format(episode.name, error))
     print('\nComplete: stopped recording with a nonzero metadata frame count.')
     print('Incomplete: active, interrupted, or zero-frame recording.')
     print('Unknown: missing or unreadable metadata, including older recordings.')

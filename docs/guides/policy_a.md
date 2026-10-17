@@ -14,7 +14,7 @@ For envelopes, the arms move one after the other, never simultaneously. Start an
 Replace the example values below, then paste and run this block in a Bash terminal at the repository root with `Xtrainer` activated. These lines only set terminal variables. Run later Bash blocks in that same terminal; set the variables again if you open another:
 
 ```bash
-SET_ID="set01"
+SET_ID="set02"
 MEDIUM="poly_mailer"
 PROJECT="${SET_ID}_${MEDIUM}_A"
 ```
@@ -68,7 +68,7 @@ PYTHONPATH=. MPLBACKEND=Agg python3 ModelTrain/model_train.py \
   --chunk_size 45 --kl_weight 10 --seed 0
 ```
 
-See [Dobot ACT training](act_training.md) for settings and how to train with several recording folders. That supports your 25, 50, 75 and 100-recording tests; choose other counts if useful. Those labels count recorded demonstrations, including any held aside for validation. Rejected episodes do not reach training.
+See [Dobot ACT training](act_training.md) for settings and how to train with several recording folders. The current comparison uses 50 and 100 accepted demonstrations, including episodes held aside for validation. Use the [curation guide](dataset_curation.md) to reuse reviewed preliminary episodes and build fresh training snapshots. Rejected episodes do not reach training.
 
 For the final ACT/DP comparison, combine the A projects you want to include using `policy_A_unified` in the [ACT/DP guide](act_dp_training.md). Include all three parcel types once their data is ready. A dataset containing only poly mailers is an early test, not evidence that the model handles cartons or envelopes. Models trained through this route cannot yet run the robot.
 

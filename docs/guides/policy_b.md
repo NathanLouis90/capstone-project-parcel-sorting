@@ -11,7 +11,7 @@ Record each bin in its own folder. You can then combine both bins when training 
 Replace the example values below, then paste and run this block in a Bash terminal at the repository root with `Xtrainer` activated. These lines only set terminal variables. Run later Bash blocks in that same terminal; set the variables again if you open another:
 
 ```bash
-SET_ID="set01"
+SET_ID="set02"
 MEDIUM="poly_mailer"
 BIN=0
 PROJECT="${SET_ID}_${MEDIUM}_B_bin_${BIN}"

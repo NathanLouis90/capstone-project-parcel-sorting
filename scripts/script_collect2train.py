@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from barcode_scanning.dataset_metadata import read_episode_metadata, write_hdf5_metadata
+from scripts.dataset_integrity import require_fresh, require_rollout_opt_in
 
 import time
 import h5py
@@ -107,7 +108,17 @@ def load_data(one_dataset_dir):
 @click.option('-d', '--dataset_name', required=True, default=SCRIPT_COLLECT2TRAIN["dataset_name"],  help='')
 @click.option('-t', '--date_collect', required=True, default=SCRIPT_COLLECT2TRAIN["date_collect"],  help='')
 @click.option('-n', '--idx', required=True, default=SCRIPT_COLLECT2TRAIN["episode_index"],  help='')
-def main(root_dir, dataset_name, date_collect, idx):
+@click.option('--allow-rollouts', is_flag=True, help='Include rollouts only in explicitly named rollout projects')
+def main(root_dir, dataset_name, date_collect, idx, allow_rollouts=False):
+    project = Path(root_dir) / dataset_name
+    require_fresh(project, allow_building=True)
+    if Path(date_collect).name != date_collect or date_collect in ('.', '..'):
+        raise ValueError('Use an episode folder name, not a path')
+    episode_metadata = read_episode_metadata(project / 'collect_data' / date_collect)
+    if episode_metadata is not None:
+        require_rollout_opt_in(episode_metadata, project, allow_rollouts)
+        if episode_metadata.get('review_status') != 'accepted':
+            raise ValueError('Conversion requires accepted review status')
     dataset_dir = root_dir + "/" + dataset_name + "/collect_data/"
     mk_dir(dataset_dir)
     output_video_dir = root_dir + "/" + dataset_name + "/output_videos/"
@@ -123,7 +134,6 @@ def main(root_dir, dataset_name, date_collect, idx):
 
     one_data_dir = dataset_dir+date_collect+"/"
     print(one_data_dir)
-    episode_metadata = read_episode_metadata(one_data_dir)
     qpos, qvel, action, base_action, image_dict, is_sim = load_data(one_data_dir)
     qpos = np.concatenate([qpos[:, :7] * MIRROR_STATE_MULTIPLY, qpos[:, 7:] * MIRROR_STATE_MULTIPLY], axis=1)
     qvel = np.concatenate([qvel[:, :7] * MIRROR_STATE_MULTIPLY, qvel[:, 7:] * MIRROR_STATE_MULTIPLY], axis=1)

@@ -31,6 +31,7 @@ Use the [Dobot setup manual](../docs/provided_dobot/Dobot%20X-Trainer%20%28Light
 | `count_episodes.py` | Counts recorded demonstrations in each project and reports complete or interrupted recordings |
 | `prepare_act_datasets.py` | Checks a recording project, saves review decisions, and converts accepted recordings to HDF5 training files and videos |
 | `review_episodes.py` | Plays recordings for one-key review, supports batch decisions, and synchronizes review status with existing HDF5 files |
+| `curate_datasets.py` | Reports review counts, quarantines/restores rejections, transfers accepted episodes, tops up collections and merges projects with file-hash audit logs |
 | `convert_to_robomimic.py` | Combines converted projects into one dataset for ACT or Diffusion Policy |
 | `configure_robomimic.py` | Creates ACT and DP training configurations from that dataset |
 | `check_destination_swap.py` | Checks whether changing the requested bin changes a trained model's predictions, using recorded data |
@@ -52,6 +53,7 @@ Register each project's exact folder name under `PREPARE_ACT_DATASETS["projects"
 | `episode_len` | Maximum recording length and maximum robot-run steps for that task |
 | `train_ratio` | Fraction used for training a single project; the rest is reserved for validation |
 | `camera_names` | Camera inputs used by the model |
+| `control_period_ms` | Nominal recording period checked by curation; legacy metadata uses the configured shared period with a warning |
 
 Edit other sections of `scripts_config.py` for camera/video conversion and helper settings. Restart programs after editing.
 
@@ -65,7 +67,7 @@ python3 scripts/count_episodes.py
 python3 scripts/prepare_act_datasets.py --dataset-name "$PROJECT"
 ```
 
-Then [review the recordings and convert accepted episodes](../docs/guides/dataset_preparation.md). Checking and conversion do not require the robot server or scanner. Without `--dataset-name`, preparation selects every registered project; selecting one explicitly is easier when projects are at different stages.
+Then [review the recordings and convert accepted episodes](../docs/guides/dataset_preparation.md). Checking and conversion do not require the robot server or scanner. Without `--dataset-name`, preparation selects existing registered recording projects; selecting one explicitly is easier when projects are at different stages.
 
 To review every unreviewed recording, run this in the same terminal after setting `PROJECT` above:
 
@@ -84,3 +86,5 @@ datasets/<project>/
 ```
 
 To combine recordings or train at different demonstration counts, see [Dobot ACT training](../docs/guides/act_training.md) and [ACT/DP training](../docs/guides/act_dp_training.md).
+
+The current experiment milestones are 50 and 100 accepted demonstrations. Use [dataset curation](../docs/guides/dataset_curation.md) after review to quarantine rejections, reuse preliminary recordings, move accepted set02 episodes into set01, and rebuild fresh `train50_...` / `train100_...` projects. Curation never rewrites episode metadata or moves HDF5 files between training projects. Stale/incomplete conversion markers block preparation, robomimic source conversion and the Dobot training launcher until a fresh project is built.

@@ -16,6 +16,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 from scripts.scripts_config import PREPARE_ACT_DATASETS, ROBOMIMIC
 from barcode_scanning.barcode_scanning_config import RECORDING
+from scripts.dataset_integrity import require_fresh, require_rollout_opt_in, explicit_rollout_name
 
 
 def digest(path):
@@ -26,9 +27,10 @@ def digest(path):
     return checksum.hexdigest()
 
 
-def inspect_sources(projects, recipe):
+def inspect_sources(projects, recipe, allow_rollouts=False):
     entries = []
     for project in projects:
+        require_fresh(project)
         for path in sorted((Path(project) / 'train_data').glob('episode_init_*.hdf5')):
             with h5py.File(str(path), 'r') as source:
                 stage = source.attrs.get('policy_stage')
@@ -39,6 +41,10 @@ def inspect_sources(projects, recipe):
                 if recipe['bin'] is not None and bin_index != recipe['bin']:
                     continue
                 metadata = json.loads(source.attrs.get('episode_metadata_json', '{}'))
+                if metadata.get('source') == 'rollout' and not allow_rollouts:
+                    print('Skip {}: rollout excluded by default'.format(path))
+                    continue
+                require_rollout_opt_in(metadata, project, allow_rollouts)
                 raw_metadata = Path(project) / 'collect_data' / str(metadata.get('episode_id', '')) / RECORDING['metadata_filename']
                 raw_status = json.loads(raw_metadata.read_text()).get('review_status') if raw_metadata.is_file() else 'accepted'
                 if metadata.get('review_status') != 'accepted' or raw_status != 'accepted':
@@ -137,14 +143,16 @@ def decode_frame(dataset, index, compressed):
     return cv2.resize(frame, (width, height), interpolation=cv2.INTER_AREA).astype(np.uint8)
 
 
-def convert(projects, recipe_name, output, split_path):
+def convert(projects, recipe_name, output, split_path, allow_rollouts=False):
     output, split_path = Path(output), Path(split_path)
     if output.resolve() == split_path.resolve():
         raise ValueError('Dataset and split must have different paths')
     if output.exists():
         raise FileExistsError('Refuse to overwrite {}'.format(output))
     recipe = ROBOMIMIC['recipes'][recipe_name]
-    entries = inspect_sources(projects, recipe)
+    if allow_rollouts and not explicit_rollout_name(output.stem):
+        raise ValueError('Including rollouts requires an output dataset name containing rollout or rollouts')
+    entries = inspect_sources(projects, recipe, allow_rollouts)
     split = make_split(entries, recipe, split_path)
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = output.with_suffix(output.suffix + '.partial')
@@ -203,13 +211,14 @@ def main(argv=None):
     parser.add_argument('--projects', nargs='+', type=Path, help='Project folders, each containing train_data')
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--split-file', required=True, type=Path)
+    parser.add_argument('--allow-rollouts', action='store_true')
     args = parser.parse_args(argv)
     projects = args.projects or [Path(PREPARE_ACT_DATASETS['root_dir']) / name
                                 for name in PREPARE_ACT_DATASETS['projects']]
     for project in projects:
         if not (project / 'train_data').is_dir():
             parser.error('Missing train_data: {}'.format(project))
-    convert(projects, args.recipe, args.output, args.split_file)
+    convert(projects, args.recipe, args.output, args.split_file, args.allow_rollouts)
 
 
 if __name__ == '__main__':

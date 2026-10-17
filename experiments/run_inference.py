@@ -36,10 +36,8 @@ def main(args):
     checkpoint_dir = args.checkpoint_dir.expanduser().resolve()
     if not (checkpoint_dir / args.model_name).is_file():
         raise ValueError('Missing checkpoint: {}'.format(checkpoint_dir / args.model_name))
-    sys.path.insert(0, str(REPO_ROOT / 'ModelTrain'))
-    from ModelTrain.module.model_module import Imitate_Model
-    model = Imitate_Model(ckpt_dir=str(checkpoint_dir), ckpt_name=args.model_name)
-    model.loadModel()
+    from experiments.act_checkpoint import load_act_checkpoint
+    model = load_act_checkpoint(checkpoint_dir, args.model_name, args.task_name)
     # B and mailer/carton A have one active arm. Envelope A uses both arms.
     active = np.array([1, 1] if project['policy_stage'] == 'A' and project['medium'] == 'envelope'
                       else [1, 0] if project['policy_stage'] == 'A' else [0, 1])

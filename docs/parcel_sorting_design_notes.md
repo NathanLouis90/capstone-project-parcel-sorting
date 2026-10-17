@@ -1,6 +1,6 @@
 # Parcel and mail sorting: working design notes
 
-Updated: 2026-10-14. These notes retain user decisions and implementation findings for future work. They are a working reference, not a fixed specification. Explicit user updates take precedence over the proposal and over these notes.
+Updated: 2026-10-17. These notes retain user decisions and implementation findings for future work. They are a working reference, not a fixed specification. Explicit user updates take precedence over the proposal and over these notes.
 
 ## User-confirmed direction — 2026-10-14
 
@@ -13,7 +13,13 @@ Updated: 2026-10-14. These notes retain user decisions and implementation findin
 
 ## Current collection plan
 
-Early robot tests use poly mailers only. Carton and envelope demonstrations have not yet been added to Policy A. The current test milestones are 25, 50, 75 and 100 recorded demonstrations, but collection sizes and folder names are optional. Report accepted-recording and actual training/validation counts separately. See the [Policy A guide](guides/policy_a.md), [Policy B guide](guides/policy_b.md) and [Dobot ACT guide](guides/act_training.md).
+The current comparison targets 50 and 100 accepted demonstrations. Collection sizes and folder names remain optional. Reviewed preliminary episodes may replenish the main sets, and accepted set02 episodes may move into set01. Preliminary carton folders exist but their medium/stage metadata needs correction or exclusion after physical review before reuse. Report accepted-recording and actual training/validation counts separately. See the [Policy A guide](guides/policy_a.md), [Policy B guide](guides/policy_b.md) and [Dobot ACT guide](guides/act_training.md).
+
+## Dataset curation update — 2026-10-17
+
+`scripts/curate_datasets.py` adds status, reversible quarantine/restore, accepted-only transfer, top-up and merge. It checks compatibility, preserves episode metadata/IDs, records per-file SHA-256 provenance in append-only logs, and marks changed raw collections' conversions stale. Moves use same-filesystem renames with preflight and rollback on filesystem errors. Dry runs change nothing; application requires confirmation or `--yes`. Frozen robomimic outputs, splits and checkpoints are unchanged. `prepare_act_datasets.py --rebuild-to NEW --convert` validates/copies accepted raw episodes into a fresh registered project and converts there; stale/incomplete folders cannot be used for training. Current set01/set02 names and fresh train50/train100 snapshots are registered alongside historical aliases. Legacy recordings without a nominal period use the configured 40 ms assumption with a warning; measured rate remains a review item.
+
+A read-only carton audit found five A episodes in `preliminary_carton_A` and four B plus one A in `preliminary_carton_B`. All ten record medium `poly_mailer`. The B folder's `20261015102831505618_update_policy` records stage A and an unsuffixed episode ID, with no destination. The episode counter correctly reports A,B from metadata. No recordings have been relabelled or moved; physical task identity requires video review. See the [curation guide](guides/dataset_curation.md) for commands and recovery choices. Automatic rollout recording is outside this curation change; inference behavior and the recorder CLI are unchanged.
 
 ## Demonstration rules
 

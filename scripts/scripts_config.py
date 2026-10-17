@@ -57,6 +57,31 @@ PREPARE_ACT_DATASETS = {
     },
 }
 
+# Current on-disk recording names. Keep first_set aliases for old checkpoints.
+# Folder labels do not repair episode metadata: preliminary carton recordings
+# must be reviewed and their recorded medium/stage checked before curation.
+for _medium in ("poly_mailer", "carton"):
+    for _set in ("set01", "set02", "train50", "train100"):
+        for _stage, _bin in (("A", None), ("B", 0), ("B", 1)):
+            _name = "{}_{}_{}".format(_set, _medium, _stage)
+            if _bin is not None:
+                _name += "_bin_{}".format(_bin)
+            PREPARE_ACT_DATASETS["projects"][_name] = {
+                "policy_stage": _stage, "medium": _medium, "bin_index": _bin,
+                "episode_len": 400, "train_ratio": 0.8,
+                "camera_names": ["top", "left_wrist", "right_wrist"],
+                "control_period_ms": CONTROL["control_period_ms"],
+            }
+    for _stage in ("A", "B"):
+        PREPARE_ACT_DATASETS["projects"]["preliminary_{}_{}".format(_medium, _stage)] = {
+            "policy_stage": _stage, "medium": _medium,
+            "bin_index": 0 if _stage == "B" else None,
+            "episode_len": 400, "train_ratio": 0.8,
+            "camera_names": ["top", "left_wrist", "right_wrist"],
+            "control_period_ms": CONTROL["control_period_ms"],
+        }
+del _medium, _set, _stage, _bin, _name
+
 # 1_find_port.py
 SCRIPT_1_FIND_PORT = {
     "baud_rate_list": [2000000, 1000000],

@@ -42,7 +42,7 @@ Recording and inference aim for one step every 40 ms, or 25 Hz. An **overrun** m
 
 ## Record the result
 
-Choose the same test parcels, starting-pose variations and number of attempts when comparing models. Keep test examples out of training. For your data-size test, train models at the chosen milestones, such as 25/50/75/100 recorded demonstrations, then apply the same test procedure to each.
+Choose the same test parcels, starting-pose variations and number of attempts when comparing models. Keep test examples out of training. For the current data-size test, train models using 50 and 100 accepted demonstrations, then apply the same test procedure to each. Preserve each [curated training snapshot](dataset_curation.md) and report its actual training/validation counts. Automatic rollout recording and outcome prompts have not been added in this curation change; use the manual evaluation log below.
 
 | Task | Count success only when |
 | --- | --- |
