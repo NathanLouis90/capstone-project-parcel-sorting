@@ -4,7 +4,7 @@ Both algorithms use the same RGB images, 14 joint/gripper observations, action
 normalization and frozen train/validation split. Train a separate pair for each
 medium. No scanner, destination or label-face input is given to either policy.
 
-Complete [recording](recording_guide.md) and [preparation](dataset_preparation.md).
+Complete [recording](../recording/README.md) and [preparation](../datasets/preparation.md).
 Run from the repository root in Python 3.8 `Xtrainer`:
 
 ```bash
@@ -32,7 +32,7 @@ Source hashes protect the split; changed sources require fresh output paths.
 `--smoke --cpu` on configuration generation creates small one-epoch/two-step
 checks with `_smoke` names. These models validate software only and must not run
 live hardware. Model files, normalization statistics and configuration are saved
-in robomimic `.pth` checkpoints. The [runner](inference_evaluation.md) restores
+in robomimic `.pth` checkpoints. The [runner](../runtime/evaluation.md) restores
 normalization and pads/updates DP observation history, resetting it each cycle.
 
 Compare physical success and cycle time using separate held-out placements;

@@ -13,7 +13,7 @@ python3 barcode_scanning/make_labels.py --size carton
 
 Destination mapping remains `DEST-A-S138683` to bin 0 (Dover) and
 `DEST-B-S828608` to bin 1 (Punggol). These tokens name destinations. Print at
-actual size. See [hardware](../hardware.md) for face definitions and dimensions.
+actual size. See [hardware](media.md) for face definitions and dimensions.
 
 Only the cycle supervisor owns the scanner during runtime. Recording does not
 open it. Each scan window is armed for a fresh cycle after handoff; stale,

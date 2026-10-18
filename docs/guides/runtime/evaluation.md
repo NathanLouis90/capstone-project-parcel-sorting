@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-Teach and commission the [joint waypoints](waypoints.md), including receiving
+Teach and commission the [joint waypoints](../hardware/waypoints.md), including receiving
 returns for both arms. Train fresh checkpoints. Verify scanner reads at rest
 and throughout the candidate-face sequence, tool clearance, joint limits,
 cable slack and grasp retention. Stay at the robot with emergency-stop access.
@@ -25,7 +25,7 @@ The standalone runner prints predictions without commanding a robot.
 ## Live cycle
 
 Start `python3 experiments/launch_nodes.py` in another terminal. Home explicitly
-using the [home guide](robot_home_guide.md). Select the medium manually:
+using the [home guide](../hardware/homing.md). Select the medium manually:
 
 ```bash
 python3 experiments/run_cycle.py --medium poly_mailer --live \

@@ -1,7 +1,7 @@
 # Dobot ACT training
 
 Use this optional vendor route for `.ckpt` models. For the ACT/DP comparison,
-use [matched robomimic training](act_dp_training.md). The checkpoint formats
+use [matched robomimic training](act_dp.md). The checkpoint formats
 are distinct; select the matching supervisor backend.
 
 Record and prepare a fresh per-medium project first. Run from the repository
@@ -22,4 +22,4 @@ The loader reads every HDF5 file in the training folder. Rebuild accepted-only
 files after rejecting an already-converted episode. Shared task settings in
 `scripts/scripts_config.py` determine camera names, episode horizon, and the
 training fraction. Stop the recorder before training. Physical evaluation uses
-[the cycle supervisor](inference_evaluation.md).
+[the cycle supervisor](../runtime/evaluation.md).

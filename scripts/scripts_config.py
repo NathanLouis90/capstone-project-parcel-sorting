@@ -67,22 +67,10 @@ SCRIPT_3_JUST_BUTTONA = {
     'loop_period_ms': 35,
 }
 
-# 4_collect2train_data.py
-SCRIPT_4_COLLECT2TRAIN_DATA = {
-    "root_dir": str(DATASETS_DIR),
-    "dataset_name": "first_test",
-}
-
 # 5_camera_read.py
 SCRIPT_5_CAMERA_READ = {
     "flip_top_right": True,
     "flip_left": False,
-}
-
-# 6_dataset_count.py
-SCRIPT_6_DATASET_COUNT = {
-    "dataset_name": "dataset_package_test",
-    "root_dir": str(DATASETS_DIR),
 }
 
 # function_util.py
@@ -130,7 +118,6 @@ ROBOMIMIC = {
     "seed": 0,
     "image_size": [128, 128],  # Shared resize for both algorithms; HWC uint8 RGB.
     "cameras": ["top", "left_wrist", "right_wrist"],
-    "balance_ratio_warning": 1.5,
     "batch_size": 8,
     "epochs": 1000,
     "steps_per_epoch": 100,

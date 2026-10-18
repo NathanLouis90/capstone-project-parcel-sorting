@@ -30,9 +30,9 @@ Each episode ends with a held scan pose; release and home are outside the demo.
 | `convert_to_robomimic.py` | Build one medium dataset with a frozen split |
 | `configure_robomimic.py` | Generate matched ACT and DP training configs |
 
-See [recording](../docs/guides/recording_guide.md),
-[preparation](../docs/guides/dataset_preparation.md), and
-[training](../docs/guides/act_dp_training.md). Converted images become RGB for
+See [recording](../docs/guides/recording/README.md),
+[preparation](../docs/guides/datasets/preparation.md), and
+[training](../docs/guides/training/act_dp.md). Converted images become RGB for
 robomimic; vendor ACT retains its BGR preprocessing. `script_collect2train.py`
 is the individual converter called by preparation.
 

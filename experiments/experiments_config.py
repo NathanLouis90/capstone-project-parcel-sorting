@@ -41,7 +41,6 @@ SUPERVISOR = {
     "joint_speed_rad_s": 0.25,
     "motion_timeout_s": 40.0,
     "tracking_tolerance_rad": 0.15,
-    "max_retries": 1,
     "cycle_csv": str(Path(__file__).resolve().parent.parent / "cycle_logs" / "cycles.csv"),
 }
 
@@ -52,9 +51,6 @@ RUN_CONTROL = {
     "hostname": "127.0.0.1",
     "show_img": False,
     "project_name": None,
-    # Recording metadata defaults. CLI options override these values.
-    "medium": None,
-    "label_face": None,
     "x_range_left": (-450, 290),
     "x_range_right": (-290, 450),
     "y_range": (-750, -160),
@@ -75,25 +71,10 @@ RUN_CONTROL = {
     "controller_type_url_template": 'http://{robot_ip}:22000/properties/controllerType',
 }
 
-# run_inference.py
+# Shared cycle safety limits and runtime camera orientation.
 RUN_INFERENCE = {
-    "robot_port": 6001,
-    "hostname": "127.0.0.1",
-    "show_img": True,
-    "model_name": 'policy_last.ckpt',
-    # First observed frame in the existing recordings; commands near 1 close the grippers.
-    "starting_gripper_observation": [0.99114583, 0.97942708],
     "closed_gripper_command": 1.0,
     "robot_types": ["Nova 2", "Nova 2"],
-    "safe_joints_left_deg": [-90, 30, -110, 20, 90, 90, 0],
-    "safe_joints_right_deg": [90, -30, 110, -20, -90, -90, 0],
-    "photo_joints_left_deg": [-90, 0, -90, 0, 90, 90, 57],
-    "photo_joints_right_deg": [90, 0, 90, 0, -90, -90, 57],
-    'interpolation_step_rad': 0.001,
-    'initial_max_steps': 150,
-    'approach_max_steps': 100,
-    'camera_startup_s': 2,
-    'settle_s': 1,
     'max_joint_increment_rad': 0.17,
     'left_j3_min_rad': -2.6,
     'right_j3_max_rad': 2.6,

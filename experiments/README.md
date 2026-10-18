@@ -13,8 +13,8 @@ Run from the repository root in the Python 3.8 `Xtrainer` environment.
 | `robomimic_runner.py` | ACT/DP adapter and hardware-free checkpoint check |
 | `robot_home.py` | Inspect status; recover/home only when explicitly requested |
 
-See [recording](../docs/guides/recording_guide.md), [waypoints](../docs/guides/waypoints.md)
-and [cycle evaluation](../docs/guides/inference_evaluation.md). Edit
+See [recording](../docs/guides/recording/README.md), [waypoints](../docs/guides/hardware/waypoints.md)
+and [cycle evaluation](../docs/guides/runtime/evaluation.md). Edit
 `experiments_config.py` for motion and handoff defaults. Keep calibrated poses
 and verified joint/cable limits in ignored `waypoints.local.yaml`.
 

@@ -18,7 +18,7 @@ of the same medium. Register every source/target name in `scripts_config.py`.
 The tools plan before writing and roll back applied moves on failure.
 
 Transfers/quarantine mark affected conversions stale. Rebuild accepted-only
-training snapshots with the [preparation guide](dataset_preparation.md). Frozen
+training snapshots with the [preparation guide](preparation.md). Frozen
 robomimic datasets, splits and checkpoints are not rebuilt by curation; create
 new outputs. Rollout data requires an explicit opt-in and a project name
 containing `rollout` or `rollouts`.

@@ -39,3 +39,6 @@ __pycache__/
 /cycle_logs/
 .pytest_cache/
 /old_architecture_folder/recaps/
+
+# Generated labels; committed PDF examples live in label_examples/
+/barcode_scanning/labels/

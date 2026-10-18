@@ -30,7 +30,7 @@ Transformers (ACT) and Diffusion Policy (DP).
 
 ## Hardware and media
 
-See [hardware and media](docs/hardware.md) for dimensions, label faces, purchase
+See [hardware and media](docs/guides/hardware/media.md) for dimensions, label faces, purchase
 references and scanner checks. Receiving is beneath the top camera. Keep one
 parcel in the receiving zone, with fixed bubble-wrap contents for poly mailers.
 
@@ -83,16 +83,17 @@ cannot replace operator evaluation.
 
 ## Where to start
 
-- [Recording](docs/guides/recording_guide.md): 50 fresh demonstrations per medium;
-  see [envelope](docs/guides/envelope.md), [poly mailer](docs/guides/poly_mailer.md),
-  and [carton](docs/guides/carton.md) instructions.
-- [Review and conversion](docs/guides/dataset_preparation.md), then
-  [matched ACT/DP training](docs/guides/act_dp_training.md) or
-  [Dobot ACT training](docs/guides/act_training.md).
-- [Teach waypoints](docs/guides/waypoints.md), then
-  [run and evaluate cycles](docs/guides/inference_evaluation.md).
-- [Curation](docs/guides/dataset_curation.md), [robot recovery](docs/guides/robot_home_guide.md),
-  [scanner setup](docs/guides/barcode_scanning_guide.md).
+[Documentation index](docs/README.md) groups the guides by workflow.
+
+1. [Teach waypoints](docs/guides/hardware/waypoints.md), then follow the
+   [recording protocol](docs/guides/recording/README.md) and
+   [instructions by medium](docs/guides/recording/media.md).
+2. [Review and prepare data](docs/guides/datasets/preparation.md), then
+   [train matched ACT/DP models](docs/guides/training/act_dp.md) or
+   use the optional [vendor ACT route](docs/guides/training/vendor_act.md).
+3. [Run and evaluate cycles](docs/guides/runtime/evaluation.md).
+   Use [curation](docs/guides/datasets/curation.md) and
+   [robot recovery](docs/guides/hardware/homing.md) when needed.
 
 Run Bash commands from this repository's root in the `Xtrainer` environment.
 Replace example paths. Variable assignments and commands using them belong in

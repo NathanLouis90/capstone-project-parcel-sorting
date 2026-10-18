@@ -11,6 +11,8 @@ Start the server in a separate terminal: `python3 experiments/launch_nodes.py`.
 The recorder's startup can move both arms and cycle the grippers. Keep both
 paths clear and remain within reach of the emergency stop.
 
+Use [instructions by medium](media.md) for grasp, flip and label schedules.
+
 ## Demonstration protocol
 
 Record 50 fresh accepted demonstrations for each medium. Vary position and yaw
@@ -51,4 +53,4 @@ python3 experiments/run_control.py --medium poly_mailer --label-face bottom \
   --dry-run --save-data-path /tmp/parcel-recording-check
 ```
 
-Follow [review and preparation](dataset_preparation.md) before training.
+Follow [review and preparation](../datasets/preparation.md) before training.

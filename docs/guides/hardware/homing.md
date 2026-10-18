@@ -17,10 +17,10 @@ recovery still require an explicit CLI action.
 
 ## Inspect the robot first
 
-From `/home/adiel/dobot_xtrainer/experiments`, run:
+From the repository root, run:
 
 ```bash
-python3 robot_home.py
+python3 experiments/robot_home.py
 ```
 
 This only reads `RobotMode()` and `GetErrorID()` for `192.168.5.1` and
@@ -40,7 +40,7 @@ Stop both `run_control.py` and `launch_nodes.py`, remove the contact or obstruct
 and release any emergency stops before attempting recovery. For the right arm:
 
 ```bash
-python3 robot_home.py --arm right --recover --clear-errors
+python3 experiments/robot_home.py --arm right --recover --clear-errors
 ```
 
 This requests `ClearError()`, checks that alarms have cleared, sends
@@ -70,7 +70,7 @@ camera image; verify the mounting and coordinate direction. `--base-z-up`
 records that confirmation. For example, to withdraw the right arm by 10 mm:
 
 ```bash
-python3 robot_home.py --arm right --lift-mm 10 --base-z-up --clear-errors
+python3 experiments/robot_home.py --arm right --lift-mm 10 --base-z-up --clear-errors
 ```
 
 Use `--arm left` for the left arm. An explicit distance from 1 through 50 mm is
@@ -125,7 +125,7 @@ If the lift reports a departure from the requested path, keep all command
 clients stopped and inspect the readings before retrying movement:
 
 ```bash
-python3 robot_home.py --arm right --inspect-pose
+python3 experiments/robot_home.py --arm right --inspect-pose
 ```
 
 This reads modes, alarms, joints, and the current selected-frame pose three
@@ -157,14 +157,14 @@ their tools, and anything held by the grippers. The script checks known local
 client processes, but cannot detect every controller client on other computers.
 
 ```bash
-python3 robot_home.py --move
+python3 experiments/robot_home.py --move
 ```
 
 If alarms need clearing or an arm needs power, explicitly request those actions
 after resolving the cause:
 
 ```bash
-python3 robot_home.py --clear-errors --power-on --move
+python3 experiments/robot_home.py --clear-errors --power-on --move
 ```
 
 Use `--arm left` or `--arm right` to select one arm. The command uses the same
