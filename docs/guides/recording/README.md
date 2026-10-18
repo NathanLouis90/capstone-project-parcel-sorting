@@ -11,6 +11,7 @@ Start the server in a separate terminal: `python3 experiments/launch_nodes.py`.
 The recorder's startup can move both arms and cycle the grippers. Keep both
 paths clear and remain within reach of the emergency stop.
 
+For initial scan-pose setup, follow the [three-terminal waypoint walkthrough](../hardware/waypoints.md#use-three-terminals).
 Use [instructions by medium](media.md) for grasp, flip and label schedules.
 
 ## Demonstration protocol
