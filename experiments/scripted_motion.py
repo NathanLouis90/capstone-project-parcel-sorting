@@ -58,9 +58,9 @@ class MotionLoop:
         obs['joint_positions'] = action
         return obs
 
-    def command(self, action):
+    def command(self, action, start=None):
         if self.halted: raise RuntimeError('Motion is halted')
-        start = self.clock()
+        start = self.clock() if start is None else start
         observed = self.observe()['joint_positions']
         action = np.asarray(action, dtype=float).copy()
         validate_action(action, observed)
