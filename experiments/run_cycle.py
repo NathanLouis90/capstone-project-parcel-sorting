@@ -52,6 +52,14 @@ def operator_cause():
         if key in CAUSES: return CAUSES[key]
 
 
+def check_cycle_log(path):
+    path=Path(path)
+    if path.exists() and path.stat().st_size:
+        with path.open(newline='') as stream:
+            if next(csv.reader(stream),None)!=list(COLUMNS):
+                raise ValueError('Cycle CSV columns differ; select a new log file')
+
+
 def append_cycle(path,row):
     path=Path(path); path.parent.mkdir(parents=True,exist_ok=True)
     with path.open('a+',newline='') as stream:
@@ -102,6 +110,7 @@ class Cycle:
         self.label_face,self.config=label_face,config
 
     def run(self,retry_of=''):
+        check_cycle_log(self.csv_path)
         motion=self.motion; clock=motion.clock; start=clock()
         before_overruns=motion.overruns
         row={key:'' for key in COLUMNS}
@@ -115,6 +124,10 @@ class Cycle:
             indices=[0,1,2,3,4,5,7,8,9,10,11,12]
             if np.max(np.abs(current[indices]-home_action()[indices]))>.12:
                 raise ValueError('Both arms must start at home; home explicitly before a cycle')
+            if hasattr(self.policy,'warmup'):
+                self.policy.warmup({'qpos':current,'images':self.images()})
+                # Warmup requests predictions only; no robot command is issued.
+                start=clock(); phase_start=start
             self.policy.reset()
             check=HandoffCheck(self.medium,motion.waypoints['poses']['scan_'+arm],self.config)
             limit=int(np.ceil(self.config['policy_timeout_s']*1000/CONTROL['control_period_ms']))
@@ -143,13 +156,14 @@ class Cycle:
                 return event
             event=motion.hold(self.config['scan_dwell_s'],poll)
             while event is None and rotations<MEDIA[self.medium]['max_rotations']:
-                rotations+=1
-                row['rotations_to_read']=rotations
+                attempted_rotation=rotations+1
+                row['rotations_to_read']=attempted_rotation
                 target=motion.last_action.copy()
                 direction=motion.waypoints.get('rotation_direction',{}).get(arm,1)
                 if direction not in (-1,1): raise ValueError('Rotation direction must be -1 or 1')
                 target[offset+5]+=direction*np.deg2rad(MEDIA[self.medium]['rotation_deg'])
                 event=motion.move(target,poll)
+                rotations=attempted_rotation
                 if event is None: event=motion.hold(self.config['scan_dwell_s'],poll)
             row['rotations_to_read']=rotations
             row['t_scan_s']=clock()-phase_start
@@ -216,11 +230,15 @@ def main(argv=None):
     parser.add_argument('--fake-outcome',choices=tuple(OUTCOMES.values()),default='success')
     parser.add_argument('--retry-once',action='store_true',help='Simulate one retry; live retries always require operator input')
     args=parser.parse_args(argv)
+    if args.fake_read_after < 0:
+        parser.error('--fake-read-after must be nonnegative')
     if args.label_face:
         from barcode_scanning.dataset_metadata import validate_medium_face
         validate_medium_face(args.medium,args.label_face)
     if args.live and (args.fake_token is not None or args.retry_once):
         parser.error('Fake scanner and automatic retry options are restricted to --dry-run')
+    if args.live and args.checkpoint is None:
+        parser.error('--checkpoint is required for live execution')
     runtime=None; scanner=None
     try:
         points=(load_waypoints(args.waypoints,live=args.live) if args.waypoints.exists()
@@ -234,6 +252,8 @@ def main(argv=None):
         else:
             from experiments.robomimic_runner import RobomimicPolicy
             policy=RobomimicPolicy(args.medium,args.checkpoint)
+        if args.live and getattr(policy, 'smoke_checkpoint', False):
+            parser.error('Smoke checkpoints are restricted to software-only checks')
         if args.dry_run:
             clock=VirtualClock(); env=SimulatedEnv()
             motion=MotionLoop(env,points,clock=clock,sleep=clock.sleep)

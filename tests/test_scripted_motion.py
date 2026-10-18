@@ -41,3 +41,19 @@ def test_live_rejects_simulation_points(tmp_path):
     p=tmp_path/'points.yaml'; p.write_text(yaml.safe_dump(simulation_waypoints()))
     load_waypoints(p)
     with pytest.raises(ValueError,match='commission'): load_waypoints(p,live=True)
+
+
+def test_home_keeps_released_gripper_open_during_retreat():
+    motion,_=setup()
+    motion.pose('drop_receiving_left','left',gripper=0)
+    first=len(motion.env.commands)
+    motion.home('left')
+    assert all(command[6]==0 for command in motion.env.commands[first:])
+
+
+def test_feedback_divergence_prevents_next_command():
+    motion,_=setup()
+    motion.env.action[0]+=.2
+    with pytest.raises(ValueError,match='feedback diverged'):
+        motion.command(motion.last_action)
+    assert not motion.env.commands

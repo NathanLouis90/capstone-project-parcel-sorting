@@ -2,6 +2,7 @@
 import json
 from pathlib import Path
 from .barcode_scanning_config import RECORDING
+from experiments.experiments_config import MEDIA as MEDIUM_SETTINGS
 
 MEDIA = ('envelope', 'poly_mailer', 'carton')
 
@@ -9,7 +10,7 @@ MEDIA = ('envelope', 'poly_mailer', 'carton')
 def validate_medium_face(medium, label_face):
     if medium not in MEDIA:
         raise ValueError('Choose medium envelope, poly_mailer, or carton')
-    faces = ('top', 'bottom', 'front', 'rear') if medium == 'carton' else ('top', 'bottom')
+    faces = MEDIUM_SETTINGS[medium]['label_faces']
     if label_face not in faces:
         raise ValueError('Invalid label face for {}: {}'.format(medium, label_face))
 

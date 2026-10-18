@@ -76,3 +76,46 @@ def test_policy_never_receives_scanner_or_label_input(tmp_path):
 def test_unknown_token_never_selects_a_bin(tmp_path):
     cycle=build(tmp_path,token='NOT-A-DESTINATION')
     assert cycle.run()['outcome']=='no_read'
+
+
+def test_read_after_second_carton_face_stops_further_rotations(tmp_path):
+    cycle=build(tmp_path,'carton')
+    cycle.scanner=FakeScanner('DEST-A-S138683',rotations_to_read=2)
+    initial=cycle.motion.last_action[5]
+    row=cycle.run()
+    assert row['outcome']=='success'
+    assert row['rotations_to_read']==2
+    assert max(command[5] for command in cycle.motion.env.commands)==pytest.approx(initial+np.pi)
+
+
+def test_policy_timeout_is_fault_without_automatic_homing(tmp_path):
+    cycle=build(tmp_path)
+    cycle.policy.step=lambda obs:obs['qpos']
+    cycle.motion.home=lambda arm:pytest.fail('Do not home after a timeout')
+    row=cycle.run()
+    assert row['outcome']=='fault'
+    assert 'timeout' in row['fault_detail']
+    assert cycle.motion.halted
+
+
+def test_incompatible_log_is_rejected_before_motion(tmp_path):
+    cycle=build(tmp_path)
+    (tmp_path/'cycles.csv').write_text('unrelated,columns\n')
+    with pytest.raises(ValueError,match='CSV columns'): cycle.run()
+    assert not cycle.motion.env.commands
+
+
+def test_live_smoke_checkpoint_rejected_before_hardware(tmp_path,monkeypatch):
+    from types import SimpleNamespace
+    import yaml
+    import experiments.robomimic_runner as runner
+    import experiments.hardware_runtime as hardware
+    from experiments.run_cycle import main
+    points=simulation_waypoints(); points['commissioned']=True
+    path=tmp_path/'points.yaml'; path.write_text(yaml.safe_dump(points))
+    monkeypatch.setattr(runner,'RobomimicPolicy',lambda *args:SimpleNamespace(smoke_checkpoint=True))
+    monkeypatch.setattr(hardware,'LiveRuntime',lambda:pytest.fail('Smoke checkpoint must not open hardware'))
+    with pytest.raises(SystemExit) as error:
+        main(['--medium','poly_mailer','--live','--backend','robomimic',
+              '--checkpoint',str(tmp_path/'smoke.pth'),'--waypoints',str(path)])
+    assert error.value.code==2

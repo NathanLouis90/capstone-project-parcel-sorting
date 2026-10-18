@@ -44,3 +44,42 @@ def test_act_uses_single_frame_and_parks_idle_arm():
 def test_nonfinite_policy_output_is_rejected():
     from experiments.run_inference import park_idle_arm
     with pytest.raises(ValueError): park_idle_arm(np.full(14,np.nan),'carton')
+
+
+def test_vendor_custom_collection_resolves_registered_medium(tmp_path,monkeypatch):
+    import pickle
+    from experiments.run_inference import VendorPolicy
+    import experiments.act_checkpoint as loader
+    import ModelTrain.constants as constants
+    with (tmp_path/'config.pkl').open('wb') as stream:
+        pickle.dump({'task_name':'fresh_collection'},stream)
+    monkeypatch.setitem(constants.TASK_CONFIGS,'fresh_collection',{'medium':'poly_mailer'})
+    seen=[]
+    class Model: pass
+    monkeypatch.setattr(loader,'load_act_checkpoint',lambda directory,name,task:seen.append(task) or Model())
+    VendorPolicy('poly_mailer',tmp_path)
+    assert seen==['fresh_collection']
+    with pytest.raises(ValueError,match='requested medium'): VendorPolicy('carton',tmp_path)
+
+
+def test_vendor_reset_clears_inference_tensors_and_history():
+    import torch
+    from types import SimpleNamespace
+    from experiments.run_inference import VendorPolicy
+    policy=VendorPolicy.__new__(VendorPolicy)
+    with torch.inference_mode(): actions=torch.ones(2,3,14)
+    policy.model=SimpleNamespace(all_time_actions=actions,qpos_history_raw=np.ones((3,14)),
+                                 qpos_list=[1],target_qpos_list=[1])
+    policy.reset()
+    assert actions.sum()==0
+    assert not policy.model.qpos_history_raw.any()
+    assert policy.model.qpos_list==policy.model.target_qpos_list==[]
+
+
+def test_warmup_does_not_leave_frame_history_for_cycle():
+    policy=adapter(2)
+    policy.step(observation(1))
+    policy.warmup(observation(2))
+    assert policy.steps==0 and not policy.history
+    policy.step(observation(3))
+    np.testing.assert_array_equal(policy.policy.inputs[0]['qpos'],np.full((2,14),3))

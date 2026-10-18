@@ -1,7 +1,6 @@
 """Hardware resources for the supervisor; importing this module opens no devices."""
 import threading
 import time
-import numpy as np
 from experiments.experiments_config import LAUNCH_NODES, RUN_INFERENCE
 
 

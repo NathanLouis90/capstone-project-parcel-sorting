@@ -10,5 +10,11 @@
     "bytes": 14465934207,
     "location": "old_architecture_folder/ckpt",
     "method": "same-filesystem directory rename; contents unchanged"
+  },
+  "recaps": {
+    "files": 3,
+    "bytes": 59679,
+    "location": "old_architecture_folder/recaps",
+    "method": "same-filesystem directory rename; contents unchanged"
   }
 }

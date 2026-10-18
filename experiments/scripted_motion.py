@@ -63,6 +63,9 @@ class MotionLoop:
         start = self.clock() if start is None else start
         observed = self.observe()['joint_positions']
         action = np.asarray(action, dtype=float).copy()
+        joints = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12]
+        if np.max(np.abs(observed[joints] - self.last_action[joints])) > self.config['tracking_tolerance_rad']:
+            raise ValueError('Robot feedback diverged from the last command')
         validate_action(action, observed)
         if np.any((action[[6, 13]] < 0) | (action[[6, 13]] > 1)):
             raise ValueError('Gripper command outside 0..1')
@@ -131,14 +134,14 @@ class MotionLoop:
         for point in self.waypoints.get('routes', {}).get('home_' + arm, []):
             self.pose(point, arm)
         target = self.last_action.copy()
-        target[offset:offset + 7] = home_action()[offset:offset + 7]
+        target[offset:offset + 6] = home_action()[offset:offset + 6]
         self.move(target)
 
 
 def load_waypoints(path, live=False):
     value = yaml.safe_load(Path(path).read_text())
     if value.get('units') != 'radians': raise ValueError('Waypoint units must be radians')
-    if live and not value.get('commissioned', False):
+    if live and value.get('commissioned') is not True:
         raise ValueError('Teach and commission all paths before live operation')
     poses = value.get('poses', {})
     required = ['{}_{}'.format(name, arm) for arm in ('left', 'right')
@@ -156,6 +159,16 @@ def load_waypoints(path, live=False):
             pose = np.asarray(pose, dtype=float)
             if pose.shape != (6,) or not np.isfinite(pose).all() or np.any(pose < limits[side:side+6, 0]) or np.any(pose > limits[side:side+6, 1]):
                 raise ValueError('Waypoint outside joint/cable limits: ' + name)
+    for route, points in value.get('routes', {}).items():
+        if not route.endswith(('_left', '_right')) or not isinstance(points, list):
+            raise ValueError('Route must be a list of same-arm pose names')
+        suffix = '_left' if route.endswith('_left') else '_right'
+        for point in points:
+            if point not in poses or not point.endswith(suffix):
+                raise ValueError('Unknown or wrong-arm via point: ' + str(point))
+    for arm, direction in value.get('rotation_direction', {}).items():
+        if arm not in ('left', 'right') or direction not in (-1, 1):
+            raise ValueError('Set rotation direction to -1 or 1 for each arm')
     return value
 
 

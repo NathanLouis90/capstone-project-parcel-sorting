@@ -9,8 +9,8 @@ from scripts.scripts_config import MANIPULATE_UTILS
 
 
 def raw_episode(root, name, status):
-    path = root / 'A' / 'collect_data' / name
-    session = RecordingSession('A', 'poly_mailer')
+    path = root / 'poly_mailer' / 'collect_data' / name
+    session = RecordingSession('poly_mailer', 'bottom')
     session.start(path)
     home = np.concatenate([np.deg2rad(MANIPULATE_UTILS['stage2_left_deg']),
                            np.deg2rad(MANIPULATE_UTILS['stage2_right_deg'])])
@@ -34,8 +34,8 @@ def raw_episode(root, name, status):
 def test_conversion_skips_every_status_except_accepted(tmp_path, monkeypatch):
     for name, status in [('01', 'unreviewed'), ('02', 'rejected'), ('03', 'accepted')]:
         raw_episode(tmp_path, name, status)
-    monkeypatch.setattr(prepare, 'PROJECTS', {'A': dict(policy_stage='A', medium='poly_mailer',
-                                                     bin_index=None, episode_len=400)})
+    monkeypatch.setattr(prepare, 'PROJECTS', {'poly_mailer': dict(schema_version=3, medium='poly_mailer',
+                                                     episode_len=400)})
     calls = []
 
     def run(command, **kwargs):
@@ -63,6 +63,6 @@ def test_rejected_incomplete_episode_skipped(tmp_path, monkeypatch):
     metadata = json.loads(metadata_path.read_text())
     metadata['recording_complete'] = False
     metadata_path.write_text(json.dumps(metadata))
-    monkeypatch.setattr(prepare, 'PROJECTS', {'A': dict(policy_stage='A', medium='poly_mailer',
-                                                     bin_index=None, episode_len=400)})
+    monkeypatch.setattr(prepare, 'PROJECTS', {'poly_mailer': dict(schema_version=3, medium='poly_mailer',
+                                                     episode_len=400)})
     assert prepare.main(['--root', str(tmp_path), '--convert']) == 0

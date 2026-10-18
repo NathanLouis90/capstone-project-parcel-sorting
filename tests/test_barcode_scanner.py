@@ -14,8 +14,6 @@ import h5py
 import numpy as np
 
 from barcode_scanning.scanner_reader import KeyboardDecoder, ScanWindow, ScannerReader, list_devices, main
-from barcode_scanning.recording import RecordingSession, load_source_episode
-from barcode_scanning.dataset_metadata import read_episode_metadata, write_hdf5_metadata
 
 
 class Clock:
@@ -153,144 +151,6 @@ class DecoderTests(unittest.TestCase):
         self.assertEqual(decoder.decode('KEY_A', 1), 'a')
 
 
-class RecordingTests(unittest.TestCase):
-    def setUp(self):
-        self.temp = tempfile.TemporaryDirectory()
-        self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
-        self.output = io.StringIO()
-        self.redirect = contextlib.redirect_stdout(self.output)
-        self.redirect.__enter__()
-        self.addCleanup(self.redirect.__exit__, None, None, None)
-
-    def source(self):
-        session = RecordingSession('A', 'carton', capture_barcode=True)
-        session.start(self.root / 'A')
-        for char in 'DEST-B-S828608\n':
-            session.window.feed(char)
-        session.poll()
-        session.record_frame()
-        session.stop()
-        return self.root / 'A'
-
-    def test_paired_a_b_records_keep_destination(self):
-        source = self.source()
-        b = RecordingSession('B', 'carton', source_episode=source, demonstrated_bin=1)
-        b.start(self.root / 'B')
-        b.stop()
-        a_data = read_episode_metadata(source)
-        b_data = read_episode_metadata(self.root / 'B')
-        self.assertEqual(a_data['cycle_id'], b_data['cycle_id'])
-        self.assertEqual(b_data['scan']['bin_index'], 1)
-        self.assertEqual(b_data['source_episode_id'], 'A')
-        self.assertEqual(b_data['review_status'], 'unreviewed')
-
-    def test_a_without_scanner_is_convertible(self):
-        a = RecordingSession('A', 'carton')
-        a.start(self.root / 'manual-A')
-        a.record_frame()
-        a.stop()
-        metadata = read_episode_metadata(self.root / 'manual-A')
-        self.assertFalse(metadata['capture_barcode'])
-        self.assertIsNone(metadata['scan'])
-        with h5py.File(str(self.root / 'manual-A.hdf5'), 'w') as file:
-            file.create_group('observations')
-            write_hdf5_metadata(file, metadata, 1)
-            self.assertNotIn('observations/destination', file)
-
-    def test_manual_b_destination_is_saved_and_converted(self):
-        b = RecordingSession('B', 'carton', demonstrated_bin=0)
-        b.start(self.root / 'manual-B')
-        b.record_frame()
-        b.stop()
-        metadata = read_episode_metadata(self.root / 'manual-B')
-        self.assertIsNone(metadata['scan'])
-        self.assertEqual(metadata['destination']['source'], 'manual')
-        with h5py.File(str(self.root / 'manual-B.hdf5'), 'w') as file:
-            file.create_group('observations')
-            write_hdf5_metadata(file, metadata, 1)
-            np.testing.assert_array_equal(file['observations/destination'][:], [[1, 0]])
-
-    def test_manual_b_can_pair_with_unscanned_a(self):
-        a = RecordingSession('A', 'carton')
-        a.start(self.root / 'manual-A')
-        a.record_frame()
-        a.stop()
-        b = RecordingSession('B', 'carton', source_episode=self.root / 'manual-A', demonstrated_bin=1)
-        b.start(self.root / 'manual-B')
-        b.record_frame()
-        b.stop()
-        self.assertEqual(a.metadata['cycle_id'], b.metadata['cycle_id'])
-        self.assertEqual(b.metadata['destination']['bin_index'], 1)
-
-    def test_manual_b_needs_a_configured_bin(self):
-        for index in (None, -1, 2):
-            with self.assertRaises(ValueError):
-                RecordingSession('B', 'carton', demonstrated_bin=index)
-
-    def test_wrong_bin_rejected_before_b(self):
-        with self.assertRaisesRegex(ValueError, 'match scanned bin'):
-            RecordingSession('B', 'carton', source_episode=self.source(), demonstrated_bin=0)
-
-    def test_wrong_medium_rejected(self):
-        with self.assertRaisesRegex(ValueError, 'medium'):
-            RecordingSession('B', 'envelope', source_episode=self.source(), demonstrated_bin=1)
-
-    def test_missing_scan_rejected(self):
-        a = RecordingSession('A', 'carton', capture_barcode=True)
-        a.start(self.root / 'A')
-        a.record_frame()
-        a.stop()
-        with self.assertRaisesRegex(ValueError, 'usable accepted scan'):
-            load_source_episode(self.root / 'A', 'carton', 1)
-
-    def test_aborted_recording_rejected(self):
-        a = RecordingSession('A', 'carton', capture_barcode=True)
-        a.start(self.root / 'A')
-        a.stop(complete=False)
-        with self.assertRaisesRegex(ValueError, 'completed'):
-            load_source_episode(self.root / 'A', 'carton', 1)
-
-    def test_episode_overwrite_refused(self):
-        a = RecordingSession('A', 'carton', capture_barcode=True)
-        with self.assertRaisesRegex(ValueError, 'overwrite'):
-            a.start(self.source())
-
-    def test_accepted_destination_cannot_be_rearmed(self):
-        a = RecordingSession('A', 'carton', capture_barcode=True)
-        a.start(self.root / 'A')
-        for char in 'DEST-A-S138683\n':
-            a.window.feed(char)
-        a.poll()
-        a.rearm()
-        self.assertFalse(a.window.active)
-        self.assertEqual(a.metadata['scan']['bin_index'], 0)
-
-    def test_reader_failure_invalidates_source(self):
-        a = RecordingSession('A', 'carton', capture_barcode=True)
-        a.reader = types.SimpleNamespace(error='device disconnected')
-        a.start(self.root / 'A')
-        a.record_frame()
-        for char in 'DEST-A-S138683\n':
-            a.window.feed(char)
-        a.stop()
-        with self.assertRaisesRegex(ValueError, 'usable accepted scan'):
-            load_source_episode(self.root / 'A', 'carton', 0)
-
-    def test_hdf5_b_condition_is_constant(self):
-        source = self.source()
-        b = RecordingSession('B', 'carton', source_episode=source, demonstrated_bin=1)
-        b.start(self.root / 'B')
-        b.stop()
-        metadata = read_episode_metadata(self.root / 'B')
-        with h5py.File(str(self.root / 'episode.hdf5'), 'w') as file:
-            file.create_group('observations')
-            write_hdf5_metadata(file, metadata, 3)
-            np.testing.assert_array_equal(file['observations/destination'][:], [[0, 1]] * 3)
-            self.assertEqual(file.attrs['policy_stage'], 'B')
-
-    def test_legacy_metadata_optional(self):
-        self.assertIsNone(read_episode_metadata(self.root))
 
 
 class ReaderCleanupTests(unittest.TestCase):
@@ -346,22 +206,6 @@ class ReaderCleanupTests(unittest.TestCase):
         self.assertTrue(device.closed)
 
 
-class RecorderManualModeTests(unittest.TestCase):
-    def test_manual_a_and_b_do_not_open_scanner(self):
-        tree = ast.parse(Path('experiments/run_control.py').read_text())
-        function = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'main')
-        calls = []
-        def scanner(*args, **kwargs):
-            raise AssertionError('manual mode opened a scanner')
-        namespace = {'RecordingSession': RecordingSession, 'ScannerReader': scanner,
-                     '_run_control': lambda args, session: calls.append(session)}
-        exec(compile(ast.Module(body=[function], type_ignores=[]), 'recorder-main', 'exec'), namespace)
-        for stage, bin_index in [('A', None), ('B', 1)]:
-            args = types.SimpleNamespace(policy_stage=stage, capture_barcode=False, medium='carton',
-                                         scan_window_s=30, source_episode=None,
-                                         demonstrated_bin=bin_index, scanner_device=None)
-            namespace['main'](args)
-        self.assertEqual([session.stage for session in calls], ['A', 'B'])
 
 
 class RecorderButtonTests(unittest.TestCase):

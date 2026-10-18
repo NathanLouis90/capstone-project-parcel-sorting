@@ -1,12 +1,11 @@
 """Convert reviewed vendor episodes from multiple projects to one robomimic dataset."""
 import argparse
-from collections import Counter, defaultdict
+from collections import defaultdict
 import hashlib
 import json
 from pathlib import Path
 import random
 import sys
-import warnings
 
 import cv2
 import h5py

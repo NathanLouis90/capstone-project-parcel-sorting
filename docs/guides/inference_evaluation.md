@@ -1,62 +1,69 @@
-# Run a model and evaluate the result
+# Run and evaluate parcel cycles
 
-**Inference** means using a trained model to predict the robot's next actions. **Evaluation** means measuring whether those actions complete the parcel task.
+## Prerequisites
 
-| Checkpoint | What you can do now |
-| --- | --- |
-| Dobot ACT `.ckpt`, with its matching `config.pkl` and `dataset_stats.pkl` | Run one task on the real robot |
-| Robomimic ACT/DP `.pth` | Check predictions using recorded data; robot deployment is not implemented |
+Teach and commission the [joint waypoints](waypoints.md), including receiving
+returns for both arms. Train fresh checkpoints. Verify scanner reads at rest
+and throughout the candidate-face sequence, tool clearance, joint limits,
+cable slack and grasp retention. Stay at the robot with emergency-stop access.
 
-Use the [Policy A guide](policy_a.md) or [Policy B guide](policy_b.md) for task-specific preparation and success criteria. Automatic switching between A and B is not implemented.
-
-## Run a Dobot ACT model
-
-1. Select a [registered recording or combined task](act_training.md) and its trained checkpoint. Check that the task's parcel type, bin and maximum steps match the checkpoint's training configuration.
-2. Stop the recorder, camera preview and other camera owners. Start `python3 experiments/launch_nodes.py` in another terminal. Server startup accesses the robot and cycles its grippers.
-3. Follow the [homing guide](robot_home_guide.md) to put both arms at home. Close both grippers. Place A's parcel at receiving or B's parcel at staging; an envelope at staging needs an overhanging edge.
-4. Keep the camera positions/flips and starting pose consistent with recording. Verify `RUN_INFERENCE["robot_types"]` matches your robot before relying on its position checks. Stay near the physical emergency stop throughout the test.
-
-Replace the example task and checkpoint directory, then paste the entire block into a Bash terminal at the repository root with `Xtrainer` activated. The first two lines set terminal variables; the next command starts the model on the robot. No Python-file edit is needed for this block:
+## Software-only checks
 
 ```bash
-TASK="your_registered_task"
-CHECKPOINT_DIR="./ckpt/your_model_name"
-PYTHONPATH=. python3 experiments/run_inference.py \
-  --task-name "$TASK" --checkpoint-dir "$CHECKPOINT_DIR" \
-  --model-name policy_best.ckpt --show-img
+python3 experiments/run_cycle.py --medium carton --dry-run \
+  --fake-token DEST-B-S828608 --csv /tmp/carton-cycle.csv
+python3 experiments/run_cycle.py --medium carton --dry-run \
+  --retry-once --csv /tmp/carton-no-read.csv
+python3 experiments/robomimic_runner.py --medium poly_mailer \
+  --checkpoint /path/to/model.pth --dry-run --steps 3
 ```
 
-The runner loads the model, checks that both arms are at home, and runs up to the task's configured `episode_len`. An optional `--episode-len` can shorten the run but cannot exceed that limit. A completed run length is not proof that the task succeeded.
+No token tests recovery; unknown tokens never select a bin. The no-read command
+returns exit status 2. Synthetic waypoints and smoke models are not live assets.
+The standalone runner prints predictions without commanding a robot.
 
-For poly mailer/carton A, only the left arm runs. Envelope A uses both arms. B uses only the right arm. Predictions for an unused arm are ignored, and its target stays home/closed. For B, select the checkpoint trained for the intended bin; this runner does not supply a bin input to the Dobot model.
+## Live cycle
 
-Press `q` in the preview or use Ctrl+C to end the process. Neither replaces the physical emergency stop. Inspect the arms and parcel before recovery; the runner does not automatically return home after the test.
+Start `python3 experiments/launch_nodes.py` in another terminal. Home explicitly
+using the [home guide](robot_home_guide.md). Select the medium manually:
 
-## Understand safety and timing messages
-
-The runner refuses invalid numeric predictions, large changes in joint angle, angles outside configured limits, and proposed gripper-tip positions outside the allowed workspace. “J3/J4” refers to the third and fourth joints of each arm. A software refusal stops further policy commands; use the hardware stop for immediate emergency stopping.
-
-Limits and initial gripper values are in `RUN_INFERENCE` in `experiments/experiments_config.py`. Existing first-frame gripper observations were `[0.99114583, 0.97942708]`; the closed command is `1.0`. Check these against new recordings/calibration. The position calculation checks the full possible jaw span because the older gripper-width formula disagrees with the driver convention. These checks do not prove an entire movement path is collision-free.
-
-Recording and inference aim for one step every 40 ms, or 25 Hz. An **overrun** means a step took longer than 40 ms. The runner prints overruns and a total at exit. Review recordings captured at another rate before testing their models: the robot may move at a different speed from the demonstrations.
-
-## Record the result
-
-Choose the same test parcels, starting-pose variations and number of attempts when comparing models. Keep test examples out of training. For the current data-size test, train models using 50 and 100 accepted demonstrations, then apply the same test procedure to each. Preserve each [curated training snapshot](dataset_curation.md) and report its actual training/validation counts. Automatic rollout recording and outcome prompts have not been added in this curation change; use the manual evaluation log below.
-
-| Task | Count success only when |
-| --- | --- |
-| A | The parcel is picked up, the label is presented steadily, the parcel is released correctly at staging, and both arms return home. Envelopes must leave an overhanging edge. |
-| B | The parcel is grasped from staging, released inside the intended bin, and the right arm returns home while the left stays home/closed. |
-
-Record barcode-read success separately when using the scanner. Wrong-bin placement, safety stops, timeouts and manual help are failures for an autonomous attempt. Log all attempts, not only successful ones.
-
-A useful CSV under `ckpt/evaluation/` can record:
-
-```text
-trial_id,checkpoint,accepted_recordings,training_episodes,validation_episodes,policy_stage,medium,intended_bin,scan_success,task_success,manual_help,duration_s,overruns,failure_reason
+```bash
+python3 experiments/run_cycle.py --medium poly_mailer --live \
+  --backend robomimic --checkpoint /path/to/model.pth \
+  --waypoints experiments/waypoints.local.yaml --label-face top
 ```
 
-Report successful attempts divided by all attempts, separately for each parcel type and B bin. Keep videos of failures. Manual switching between A and B measures stage performance; it does not establish autonomous full-cycle success.
+For vendor ACT, use `--backend vendor --checkpoint ckpt/poly_mailer_vendor`.
+The checkpoint argument is a directory for vendor ACT and a file for robomimic.
+Label face is optional evaluation metadata and never a policy observation.
 
-For robomimic B, the [requested-bin check](act_dp_training.md#5-check-whether-b-uses-the-requested-bin) compares predictions on recorded data after changing only the bin input. It helps diagnose whether the model uses that input; it is not a physical success test.
+The supervisor stops requesting policy steps after the scan-pose handoff.
+It checks the initial face, then stops the sweep at the first valid read.
+Flat media allow one 180° backup; cartons allow three 90° steps. A mapped token
+selects a taught bin path for the holding arm. Release and home are scripted.
+
+## Outcomes and recovery
+
+After placement, press `s` for `success`, `g` for `grasp_fail`, `d` for `drop`,
+or `w` for `wrong_bin`. The software never infers these physical outcomes from
+the gripper command or a completed motion.
+
+On `no_read`, never guess a bin: return along the holding arm's taught receiving
+path, release a few centimetres above the surface, and return home. Optionally
+record `t` for `tilted_in_grip`, `l` for `label_occluded`, or Enter for `unknown`.
+Press `r` only after resetting the same parcel to request its single retry.
+The retry is a new CSV row with `retry_of` pointing to the original cycle.
+A second failure stops and waits for the operator. Restarting a program does
+not identify parcels automatically; do not use a restart to bypass this limit.
+
+On a fault or interruption, the supervisor stops issuing motion and requests
+both controllers' emergency stop. It logs `fault` and waits for inspection.
+It never releases or homes automatically after a fault. Clear its cause and
+recover manually using the home guide before starting another cycle.
+
+CSV logs in `cycle_logs/cycles.csv` include IDs, retry link, medium, policy type,
+label face, rotations, token/bin, outcome, optional cause/fault detail, phase
+and total times, dry-run marker and control overruns. Operator decision time
+is excluded. Use only physical trials for success rates and report retries
+separately. Missing ground truth leaves label face blank; the scanner cannot
+infer which face was originally labelled.

@@ -103,6 +103,5 @@ SCANNER_READER = {
 
 # recording.py
 RECORDING = {
-    "scan_window_s": 30.0,  # Starts when A recording starts; press s to retry.
     "metadata_filename": "episode_metadata.json",
 }

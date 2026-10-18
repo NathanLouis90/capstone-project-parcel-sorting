@@ -2,6 +2,7 @@
 import argparse
 from pathlib import Path
 import sys
+import time
 import yaml
 import numpy as np
 ROOT = Path(__file__).resolve().parent.parent
@@ -48,7 +49,17 @@ def main(argv=None):
     # Use the controller's manual drag mode and disable drag before capture.
     robot=ZMQClientRobot(port=LAUNCH_NODES['robot_port'],host=LAUNCH_NODES['hostname'])
     offset=0 if args.name.endswith('_left') else 7
-    samples=[np.asarray(robot.get_observations()['joint_positions'])[offset:offset+6] for _ in range(3)]
+    import zmq
+    robot._socket.setsockopt(zmq.RCVTIMEO,1000)
+    robot._socket.setsockopt(zmq.SNDTIMEO,1000)
+    try:
+        samples=[]
+        for _ in range(3):
+            samples.append(np.asarray(robot.get_observations()['joint_positions'])[offset:offset+6])
+            time.sleep(.04)
+    finally:
+        robot._socket.close(linger=0)
+        robot._context.term()
     if np.max(np.ptp(samples,axis=0)) > .01: raise ValueError('Stop moving the follower before capture')
     save_pose(args.output,args.name,samples[-1])
     print('Saved '+args.name+'; review limits and routes before commissioning')

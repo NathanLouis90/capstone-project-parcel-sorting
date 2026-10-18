@@ -19,6 +19,7 @@ class RobomimicPolicy:
         # Trusted locally trained checkpoints only, as with the vendor loader.
         saved=torch.load(str(checkpoint),map_location='cpu')
         self.config=json.loads(saved['config'])
+        self.smoke_checkpoint=self.config['experiment']['name'].endswith('_smoke')
         algorithm=saved['algo_name']
         if algorithm not in ('act','diffusion_policy'): raise ValueError('Expected ACT or DP checkpoint')
         if not self.config['experiment']['name'].startswith(medium+'_'):
@@ -40,6 +41,11 @@ class RobomimicPolicy:
         self.policy.start_episode()
         self.history=deque(maxlen=self.horizon)
         self.steps=0
+
+    def warmup(self,observation):
+        self.reset()
+        self.step(observation)
+        self.reset()
 
     def step(self,observation):
         import cv2

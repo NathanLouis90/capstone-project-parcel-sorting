@@ -17,7 +17,6 @@ import datetime
 from pathlib import Path
 import requests
 from typing import Optional
-from barcode_scanning.barcode_scanning_config import RECORDING
 from barcode_scanning.recording import RecordingSession
 
 
@@ -29,7 +28,7 @@ class Args:
     hostname: str = RUN_CONTROL["hostname"]
     show_img: bool = RUN_CONTROL["show_img"]
     save_data_path: str = RUN_CONTROL["save_data_path"]
-    project_name: str = RUN_CONTROL["project_name"]
+    project_name: Optional[str] = RUN_CONTROL["project_name"]
     dry_run: bool = False
 
 
@@ -455,6 +454,7 @@ def _run_control(args, recording_session=None):
 
 
 def main(args):
+    args.project_name = args.project_name or args.medium
     session = RecordingSession(args.medium, args.label_face)
     if args.dry_run:
         episode = Path(args.save_data_path) / args.project_name / 'collect_data' / ('dry_' + datetime.datetime.now().strftime('%Y%m%d%H%M%S%f'))

@@ -1,12 +1,12 @@
 # Hardware and media
 
-| Item | Dimensions | Candidate label faces |
-| --- | --- | --- |
-| Poly mailer, fixed bubble-wrap filling | 130 × 190 mm | Top, bottom |
-| Carton, exterior | 150 × 75 × 45 mm | Top, bottom, front, rear |
-| DL envelope | 110 × 220 mm | Top, bottom |
-| USB HID presentation scanner | See the purchased scanner listing | Not applicable |
-| Label stock | 100 × 150 mm | Cut an 80 × 40 mm layout for cartons |
+| Item | Dimensions | Candidate label faces | Purchase reference |
+| --- | --- | --- | --- |
+| Poly mailer, fixed bubble-wrap filling | 130 × 190 mm | Top, bottom | [Shopee](https://sg.shp.ee/KEAi1vGk) |
+| Carton, exterior | 150 × 75 × 45 mm | Top, bottom, front, rear | [Lazada](https://s.lazada.sg/s.6ELRP?c=d&t=p-i1DjcEO-s2CK0KWD) |
+| DL envelope | 110 × 220 mm | Top, bottom | [Lazada](https://s.lazada.sg/s.6ELkQ?c=d&t=p-i3XhIlx-sNuvvNZ) |
+| USB HID presentation scanner | See the purchased scanner listing | Not applicable | [Shopee](https://sg.shp.ee/M8FZszsv) |
+| Label stock | 100 × 150 mm | Cut an 80 × 40 mm layout for cartons | Not specified |
 
 Carton front and rear are the long 150 × 45 mm faces, not the 75 × 45 mm ends.
 An end-on grasp aligns the wrist roll with the long axis, exposing the four
@@ -19,9 +19,8 @@ configured destination tokens. Print PDFs at actual size without scaling.
 
 Run `python3 barcode_scanning/make_labels.py --size 100x150` or
 `python3 barcode_scanning/make_labels.py --size carton`. Example PDFs are in
-`barcode_scanning/label_examples/`. Purchase links remain the embedded links
-in the supplied reimplementation specification; verify the physical items
-before updating dimensions.
+`barcode_scanning/label_examples/`. Purchase references come from the supplied reimplementation specification.
+Verify the physical items before updating dimensions.
 
 Move receiving beneath the top camera and remove the intermediate platform.
 Teach scan, bin, and receiving-return joint waypoints for each holding arm.

@@ -1,0 +1,14 @@
+{
+  "schema_version": 2,
+  "episode_id": "legacy",
+  "cycle_id": "original-cycle",
+  "policy_stage": "A",
+  "medium": "poly_mailer",
+  "recording_complete": true,
+  "review_status": "accepted",
+  "frame_count": 1,
+  "capture_barcode": false,
+  "scanner_error": null,
+  "scan": null,
+  "demonstrated_bin": null
+}

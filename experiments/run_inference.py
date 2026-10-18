@@ -14,17 +14,36 @@ class VendorPolicy:
 
     def __init__(self, medium, checkpoint_dir, model_name='policy_best.ckpt'):
         from experiments.act_checkpoint import load_act_checkpoint
+        import pickle
+        from ModelTrain.constants import TASK_CONFIGS
+        checkpoint_dir=Path(checkpoint_dir).expanduser().resolve()
+        with (checkpoint_dir/'config.pkl').open('rb') as stream:
+            saved=pickle.load(stream)
+        task=saved['task_name']
+        if TASK_CONFIGS.get(task, {}).get('medium')!=medium:
+            raise ValueError('Checkpoint task must be registered for the requested medium')
         self.medium=medium
-        self.model=load_act_checkpoint(checkpoint_dir,model_name,medium)
+        self.model=load_act_checkpoint(checkpoint_dir,model_name,task)
         self.reset()
 
     def reset(self):
         self.steps=0
         if hasattr(self.model,'reset'): self.model.reset()
-        # The vendor predictor indexes temporal state by rollout timestep.
-        for name in ('all_time_actions', 'all_actions'):
-            value=getattr(self.model,name,None)
+        # Temporal aggregation and history must not leak into a retry.
+        import torch
+        with torch.inference_mode():
+            value=getattr(self.model,'all_time_actions',None)
             if hasattr(value,'zero_'): value.zero_()
+        history=getattr(self.model,'qpos_history_raw',None)
+        if hasattr(history,'fill'): history.fill(0)
+        for name in ('qpos_list','target_qpos_list'):
+            history=getattr(self.model,name,None)
+            if hasattr(history,'clear'): history.clear()
+
+    def warmup(self, observation):
+        self.reset()
+        self.step(observation)
+        self.reset()
 
     def step(self, observation):
         # The camera source is RGB. The vendor was trained on OpenCV BGR files.

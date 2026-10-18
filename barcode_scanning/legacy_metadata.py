@@ -9,6 +9,8 @@ from .scanner_reader import destination_mapping
 def read_legacy_metadata(episode_dir):
     path = Path(episode_dir) / RECORDING['metadata_filename']
     if not path.exists():
+        path = Path(episode_dir) / 'metadata.json'
+    if not path.exists():
         return None  # Older recordings remain convertible.
     with path.open() as stream:
         metadata = json.load(stream)

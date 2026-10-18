@@ -38,3 +38,4 @@ __pycache__/
 /experiments/waypoints.local.yaml
 /cycle_logs/
 .pytest_cache/
+/old_architecture_folder/recaps/

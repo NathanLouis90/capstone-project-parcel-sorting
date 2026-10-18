@@ -28,3 +28,7 @@ click
 
 # Dedicated Linux HID barcode scanner capture (Python 3.8 compatible)
 evdev==1.6.1
+
+# Physical barcode-label rendering (Python 3.8)
+python-barcode==0.16.0
+reportlab==3.6.13
