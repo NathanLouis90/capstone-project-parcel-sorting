@@ -96,8 +96,10 @@ def signature(episode, warnings):
         raise ValueError('episode_id differs from folder name: {}'.format(episode))
     if not m.get('recording_complete') or not m.get('frame_count', 0):
         raise ValueError('Incomplete recording: {}'.format(episode))
-    if m.get('policy_stage') not in ('A', 'B') or m.get('medium') not in ('poly_mailer', 'carton', 'envelope'):
-        raise ValueError('Missing policy_stage or medium: {}'.format(episode))
+    if m.get('schema_version', 0) < 3 or m.get('medium') not in ('poly_mailer', 'carton', 'envelope'):
+        raise ValueError('Fresh pick-to-scan medium metadata required: {}'.format(episode))
+    from barcode_scanning.dataset_metadata import validate_medium_face
+    validate_medium_face(m['medium'], m.get('label_face'))
     ids = {p.stem for p in (episode / 'observation').glob('*.pkl')}
     if any(not identifier.isdigit() for identifier in ids):
         raise ValueError('Observation frame names must be numeric: {}'.format(episode))
@@ -116,16 +118,12 @@ def signature(episode, warnings):
                      'Measured playback rate still needs review.'.format(episode, rate))
     if isinstance(rate, bool) or not isinstance(rate, (int, float)) or not math.isfinite(rate) or rate <= 0:
         raise ValueError('Invalid recording rate: {}'.format(episode))
-    destination = m.get('destination') or m.get('scan') or {}
-    bin_index = destination.get('bin_index') if m['policy_stage'] == 'B' else None
-    if m['policy_stage'] == 'B' and (type(bin_index) is not int or bin_index not in (0, 1)):
-        raise ValueError('Invalid bin_index: {}'.format(episode))
-    return dict(policy_stage=m['policy_stage'], medium=m['medium'], bin_index=bin_index,
+    return dict(medium=m['medium'], schema_version=m['schema_version'],
                 camera_names=sorted(cameras), control_period_ms=rate, frames=len(ids))
 
 
 def compatible(actual, expected, episode):
-    for key in ('policy_stage', 'medium', 'bin_index', 'camera_names', 'control_period_ms'):
+    for key in ('schema_version', 'medium', 'camera_names', 'control_period_ms'):
         wanted = expected.get(key, CONTROL['control_period_ms'] if key == 'control_period_ms' else None)
         if key == 'camera_names':
             wanted = sorted(wanted or CAMERAS)
@@ -272,19 +270,9 @@ def reference_warnings(plan, root):
     raw = [op for op in plan.operations if op.source.parent.name == 'collect_data']
     if not raw:
         return
-    moved = {str(op.source / RECORDING['metadata_filename']): op for op in raw if not op.copy}
-    for path in root.glob('*/collect_data/*/' + RECORDING['metadata_filename']):
-        m = json.loads(path.read_text())
-        link = m.get('source_metadata_path')
-        if link and str(Path(link).expanduser().resolve()) in moved:
-            op = moved[str(Path(link).expanduser().resolve())]
-            plan.warnings.add('Policy B {} keeps source_metadata_path {}; A moves to {}. '
-                              'Link is preserved and may need the curation log to resolve.'.format(path.parent, link, op.destination))
     tokens = {str(op.source) for op in raw} | {op.source.name for op in raw}
     for op in raw:
         m = metadata(op.source)
-        if m.get('source_metadata_path'):
-            plan.warnings.add('{}: Policy B source link stays unchanged: {}'.format(op.source.name, m['source_metadata_path']))
         if (op.source.parent.parent / 'train_data').exists():
             plan.warnings.add('{}: existing conversions/splits/checkpoints are not rebuilt; use fresh training outputs.'.format(op.source.parent.parent))
     # Frozen split files identify converted source paths rather than raw IDs.
@@ -421,13 +409,12 @@ def project_status(project):
             m = metadata(path)
             status = m.get('review_status', 'unreviewed')
             counts[status if status in ('accepted', 'rejected', 'unreviewed') else 'invalid'] += 1
-            details['stage={}, medium={}, bin={}'.format(m.get('policy_stage'), m.get('medium'),
-                                                       (m.get('destination') or {}).get('bin_index'))] += 1
+            details['medium={}, label_face={}'.format(m.get('medium'), m.get('label_face'))] += 1
             if m.get('episode_id') != path.name:
                 issues.append('episode_id differs from folder name: ' + path.name)
             expected = PREPARE_ACT_DATASETS['projects'].get(project.name)
             if expected:
-                for field in ('policy_stage', 'medium'):
+                for field in ('medium',):
                     if m.get(field) != expected[field]:
                         issues.append('{} mismatch: {} records {!r}, project expects {!r}'.format(
                             field, path.name, m.get(field), expected[field]))
@@ -435,7 +422,7 @@ def project_status(project):
             counts['invalid'] += 1
             issues.append('{}: {}'.format(path.name, error))
     counts['quarantined'] = len(episodes(project, True))
-    result = dict(project=str(project), counts=dict(counts), stages_media_bins=dict(details),
+    result = dict(project=str(project), counts=dict(counts), media_faces=dict(details),
                   train_data_stale=any((project / 'train_data' / name).exists() for name in ('STALE.json', 'BUILDING.json')), issues=issues)
     print(json.dumps(result, indent=2))
     return result

@@ -33,14 +33,12 @@ def inspect_sources(projects, recipe, allow_rollouts=False):
         require_fresh(project)
         for path in sorted((Path(project) / 'train_data').glob('episode_init_*.hdf5')):
             with h5py.File(str(path), 'r') as source:
-                stage = source.attrs.get('policy_stage')
                 medium = source.attrs.get('medium')
-                bin_index = int(source.attrs.get('bin_index', -1))
-                if stage != recipe['stage'] or (recipe['medium'] and medium != recipe['medium']):
-                    continue
-                if recipe['bin'] is not None and bin_index != recipe['bin']:
+                if medium != recipe['medium']:
                     continue
                 metadata = json.loads(source.attrs.get('episode_metadata_json', '{}'))
+                if metadata.get('schema_version', 0) < 3 or metadata.get('legacy_recording'):
+                    raise ValueError('Require fresh pick-to-scan recordings: {}'.format(path))
                 if metadata.get('source') == 'rollout' and not allow_rollouts:
                     print('Skip {}: rollout excluded by default'.format(path))
                     continue
@@ -60,34 +58,13 @@ def inspect_sources(projects, recipe, allow_rollouts=False):
                 for camera in ROBOMIMIC['cameras']:
                     if len(source['observations/images/' + camera]) != len(qpos):
                         raise ValueError('Camera length mismatch: {}'.format(path))
-                if stage == 'B':
-                    if bin_index not in (0, 1):
-                        raise ValueError('B requires bin 0 or 1')
-                    destination = source['observations/destination'][:]
-                    expected = np.eye(2, dtype=np.float32)[bin_index]
-                    if destination.shape != (len(qpos), 2) or not np.all(destination == expected):
-                        raise ValueError('Destination must match bin and remain constant: {}'.format(path))
                 identifier = Path(project).name + '/' + path.name
                 entries.append(dict(id=identifier, path=str(path.resolve()), medium=medium,
-                                    bin=bin_index, cycle=str(source.attrs['cycle_id']), sha256=digest(path)))
+                                    cycle=str(source.attrs['cycle_id']), sha256=digest(path)))
     if not entries:
         raise ValueError('No accepted matching episodes; review raw episodes and reconvert first')
     if len({entry['id'] for entry in entries}) != len(entries):
         raise ValueError('Duplicate source project/episode identifiers')
-    counts = Counter((entry['medium'], entry['bin']) for entry in entries)
-    for (medium, bin_index), count in sorted(counts.items()):
-        print('{} x bin {}: {} episodes'.format(medium, bin_index, count))
-    if recipe['destination']:
-        if max(counts.values()) / min(counts.values()) > ROBOMIMIC['balance_ratio_warning']:
-            warnings.warn('Unbalanced episode counts across medium x bin strata')
-        if {entry['bin'] for entry in entries} != {0, 1}:
-            raise ValueError('Conditioned B requires both bins')
-        for medium in {entry['medium'] for entry in entries}:
-            a, b = counts[(medium, 0)], counts[(medium, 1)]
-            if not min(a, b) or max(a, b) / min(a, b) > ROBOMIMIC['balance_ratio_warning']:
-                warnings.warn('Unbalanced B episodes for {}: bin 0={}, bin 1={}'.format(medium, a, b))
-    if recipe['medium'] is None and len({entry['medium'] for entry in entries}) < 3:
-        warnings.warn('Recipe has fewer than three media; this is a partial shakedown dataset')
     return entries
 
 
@@ -96,7 +73,7 @@ def make_split(entries, recipe, split_path):
     strata = defaultdict(lambda: defaultdict(list))
     cycle_strata = {}
     for index, entry in enumerate(entries):
-        key = entry['medium'] + (':{}'.format(entry['bin']) if recipe['stage'] == 'B' else '')
+        key = entry['medium']
         if entry['cycle'] in cycle_strata and cycle_strata[entry['cycle']] != key:
             raise ValueError('A cycle belongs to conflicting strata')
         cycle_strata[entry['cycle']] = key
@@ -169,16 +146,15 @@ def convert(projects, recipe_name, output, split_path, allow_rollouts=False):
             for i, entry in enumerate(entries):
                 with h5py.File(entry['path'], 'r') as source:
                     demo = data.create_group('demo_{}'.format(i))
-                    for key, value in source.attrs.items():
-                        demo.attrs[key] = value
-                    demo.attrs['source_episode'] = entry['id']
+                    from barcode_scanning.dataset_metadata import write_hdf5_metadata
+                    metadata = json.loads(source.attrs['episode_metadata_json'])
+                    write_hdf5_metadata(demo, metadata, len(source['action']))
+                    demo.attrs['recording_id'] = entry['id']
                     n = len(source['action'])
                     demo.attrs['num_samples'] = n
                     demo.create_dataset('actions', data=source['action'][:].astype(np.float32))
                     obs = demo.create_group('obs')
                     obs.create_dataset('qpos', data=source['observations/qpos'][:].astype(np.float32))
-                    if recipe['destination']:
-                        obs.create_dataset('destination', data=source['observations/destination'][:])
                     for camera in ROBOMIMIC['cameras']:
                         h, w = ROBOMIMIC['image_size']
                         images = obs.create_dataset(camera, shape=(n, h, w, 3), dtype=np.uint8,
