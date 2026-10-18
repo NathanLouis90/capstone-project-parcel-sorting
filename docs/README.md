@@ -24,4 +24,3 @@ environment. Each workflow below has one primary guide.
 - [Scripts](../scripts/README.md) and [experiments](../experiments/README.md): active entrypoints and configuration.
 - [Dobot user guide](provided_dobot/Dobot%20X-Trainer%20%28Lightweight%20Base%29%20User%20Guide%20V1.1_20240731_en.pdf)
   and [FAQ](provided_dobot/Dobot%20X-Trainer%20Operation%20Guide%20and%20FAQ.pdf): manufacturer setup and operation.
-- [Archive](../old_architecture_folder/README.md): historical source, migration records and prior validation reports.

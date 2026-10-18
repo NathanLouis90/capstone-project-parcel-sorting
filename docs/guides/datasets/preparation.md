@@ -38,5 +38,5 @@ Dobot training folders must be rebuilt before retraining because its loader read
 all HDF5 files. Curation marks affected conversions stale; stale/incomplete
 folders are refused by training and downstream conversion.
 
-Old recordings remain readable through the compatibility reader in the local
-archive. Do not reuse or truncate them for the new 50-demonstration collections.
+Legacy recordings remain readable through the compatibility reader. Do not reuse
+or truncate them for the new 50-demonstration collections.

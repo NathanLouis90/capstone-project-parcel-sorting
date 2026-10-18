@@ -21,6 +21,5 @@ A no-read returns the parcel to receiving, releases it at a taught low height
 and returns home. One linked retry is allowed. Faults stop both controllers and
 require inspection before manual recovery. CSV timing excludes operator input.
 
-The archived source and migration inventory explain the previous implementation.
 Current data collection uses 50 fresh accepted demonstrations per medium and
 matched ACT/DP train/validation partitions.
