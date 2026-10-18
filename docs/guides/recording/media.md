@@ -4,6 +4,18 @@ Use the [shared recording protocol](README.md) for startup, buttons, timing,
 metadata and review. Collect 50 fresh accepted demonstrations per medium,
 spread over varied positions and yaw throughout the receiving zone.
 
+Keep the robot server running in Terminal 1. Run one of the commands below in
+Terminal 2 after [preparing both terminals](../../terminal_commands.md).
+
+| Shared argument | Meaning |
+| --- | --- |
+| `--medium envelope`, `poly_mailer`, or `carton` | Record the named parcel type and choose its default dataset project. This does not automatically park the other arm. |
+| `--label-face top` | Record that the label starts facing upward at receiving. Change this value as the schedule below requires. |
+| `--show-img` | Show camera previews during teleoperation. |
+
+Each example starts a hardware session and homes both followers. It does not
+start recording an episode until you press the green button.
+
 | Medium | Holding arm | Label schedule | Runtime backup scan |
 | --- | --- | --- | --- |
 | Envelope | Right; left assists the initial slide | Alternate 25 top and 25 bottom | One 180° J6 roll |
@@ -49,6 +61,12 @@ the scanner sweep after handoff.
 python3 experiments/run_control.py --medium carton --label-face top --show-img
 ```
 
-Change `--label-face` to follow the schedule. Stop recording before release or
+For envelope and mailer bottom-face demonstrations, replace `--label-face top`
+with `--label-face bottom`. For cartons, use `top`, `bottom`, `front`, or `rear`
+to match the actual labelled face. Stop the episode and disable following on
+both arms before restarting the recorder with another face value; restarting
+homes both followers. See the shared guide for optional project/output arguments.
+
+Stop recording before release or
 homing, with the idle arm home. Confirm the assigned face in the images before
 accepting each demonstration.

@@ -1,6 +1,7 @@
 # Setup and dataset tools
 
 Run from the repository root in Python 3.8 `Xtrainer`.
+See [terminal commands](../docs/terminal_commands.md) for activation and syntax.
 
 ## Local hardware settings
 
@@ -8,11 +9,20 @@ Run from the repository root in Python 3.8 `Xtrainer`.
 cp -n scripts/dobot_config/dobot_settings.example.ini scripts/dobot_config/dobot_settings.ini
 ```
 
+`cp` copies the first path (the example) to the second path (your local settings).
+`-n` preserves an existing destination file, so rerunning this command does not
+replace working calibration. Open the local file in your editor afterward.
+
 Fill in camera serials, ports and calibration for this hardware. Preserve working
 offsets. Keep credentials only in the ignored local INI. `1_find_port.py` detects
 ports, `2_get_offset.py` calibrates, `3_just_buttonA.py` positions leaders, and
 `5_camera_read.py` previews cameras. Follow the hardware manuals; stop helper
 programs before recording.
+
+Run a helper with `PYTHONPATH=. python3 scripts/1_find_port.py`, replacing the
+filename with the helper you need. `PYTHONPATH=.` makes repository imports work;
+these examples take no additional arguments. The leader button helper only
+locks/unlocks leaders; use `run_control.py` to make followers track them.
 
 ## Data workflow
 
@@ -32,7 +42,9 @@ Each episode ends with a held scan pose; release and home are outside the demo.
 
 See [recording](../docs/guides/recording/README.md),
 [preparation](../docs/guides/datasets/preparation.md), and
-[training](../docs/guides/training/act_dp.md). Converted images become RGB for
+[training](../docs/guides/training/act_dp.md) for commands and argument explanations.
+Use [curation](../docs/guides/datasets/curation.md) for file operations.
+Converted images become RGB for
 robomimic; vendor ACT retains its BGR preprocessing. `script_collect2train.py`
 is the individual converter called by preparation.
 
