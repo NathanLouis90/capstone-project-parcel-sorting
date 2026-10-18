@@ -46,7 +46,7 @@ def main(argv=None):
         if args.name in saved.get('poses',{}) and not args.overwrite:
             parser.error('Pose exists; use --overwrite to replace it')
     from dobot_control.robots.robot_node import ZMQClientRobot
-    # Use the controller's manual drag mode and disable drag before capture.
+    # Position with the leaders, then disable following on both arms before capture.
     robot=ZMQClientRobot(port=LAUNCH_NODES['robot_port'],host=LAUNCH_NODES['hostname'])
     offset=0 if args.name.endswith('_left') else 7
     import zmq
