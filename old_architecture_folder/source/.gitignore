@@ -1,0 +1,33 @@
+# Local recordings, converted training data, and exported videos
+/datasets/
+# Capstone proposal
+/docs/RSE4018_Proposal_2302637_AdielFirqin.pdf
+# session recaps
+/docs/recaps
+# models
+/ckpt
+
+# Local hardware settings and credentials
+/scripts/dobot_config/dobot_settings.ini
+
+# Generated caches; retain required source-only vendor modules
+__pycache__/
+*.py[cod]
+!/ModelTrain/module/model_module.pyc
+!/ModelTrain/module/policy.pyc
+!/ModelTrain/module/train_module.pyc
+!/ModelTrain/module/utils.pyc
+*.egg-info/
+
+# Editor state and runtime logs
+/.idea/
+/.vscode/
+/scripts/logs/
+*.log
+.env
+.env.*
+
+
+# Editor swap files
+*.swp
+*.swo

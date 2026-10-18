@@ -2,19 +2,9 @@
 
 Last-mile parcel sorting is a repetitive and labor-intensive process in which workers scan parcels and manually place them into the correct delivery bins. This project explores robotic automation of this task using imitation learning (behavior cloning). Human demonstrations consisting of images and robot joint states are recorded to train policies that replicate expert actions. The project currently evaluates and compares two imitation learning approaches: Action Chunking with Transformers (ACT) and Diffusion Policy (DP).
 
-## Hardware setup
+## Hardware and media
 
-Arrange the receiving area, barcode reading station, staging area and destination bins within the robot's working area. The following items support demonstration recording and parcel pick-and-place tasks.
-
-| Item | Use | Specifications and purchasing details |
-| --- | --- | --- |
-| Dobot X-Trainer | Records human demonstrations through the leader arms and performs parcel pick-and-place with the follower arms, grippers and cameras | Model, hardware revision and supplier: to add |
-| DL envelopes | Thin parcels used to demonstrate and evaluate envelope pickup, staging and sorting | Dimensions, material and Shopee/Lazada link: to add |
-| Poly mailer bags | Used to record and test pickup, staging and sorting of poly mailer bags | Dimensions, material and Shopee/Lazada link: to add |
-| Carton boxes | Rigid parcels used to demonstrate and evaluate box pickup, staging and sorting | Dimensions, material and Shopee/Lazada link: to add |
-| Storage bins (elevated platforms) | Provide raised receiving and staging surfaces: parcels start at the receiving area and rest at staging between Policy A and Policy B | Quantity, dimensions, height, placement and Shopee/Lazada link: to add |
-| Rectangular basins | Receive sorted parcels as destination bins 0 and 1 | Quantity, dimensions, placement and Shopee/Lazada link: to add |
-| Barcode scanner | Reads parcel labels at the reading station to identify the destination bin | Model, interface, mounting and Shopee/Lazada link: to add |
+See [hardware and media](docs/hardware.md) for parcel dimensions, candidate label faces, label stock, and scanner setup.
 
 ## Software setup
 

@@ -31,3 +31,10 @@ __pycache__/
 # Editor swap files
 *.swp
 *.swo
+
+# Preserved local artifacts from the superseded architecture
+/old_architecture_folder/datasets/
+/old_architecture_folder/ckpt/
+/experiments/waypoints.local.yaml
+/cycle_logs/
+.pytest_cache/

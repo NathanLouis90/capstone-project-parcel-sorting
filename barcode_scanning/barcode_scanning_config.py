@@ -40,6 +40,7 @@ MAKE_LABELS = {
         "3x4": (3.0, 4.0, "inch"),
         "2x3": (2.0, 3.0, "inch"),
         "100x150": (100.0, 150.0, "mm"),
+        "carton": (80.0, 40.0, "mm"),
     },
     "barcode_options": {
         "module_width": 0.25,
@@ -51,8 +52,8 @@ MAKE_LABELS = {
         "dpi": 600,
     },
     "layout": {
-        "reference_width_in": 3.0,
-        "reference_height_in": 4.0,
+        "reference_width_in": 100.0 / 25.4,
+        "reference_height_in": 150.0 / 25.4,
         "margin_in": 0.20,
         "crop_line_width_pt": 0.5,
         "crop_dash_pt": (2, 2),
