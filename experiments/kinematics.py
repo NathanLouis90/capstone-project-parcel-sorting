@@ -25,7 +25,7 @@ def claw_width(coef):
     claw_wid = 0.03 * cos_claw_servo + 0.5 * np.sqrt(0.0036 * cos_claw_servo ** 2 + 0.0028)
     return claw_wid
 
-def forward_kinematics(q0, q1, q2, q3, q4, q5, y, r_type):
+def forward_kinematics(q0, q1, q2, q3, q4, q5, y, r_type, return_transform=False):
     """
     Compute the forward kinematics
     """
@@ -57,5 +57,7 @@ def forward_kinematics(q0, q1, q2, q3, q4, q5, y, r_type):
     t_tool = np.eye(4)
     t_tool[:3, 3] = np.array([0, y, 0.2])
     t_final = np.dot(t, t_tool)
+    if return_transform:
+        return t_final
     pos = t_final[:3, 3]
     return pos

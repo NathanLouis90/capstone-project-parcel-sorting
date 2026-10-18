@@ -23,6 +23,27 @@ LAUNCH_NODES = {
 
 CONTROL = {"control_period_ms": 40}
 
+MEDIA = {
+    "envelope": {"holding_arm": "right", "active_arms": [1, 1], "rotation_deg": 180, "max_rotations": 1},
+    "poly_mailer": {"holding_arm": "left", "active_arms": [1, 0], "rotation_deg": 180, "max_rotations": 1},
+    "carton": {"holding_arm": "left", "active_arms": [1, 0], "rotation_deg": 90, "max_rotations": 3},
+}
+
+SUPERVISOR = {
+    "waypoint_file": str(Path(__file__).resolve().parent / "waypoints.local.yaml"),
+    "position_tolerance_m": 0.025,
+    "orientation_tolerance_rad": 0.15,
+    "velocity_threshold_rad_s": 0.15,
+    "settle_s": 0.5,
+    "policy_timeout_s": 20.0,
+    "scan_dwell_s": 1.0,
+    "joint_speed_rad_s": 0.25,
+    "motion_timeout_s": 40.0,
+    "tracking_tolerance_rad": 0.15,
+    "max_retries": 1,
+    "cycle_csv": str(Path(__file__).resolve().parent.parent / "cycle_logs" / "cycles.csv"),
+}
+
 # run_control.py
 RUN_CONTROL = {
     "using_sensor_protection": False,
