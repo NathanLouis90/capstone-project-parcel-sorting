@@ -31,12 +31,8 @@ RUN_CONTROL = {
     "show_img": False,
     "project_name": "preliminary",
     # Recording metadata defaults. CLI options override these values.
-    "policy_stage": None,  # "A", "B", or None for legacy recording.
-    "capture_barcode": False,
-    "medium": None,  # "poly_mailer", "carton", "envelope", or None for legacy recording.
-    "scanner_device": None,  # None uses barcode_scanning_config.py.
-    "source_episode": None,
-    "demonstrated_bin": None,  # 0 or 1 for Policy B; None for Policy A.
+    "medium": None,
+    "label_face": None,
     "x_range_left": (-450, 290),
     "x_range_right": (-290, 450),
     "y_range": (-750, -160),

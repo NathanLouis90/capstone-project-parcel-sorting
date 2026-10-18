@@ -13,36 +13,25 @@ from dataclasses import dataclass
 import numpy as np
 import tyro
 import threading
-from dobot_control.agents.agent import BimanualAgent
-from scripts.format_obs import save_frame
-from dobot_control.env import RobotEnv
-from dobot_control.robots.robot_node import ZMQClientRobot
-from scripts.function_util import mismatch_data_write, wait_period, log_write, mk_dir
-from scripts.manipulate_utils import robot_pose_init, pose_check, dynamic_approach, obs_action_check, servo_action_check, load_ini_data_hands, set_light, load_ini_data_camera
-from dobot_control.agents.dobot_agent import DobotAgent
-from dobot_control.cameras.realsense_camera import RealSenseCamera
 import datetime
 from pathlib import Path
 import requests
 from typing import Optional
 from barcode_scanning.barcode_scanning_config import RECORDING
 from barcode_scanning.recording import RecordingSession
-from barcode_scanning.scanner_reader import ScannerReader
+
 
 @dataclass
 class Args:
+    medium: str
+    label_face: str
     robot_port: int = RUN_CONTROL["robot_port"]
     hostname: str = RUN_CONTROL["hostname"]
     show_img: bool = RUN_CONTROL["show_img"]
     save_data_path: str = RUN_CONTROL["save_data_path"]
     project_name: str = RUN_CONTROL["project_name"]
-    policy_stage: Optional[str] = RUN_CONTROL["policy_stage"]
-    capture_barcode: bool = RUN_CONTROL["capture_barcode"]
-    medium: Optional[str] = RUN_CONTROL["medium"]
-    scan_window_s: float = RECORDING["scan_window_s"]
-    scanner_device: Optional[str] = RUN_CONTROL["scanner_device"]
-    source_episode: Optional[str] = RUN_CONTROL["source_episode"]
-    demonstrated_bin: Optional[int] = RUN_CONTROL["demonstrated_bin"]
+    dry_run: bool = False
+
 
 
 # Thread button: [lock or nor, servo or not, record or not]
@@ -280,6 +269,15 @@ def check_firmware_version():
     return True
 
 def _run_control(args, recording_session=None):
+    global BimanualAgent, save_frame, RobotEnv, ZMQClientRobot, mismatch_data_write, wait_period, log_write, mk_dir, robot_pose_init, pose_check, dynamic_approach, obs_action_check, servo_action_check, load_ini_data_hands, set_light, load_ini_data_camera, DobotAgent, RealSenseCamera
+    from dobot_control.agents.agent import BimanualAgent
+    from scripts.format_obs import save_frame
+    from dobot_control.env import RobotEnv
+    from dobot_control.robots.robot_node import ZMQClientRobot
+    from scripts.function_util import mismatch_data_write, wait_period, log_write, mk_dir
+    from scripts.manipulate_utils import robot_pose_init, pose_check, dynamic_approach, obs_action_check, servo_action_check, load_ini_data_hands, set_light, load_ini_data_camera
+    from dobot_control.agents.dobot_agent import DobotAgent
+    from dobot_control.cameras.realsense_camera import RealSenseCamera
     # create dataset file path
     save_dir = str(Path(args.save_data_path).expanduser() / args.project_name / "collect_data")
     mk_dir(save_dir)
@@ -443,8 +441,6 @@ def _run_control(args, recording_session=None):
             show_canvas[:, 640 * 2:640 * 3] = np.asarray(img_list[2], dtype="uint8")
             cv2.imshow("0", show_canvas)
             key = cv2.waitKey(1) & 0xFF
-            if key == ord('s') and recording_session is not None:
-                recording_session.rearm()
 
         elapsed = time.monotonic() - tic
         if elapsed > CONTROL["control_period_ms"] / 1000:
@@ -459,30 +455,19 @@ def _run_control(args, recording_session=None):
 
 
 def main(args):
-    session = None
-    reader = None
-    if args.policy_stage is None:
-        if args.capture_barcode or any(value is not None for value in (args.medium, args.source_episode, args.demonstrated_bin, args.scanner_device)):
-            raise ValueError('Barcode recording options require --policy-stage A or B')
-    else:
-        # Validate metadata and scanner availability before robot/camera startup.
-        session = RecordingSession(args.policy_stage, args.medium, args.scan_window_s,
-                                   args.source_episode, args.demonstrated_bin,
-                                   capture_barcode=args.capture_barcode)
-        if args.scanner_device is not None and not args.capture_barcode:
-            raise ValueError('--scanner-device requires --capture-barcode')
-        if args.policy_stage == 'A' and args.capture_barcode:
-            reader = ScannerReader(session.window, args.scanner_device)
-            reader.start()
-            session.reader = reader
-            print('Recorder owns scanner exclusively: {}'.format(reader.device.path), flush=True)
+    session = RecordingSession(args.medium, args.label_face)
+    if args.dry_run:
+        episode = Path(args.save_data_path) / args.project_name / 'collect_data' / ('dry_' + datetime.datetime.now().strftime('%Y%m%d%H%M%S%f'))
+        session.start(episode)
+        session.record_frame()
+        session.stop()
+        print('Metadata-only dry run; not a training episode: {}'.format(episode))
+        return
     try:
         _run_control(args, session)
     finally:
-        if session is not None:
-            session.stop(complete=False)
-        if reader is not None:
-            reader.close()
+        session.stop(complete=False)
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
     main(tyro.cli(Args))
