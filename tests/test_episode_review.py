@@ -15,9 +15,9 @@ from scripts import prepare_act_datasets as prepare
 from scripts.scripts_config import SCRIPT_COLLECT2TRAIN
 
 
-def recording(project, identifier, status='unreviewed', stage='A', bin_index=None):
+def recording(project, identifier, status='unreviewed'):
     episode = project / 'collect_data' / identifier
-    session = RecordingSession(stage, 'poly_mailer', demonstrated_bin=bin_index)
+    session = RecordingSession('poly_mailer', 'bottom')
     session.start(episode)
     qpos, actions, images = [], [], []
     for i in range(2):
@@ -204,13 +204,6 @@ def test_interactive_skip_quit_and_resume(tmp_path):
     assert statuses(*entries[0]) == ('accepted', 'accepted')
 
 
-def test_b_destination_mismatch_blocks_acceptance(tmp_path):
-    episode, converted = recording(tmp_path / 'project', '001', stage='B', bin_index=0)
-    with h5py.File(str(converted), 'r+') as source:
-        source['observations/destination'][1] = [0, 1]
-    with pytest.raises(ValueError, match='destination'):
-        review.set_review_status(episode, 'accepted')
-    assert statuses(episode, converted) == ('unreviewed', 'unreviewed')
 
 
 def test_rejection_can_exclude_an_incomplete_episode(tmp_path):

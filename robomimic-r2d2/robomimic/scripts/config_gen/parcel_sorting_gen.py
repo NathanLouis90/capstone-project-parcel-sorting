@@ -19,7 +19,8 @@ def generate_configs(dataset, split_file, output_dir, smoke=False, cpu=False):
             if names != split[key]:
                 raise ValueError('Dataset filter differs from explicit split file')
         recipe_name = source['data'].attrs['recipe']
-    conditioned = ROBOMIMIC['recipes'][recipe_name]['destination']
+    if recipe_name not in ROBOMIMIC['recipes']:
+        raise ValueError('Unknown medium recipe')
     output_dir.mkdir(parents=True, exist_ok=True)
     paths = []
     for algorithm in ('act', 'diffusion_policy'):
@@ -60,7 +61,7 @@ def generate_configs(dataset, split_file, output_dir, smoke=False, cpu=False):
             'train.cuda': not cpu,
             'train.seq_length': ROBOMIMIC['action_chunk'],
             'train.frame_stack': 1,
-            'observation.modalities.obs.low_dim': ['qpos'] + (['destination'] if conditioned else []),
+            'observation.modalities.obs.low_dim': ['qpos'],
             'observation.modalities.obs.rgb': ROBOMIMIC['cameras'],
             'observation.modalities.obs.depth': [],
             'observation.modalities.obs.scan': [],

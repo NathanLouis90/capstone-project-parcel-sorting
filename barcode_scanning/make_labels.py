@@ -12,7 +12,7 @@ script, so no label_manifest.csv is required.
 
 Usage:
     python make_labels.py                      # configured size, writes barcode_scanning/labels/
-    python make_labels.py --size 2x3           # 2x3 in (fits carton face)
+    python make_labels.py --size carton        # 80 x 40 mm, cut from stock
     python make_labels.py --combined           # all destinations on one page
 
 Deps (Python 3.8):
@@ -82,6 +82,15 @@ def draw_label(c, dest, png_path, w, h, x0=0.0, y0=0.0, crop_marks=MAKE_LABELS["
         print("  WARNING: %s barcode scaled to %.3f (module %.3f mm)"
               % (dest["token"], k, BARCODE_OPTS["module_width"] * k))
     bc_y = cy - bc_h / 2.0
+    if w <= 81 * mm and h <= 41 * mm:
+        if bc_w > w - 4 * mm:
+            raise ValueError('Carton barcode must fit at native module width')
+        c.drawImage(img, cx - bc_w / 2, bc_y, width=bc_w, height=bc_h, mask='auto')
+        c.setFont('Courier-Bold', 6)
+        c.drawCentredString(cx, bc_y - 3 * mm, dest['token'])
+        c.setFont('Helvetica-Bold', 8)
+        c.drawCentredString(cx, y0 + h - 4 * mm, 'BIN {}'.format(dest['bin']))
+        return
     c.drawImage(img, cx - bc_w / 2.0, bc_y, width=bc_w, height=bc_h,
                 preserveAspectRatio=True, anchor='c', mask='auto')
 

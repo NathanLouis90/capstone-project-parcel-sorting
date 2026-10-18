@@ -1,0 +1,20 @@
+{
+  "datasets": {
+    "files": 245657,
+    "bytes": 20707210402,
+    "location": "old_architecture_folder/datasets",
+    "method": "same-filesystem directory rename; contents unchanged"
+  },
+  "ckpt": {
+    "files": 38,
+    "bytes": 14465934207,
+    "location": "old_architecture_folder/ckpt",
+    "method": "same-filesystem directory rename; contents unchanged"
+  },
+  "recaps": {
+    "files": 3,
+    "bytes": 59679,
+    "location": "old_architecture_folder/recaps",
+    "method": "same-filesystem directory rename; contents unchanged"
+  }
+}

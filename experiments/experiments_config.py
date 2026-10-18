@@ -23,20 +23,34 @@ LAUNCH_NODES = {
 
 CONTROL = {"control_period_ms": 40}
 
+MEDIA = {
+    "envelope": {"dimensions_mm": [110, 220], "label_faces": ["top", "bottom"], "holding_arm": "right", "active_arms": [1, 1], "rotation_deg": 180, "max_rotations": 1},
+    "poly_mailer": {"dimensions_mm": [130, 190], "label_faces": ["top", "bottom"], "holding_arm": "left", "active_arms": [1, 0], "rotation_deg": 180, "max_rotations": 1},
+    "carton": {"dimensions_mm": [150, 75, 45], "label_faces": ["top", "bottom", "front", "rear"], "holding_arm": "left", "active_arms": [1, 0], "rotation_deg": 90, "max_rotations": 3},
+}
+
+SUPERVISOR = {
+    "waypoint_file": str(Path(__file__).resolve().parent / "waypoints.local.yaml"),
+    "position_tolerance_m": 0.025,
+    "orientation_tolerance_rad": 0.15,
+    "velocity_threshold_rad_s": 0.15,
+    "settle_s": 0.5,
+    "policy_timeout_s": 20.0,
+    "policy_step_timeout_s": 1.0,
+    "scan_dwell_s": 1.0,
+    "joint_speed_rad_s": 0.25,
+    "motion_timeout_s": 40.0,
+    "tracking_tolerance_rad": 0.15,
+    "cycle_csv": str(Path(__file__).resolve().parent.parent / "cycle_logs" / "cycles.csv"),
+}
+
 # run_control.py
 RUN_CONTROL = {
     "using_sensor_protection": False,
     "robot_port": 6001,
     "hostname": "127.0.0.1",
     "show_img": False,
-    "project_name": "preliminary",
-    # Recording metadata defaults. CLI options override these values.
-    "policy_stage": None,  # "A", "B", or None for legacy recording.
-    "capture_barcode": False,
-    "medium": None,  # "poly_mailer", "carton", "envelope", or None for legacy recording.
-    "scanner_device": None,  # None uses barcode_scanning_config.py.
-    "source_episode": None,
-    "demonstrated_bin": None,  # 0 or 1 for Policy B; None for Policy A.
+    "project_name": None,
     "x_range_left": (-450, 290),
     "x_range_right": (-290, 450),
     "y_range": (-750, -160),
@@ -57,25 +71,10 @@ RUN_CONTROL = {
     "controller_type_url_template": 'http://{robot_ip}:22000/properties/controllerType',
 }
 
-# run_inference.py
+# Shared cycle safety limits and runtime camera orientation.
 RUN_INFERENCE = {
-    "robot_port": 6001,
-    "hostname": "127.0.0.1",
-    "show_img": True,
-    "model_name": 'policy_last.ckpt',
-    # First observed frame in the existing recordings; commands near 1 close the grippers.
-    "starting_gripper_observation": [0.99114583, 0.97942708],
     "closed_gripper_command": 1.0,
     "robot_types": ["Nova 2", "Nova 2"],
-    "safe_joints_left_deg": [-90, 30, -110, 20, 90, 90, 0],
-    "safe_joints_right_deg": [90, -30, 110, -20, -90, -90, 0],
-    "photo_joints_left_deg": [-90, 0, -90, 0, 90, 90, 57],
-    "photo_joints_right_deg": [90, 0, 90, 0, -90, -90, 57],
-    'interpolation_step_rad': 0.001,
-    'initial_max_steps': 150,
-    'approach_max_steps': 100,
-    'camera_startup_s': 2,
-    'settle_s': 1,
     'max_joint_increment_rad': 0.17,
     'left_j3_min_rad': -2.6,
     'right_j3_max_rad': 2.6,

@@ -22,7 +22,7 @@ COUNT_EPISODES = {
 # ModelTrain/constants.py also reads these project settings, so validation and
 # training use the same paths, episode lengths, split, and camera inputs.
 # For another recording project, add an entry with its folder name as the key.
-# Use medium="carton" for cartons; bin_index=None does not check a bin.
+# Each project contains fresh pick-to-scan demonstrations for one medium.
 PREPARE_ACT_DATASETS = {
     "root_dir": str(DATASETS_DIR),
     "home_tolerance_rad": 0.12,
@@ -30,57 +30,12 @@ PREPARE_ACT_DATASETS = {
     "gripper_tolerance": 0.08,
     "rate_tolerance_fraction": 0.10,
     "projects": {
-        "first_set_poly_mailer_A": {
-            "policy_stage": "A",
-            "medium": "poly_mailer",
-            "bin_index": None,
-            "episode_len": 400,
-            "train_ratio": 0.8,
-            "camera_names": ["top", "left_wrist", "right_wrist"],
-        },
-        "first_set_poly_mailer_B_bin_0": {
-            "policy_stage": "B",
-            "medium": "poly_mailer",
-            "bin_index": 0,
-            "episode_len": 400,
-            "train_ratio": 0.8,
-            "camera_names": ["top", "left_wrist", "right_wrist"],
-        },
-        "first_set_poly_mailer_B_bin_1": {
-            "policy_stage": "B",
-            "medium": "poly_mailer",
-            "bin_index": 1,
-            "episode_len": 400,
-            "train_ratio": 0.8,
-            "camera_names": ["top", "left_wrist", "right_wrist"],
-        },
+        medium: {"schema_version": 3, "medium": medium, "episode_len": 500,
+                 "train_ratio": 0.8, "camera_names": ["top", "left_wrist", "right_wrist"],
+                 "control_period_ms": CONTROL["control_period_ms"]}
+        for medium in ("envelope", "poly_mailer", "carton")
     },
 }
-
-# Current on-disk recording names. Keep first_set aliases for old checkpoints.
-# Folder labels do not repair episode metadata: preliminary carton recordings
-# must be reviewed and their recorded medium/stage checked before curation.
-for _medium in ("poly_mailer", "carton"):
-    for _set in ("set01", "set02", "train50", "train100"):
-        for _stage, _bin in (("A", None), ("B", 0), ("B", 1)):
-            _name = "{}_{}_{}".format(_set, _medium, _stage)
-            if _bin is not None:
-                _name += "_bin_{}".format(_bin)
-            PREPARE_ACT_DATASETS["projects"][_name] = {
-                "policy_stage": _stage, "medium": _medium, "bin_index": _bin,
-                "episode_len": 400, "train_ratio": 0.8,
-                "camera_names": ["top", "left_wrist", "right_wrist"],
-                "control_period_ms": CONTROL["control_period_ms"],
-            }
-    for _stage in ("A", "B"):
-        PREPARE_ACT_DATASETS["projects"]["preliminary_{}_{}".format(_medium, _stage)] = {
-            "policy_stage": _stage, "medium": _medium,
-            "bin_index": 0 if _stage == "B" else None,
-            "episode_len": 400, "train_ratio": 0.8,
-            "camera_names": ["top", "left_wrist", "right_wrist"],
-            "control_period_ms": CONTROL["control_period_ms"],
-        }
-del _medium, _set, _stage, _bin, _name
 
 # 1_find_port.py
 SCRIPT_1_FIND_PORT = {
@@ -112,22 +67,10 @@ SCRIPT_3_JUST_BUTTONA = {
     'loop_period_ms': 35,
 }
 
-# 4_collect2train_data.py
-SCRIPT_4_COLLECT2TRAIN_DATA = {
-    "root_dir": str(DATASETS_DIR),
-    "dataset_name": "first_test",
-}
-
 # 5_camera_read.py
 SCRIPT_5_CAMERA_READ = {
     "flip_top_right": True,
     "flip_left": False,
-}
-
-# 6_dataset_count.py
-SCRIPT_6_DATASET_COUNT = {
-    "dataset_name": "dataset_package_test",
-    "root_dir": str(DATASETS_DIR),
 }
 
 # function_util.py
@@ -170,20 +113,11 @@ SCRIPT_COLLECT2TRAIN = {
 
 # Shared parcel dataset recipes and ACT / Diffusion Policy training defaults.
 ROBOMIMIC = {
-    "recipes": {
-        "policy_A_unified": {"stage": "A", "medium": None, "bin": None, "destination": False},
-        "policy_B_conditioned": {"stage": "B", "medium": None, "bin": None, "destination": True},
-        "policy_A_envelope": {"stage": "A", "medium": "envelope", "bin": None, "destination": False},
-        "policy_A_poly_mailer": {"stage": "A", "medium": "poly_mailer", "bin": None, "destination": False},
-        "policy_A_carton": {"stage": "A", "medium": "carton", "bin": None, "destination": False},
-        "policy_B_bin_0": {"stage": "B", "medium": None, "bin": 0, "destination": False},
-        "policy_B_bin_1": {"stage": "B", "medium": None, "bin": 1, "destination": False},
-    },
+    "recipes": {medium: {"medium": medium} for medium in ("envelope", "poly_mailer", "carton")},
     "train_fraction": 0.8,
     "seed": 0,
     "image_size": [128, 128],  # Shared resize for both algorithms; HWC uint8 RGB.
     "cameras": ["top", "left_wrist", "right_wrist"],
-    "balance_ratio_warning": 1.5,
     "batch_size": 8,
     "epochs": 1000,
     "steps_per_epoch": 100,
@@ -202,9 +136,6 @@ ROBOMIMIC = {
     "smoke_act_layers": 1,
     "smoke_unet_down_dims": [32, 64, 128],
     "smoke_diffusion_steps": 10,
-    "swap_joint_rms_warning_rad": 0.01,
-    "swap_max_episodes": 12,
-    "swap_max_steps": 100,
 }
 
 # review_episodes.py: offline playback and review decisions.

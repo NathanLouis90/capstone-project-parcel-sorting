@@ -14,25 +14,23 @@ from scripts.count_episodes import count_project
 from scripts.scripts_config import MANIPULATE_UTILS
 
 
-def config(stage='A', medium='poly_mailer', bin_index=None, length=400):
-    return dict(policy_stage=stage, medium=medium, bin_index=bin_index,
+def config(medium='poly_mailer', length=400):
+    return dict(schema_version=3, medium=medium,
                 episode_len=length, camera_names=list(curate.CAMERAS), control_period_ms=40)
 
 
-def episode(root, project, identifier, status='accepted', stage='A', medium='poly_mailer',
-            bin_index=None, frames=1, period=40, source=None, started=None):
+def episode(root, project, identifier, status='accepted', medium='poly_mailer',
+            frames=1, period=40, source=None, started=None):
     path = root / project / 'collect_data' / identifier
     path.mkdir(parents=True)
     home = np.concatenate([np.deg2rad(MANIPULATE_UTILS['stage2_left_deg']),
                            np.deg2rad(MANIPULATE_UTILS['stage2_right_deg'])])
     home[[6, 13]] = 1
     m = dict(episode_id=identifier, cycle_id='cycle-' + identifier, recording_complete=True,
-             frame_count=frames, review_status=status, policy_stage=stage, medium=medium,
-             capture_barcode=False, scan=None, scanner_error=None,
+             frame_count=frames, review_status=status, schema_version=3, medium=medium, label_face='bottom',
              started_at=float(identifier) if started is None else started,
              ended_at=(float(identifier) if started is None else started) + frames * .04,
-             control_period_ms=period, demonstrated_bin=bin_index,
-             destination=None if bin_index is None else dict(bin_index=bin_index, source='manual'))
+             control_period_ms=period)
     if source:
         m['source'] = source
     (path / 'episode_metadata.json').write_text(json.dumps(m))
@@ -69,124 +67,124 @@ def artifact(path, index=0):
 
 
 def test_quarantine_restore_preserves_content_status_and_converted_names(tmp_path):
-    e = episode(tmp_path, 'A', '1', 'rejected')
-    episode(tmp_path, 'A', '2')
+    e = episode(tmp_path, 'primary', '1', 'rejected')
+    episode(tmp_path, 'primary', '2')
     hdf5, video = artifact(e, 17)
     original = curate.hashes(e)
     converted_hash = curate.hashes(hdf5)
-    p = plan(tmp_path, ['quarantine', '--project', 'A'], {})
+    p = plan(tmp_path, ['quarantine', '--project', 'primary'], {})
     curate.execute(p, yes=True)
-    q = tmp_path / 'A/rejected_data/1'
+    q = tmp_path / 'primary/rejected_data/1'
     assert curate.hashes(q) == original
     assert not hdf5.exists() and not video.exists()
-    assert (tmp_path / 'A/rejected_data/converted/train_data' / hdf5.name).exists()
-    assert count_project(tmp_path / 'A/collect_data')[1]['total'] == 1
-    status = curate.project_status(tmp_path / 'A')
+    assert (tmp_path / 'primary/rejected_data/converted/train_data' / hdf5.name).exists()
+    assert count_project(tmp_path / 'primary/collect_data')[1]['total'] == 1
+    status = curate.project_status(tmp_path / 'primary')
     assert status['counts']['quarantined'] == 1 and status['train_data_stale']
-    curate.execute(plan(tmp_path, ['restore', '--project', 'A', '--episodes', '1'], {}), yes=True)
+    curate.execute(plan(tmp_path, ['restore', '--project', 'primary', '--episodes', '1'], {}), yes=True)
     assert curate.hashes(e) == original and curate.hashes(hdf5) == converted_hash
     assert curate.metadata(e)['review_status'] == 'rejected'
-    records = [json.loads(line) for line in (tmp_path / 'A/curation_log.jsonl').read_text().splitlines()]
+    records = [json.loads(line) for line in (tmp_path / 'primary/curation_log.jsonl').read_text().splitlines()]
     assert len(records) == 2
     assert records[0]['operations'][0]['sha256'] == original
 
 
 def test_worked_example_24_plus_rejected_top_up_to_25(tmp_path):
     for i in range(1, 25):
-        episode(tmp_path, 'A', str(i))
-    episode(tmp_path, 'A', '25', 'rejected')
+        episode(tmp_path, 'primary', str(i))
+    episode(tmp_path, 'primary', '25', 'rejected')
     for i in range(30, 35):
-        episode(tmp_path, 'B', str(i))
-    registry = dict(A=config(), B=config())
-    curate.execute(plan(tmp_path, ['quarantine', '--project', 'A'], registry), yes=True)
-    p = plan(tmp_path, ['top-up', '--from', 'B', '--to', 'A', '--target', '25'], registry)
+        episode(tmp_path, 'extra', str(i))
+    registry = dict(primary=config(), extra=config())
+    curate.execute(plan(tmp_path, ['quarantine', '--project', 'primary'], registry), yes=True)
+    p = plan(tmp_path, ['top-up', '--from', 'extra', '--to', 'primary', '--target', '25'], registry)
     assert [op.source.name for op in p.operations] == ['30']
     curate.execute(p, yes=True)
-    assert len(curate.accepted(tmp_path / 'A')) == 25
-    assert len(curate.accepted(tmp_path / 'B')) == 4
-    assert (tmp_path / 'A/rejected_data/25').exists()
+    assert len(curate.accepted(tmp_path / 'primary')) == 25
+    assert len(curate.accepted(tmp_path / 'extra')) == 4
+    assert (tmp_path / 'primary/rejected_data/25').exists()
 
 
 def test_transfer_oldest_timestamp_not_folder_sort(tmp_path):
-    episode(tmp_path, 'B', '1', started=100)
-    oldest = episode(tmp_path, 'B', '2', started=10)
-    project(tmp_path, 'A')
-    p = plan(tmp_path, ['transfer', '--from', 'B', '--to', 'A', '--count', '1'], dict(A=config(), B=config()))
+    episode(tmp_path, 'extra', '1', started=100)
+    oldest = episode(tmp_path, 'extra', '2', started=10)
+    project(tmp_path, 'primary')
+    p = plan(tmp_path, ['transfer', '--from', 'extra', '--to', 'primary', '--count', '1'], dict(primary=config(), extra=config()))
     assert p.operations[0].source == oldest
     raw = curate.hashes(oldest)
     curate.execute(p, yes=True)
-    assert curate.hashes(tmp_path / 'A/collect_data/2') == raw
-    for name in ('A', 'B'):
+    assert curate.hashes(tmp_path / 'primary/collect_data/2') == raw
+    for name in ('primary', 'extra'):
         with pytest.raises(ValueError, match='Stale train_data'):
             require_fresh(tmp_path / name)
 
 
 @pytest.mark.parametrize('move', [False, True])
 def test_merge_copy_and_move(tmp_path, move):
-    a = episode(tmp_path, 'A', '1')
-    b = episode(tmp_path, 'B', '2')
-    registry = {name: config() for name in ('A', 'B', 'NEW')}
-    command = ['merge', '--from', 'A', 'B', '--to', 'NEW'] + (['--move'] if move else [])
+    a = episode(tmp_path, 'primary', '1')
+    b = episode(tmp_path, 'extra', '2')
+    registry = {name: config() for name in ('primary', 'extra', 'NEW')}
+    command = ['merge', '--from', 'primary', 'extra', '--to', 'NEW'] + (['--move'] if move else [])
     p = plan(tmp_path, command, registry)
     curate.execute(p, yes=True)
     assert len(curate.accepted(tmp_path / 'NEW')) == 2
     assert a.exists() == (not move) and b.exists() == (not move)
-    assert (tmp_path / 'A/train_data/STALE.json').exists() == move
-    assert (tmp_path / 'A/curation_log.jsonl').exists()
+    assert (tmp_path / 'primary/train_data/STALE.json').exists() == move
+    assert (tmp_path / 'primary/curation_log.jsonl').exists()
 
 
 @pytest.mark.parametrize('status', ['rejected', 'unreviewed'])
 def test_explicit_transfer_refuses_nonaccepted(tmp_path, status):
-    episode(tmp_path, 'B', '1', status)
-    project(tmp_path, 'A')
+    episode(tmp_path, 'extra', '1', status)
+    project(tmp_path, 'primary')
     before = snapshot(tmp_path)
     with pytest.raises(ValueError, match='requires accepted'):
-        plan(tmp_path, ['transfer', '--from', 'B', '--to', 'A', '--episodes', '1'], dict(A=config(), B=config()))
+        plan(tmp_path, ['transfer', '--from', 'extra', '--to', 'primary', '--episodes', '1'], dict(primary=config(), extra=config()))
     assert snapshot(tmp_path) == before
 
 
 @pytest.mark.parametrize('field,value', [
-    ('policy_stage', 'B'), ('medium', 'carton'), ('bin_index', 1),
+    ('schema_version', 2), ('medium', 'carton'),
     ('camera_names', ['top']), ('control_period_ms', 20), ('episode_len', 0),
 ])
 def test_incompatible_destination_names_field_without_moves(tmp_path, field, value):
-    episode(tmp_path, 'B', '1')
-    project(tmp_path, 'A')
+    episode(tmp_path, 'extra', '1')
+    project(tmp_path, 'primary')
     destination = config()
     destination[field] = value
     before = snapshot(tmp_path)
     with pytest.raises(ValueError, match=field):
-        plan(tmp_path, ['transfer', '--from', 'B', '--to', 'A', '--count', '1'], dict(A=destination, B=config()))
+        plan(tmp_path, ['transfer', '--from', 'extra', '--to', 'primary', '--count', '1'], dict(primary=destination, extra=config()))
     assert snapshot(tmp_path) == before
 
 
 def test_id_collision_and_partial_frame_refused(tmp_path):
-    e = episode(tmp_path, 'B', '1')
-    episode(tmp_path, 'A', '1')
-    registry = dict(A=config(), B=config())
+    e = episode(tmp_path, 'extra', '1')
+    episode(tmp_path, 'primary', '1')
+    registry = dict(primary=config(), extra=config())
     with pytest.raises(ValueError, match='collision'):
-        plan(tmp_path, ['transfer', '--from', 'B', '--to', 'A', '--count', '1'], registry)
+        plan(tmp_path, ['transfer', '--from', 'extra', '--to', 'primary', '--count', '1'], registry)
     (e / 'topImg/0.jpg').unlink()
     with pytest.raises(ValueError, match='camera set'):
-        plan(tmp_path, ['transfer', '--from', 'B', '--to', 'A', '--count', '1'], registry)
+        plan(tmp_path, ['transfer', '--from', 'extra', '--to', 'primary', '--count', '1'], registry)
 
 
 def test_rollout_requires_both_flag_and_explicit_project(tmp_path):
-    episode(tmp_path, 'B', '1', source='rollout')
-    for name in ('A', 'rollout_A'):
+    episode(tmp_path, 'extra', '1', source='rollout')
+    for name in ('primary', 'rollout_primary'):
         project(tmp_path, name)
-    registry = {name: config() for name in ('A', 'B', 'rollout_A')}
-    for target, flag in [('A', []), ('A', ['--allow-rollouts']), ('rollout_A', [])]:
+    registry = {name: config() for name in ('primary', 'extra', 'rollout_primary')}
+    for target, flag in [('primary', []), ('primary', ['--allow-rollouts']), ('rollout_primary', [])]:
         with pytest.raises(ValueError, match='Rollout requires'):
-            plan(tmp_path, ['transfer', '--from', 'B', '--to', target, '--count', '1'] + flag, registry)
-    p = plan(tmp_path, ['transfer', '--from', 'B', '--to', 'rollout_A', '--count', '1', '--allow-rollouts'], registry)
+            plan(tmp_path, ['transfer', '--from', 'extra', '--to', target, '--count', '1'] + flag, registry)
+    p = plan(tmp_path, ['transfer', '--from', 'extra', '--to', 'rollout_primary', '--count', '1', '--allow-rollouts'], registry)
     assert len(p.operations) == 1
 
 
 def test_dry_run_and_declined_confirmation_change_nothing(tmp_path):
-    episode(tmp_path, 'B', '1')
-    project(tmp_path, 'A')
-    p = plan(tmp_path, ['transfer', '--from', 'B', '--to', 'A', '--count', '1'], dict(A=config(), B=config()))
+    episode(tmp_path, 'extra', '1')
+    project(tmp_path, 'primary')
+    p = plan(tmp_path, ['transfer', '--from', 'extra', '--to', 'primary', '--count', '1'], dict(primary=config(), extra=config()))
     before = snapshot(tmp_path)
     assert not curate.execute(p, dry_run=True)
     assert snapshot(tmp_path) == before
@@ -195,11 +193,11 @@ def test_dry_run_and_declined_confirmation_change_nothing(tmp_path):
 
 
 def test_full_plan_preflight_and_runtime_rollback(tmp_path, monkeypatch):
-    episode(tmp_path, 'B', '1')
-    episode(tmp_path, 'B', '2')
-    project(tmp_path, 'A')
-    registry = dict(A=config(), B=config())
-    p = plan(tmp_path, ['transfer', '--from', 'B', '--to', 'A', '--count', '2'], registry)
+    episode(tmp_path, 'extra', '1')
+    episode(tmp_path, 'extra', '2')
+    project(tmp_path, 'primary')
+    registry = dict(primary=config(), extra=config())
+    p = plan(tmp_path, ['transfer', '--from', 'extra', '--to', 'primary', '--count', '2'], registry)
     before = snapshot(tmp_path)
     rename = curate.os.rename
     count = []
@@ -217,9 +215,9 @@ def test_full_plan_preflight_and_runtime_rollback(tmp_path, monkeypatch):
 
 
 def test_source_changes_after_plan_refused(tmp_path):
-    e = episode(tmp_path, 'B', '1')
-    project(tmp_path, 'A')
-    p = plan(tmp_path, ['transfer', '--from', 'B', '--to', 'A', '--count', '1'], dict(A=config(), B=config()))
+    e = episode(tmp_path, 'extra', '1')
+    project(tmp_path, 'primary')
+    p = plan(tmp_path, ['transfer', '--from', 'extra', '--to', 'primary', '--count', '1'], dict(primary=config(), extra=config()))
     (e / 'topImg/0.jpg').write_bytes(b'changed')
     before = snapshot(tmp_path)
     with pytest.raises(ValueError, match='Source changed'):
@@ -228,28 +226,28 @@ def test_source_changes_after_plan_refused(tmp_path):
 
 
 def test_stale_blocks_preparation_training_and_robomimic(tmp_path, monkeypatch):
-    episode(tmp_path, 'A', '1')
-    marker = tmp_path / 'A/train_data/STALE.json'
+    episode(tmp_path, 'primary', '1')
+    marker = tmp_path / 'primary/train_data/STALE.json'
     marker.parent.mkdir()
     marker.write_text('{}')
-    monkeypatch.setattr(prepare, 'PROJECTS', dict(A=config()))
+    monkeypatch.setattr(prepare, 'PROJECTS', dict(primary=config()))
     with pytest.raises(SystemExit):
-        prepare.main(['--root', str(tmp_path), '--dataset-name', 'A', '--convert'])
+        prepare.main(['--root', str(tmp_path), '--dataset-name', 'primary', '--convert'])
     with pytest.raises(ValueError, match='Stale train_data'):
-        require_training_folders([tmp_path / 'A/train_data'])
+        require_training_folders([tmp_path / 'primary/train_data'])
     from scripts.convert_to_robomimic import inspect_sources
     with pytest.raises(ValueError, match='Stale train_data'):
-        inspect_sources([tmp_path / 'A'], dict(stage='A', medium='poly_mailer', bin=None))
+        inspect_sources([tmp_path / 'primary'], dict(medium='poly_mailer'))
 
 
 def test_fresh_rebuild_copies_only_accepted_and_leaves_source_untouched(tmp_path, monkeypatch):
-    e = episode(tmp_path, 'A', '1')
-    episode(tmp_path, 'A', '2', 'rejected')
-    marker = tmp_path / 'A/train_data/STALE.json'
+    e = episode(tmp_path, 'primary', '1')
+    episode(tmp_path, 'primary', '2', 'rejected')
+    marker = tmp_path / 'primary/train_data/STALE.json'
     marker.parent.mkdir()
     marker.write_text('{}')
-    monkeypatch.setattr(prepare, 'PROJECTS', dict(A=config(), NEW=config()))
-    before = snapshot(tmp_path / 'A')
+    monkeypatch.setattr(prepare, 'PROJECTS', dict(primary=config(), NEW=config()))
+    before = snapshot(tmp_path / 'primary')
     calls = []
 
     def run(command, **kwargs):
@@ -258,42 +256,42 @@ def test_fresh_rebuild_copies_only_accepted_and_leaves_source_untouched(tmp_path
         return SimpleNamespace(returncode=0)
 
     monkeypatch.setattr(prepare.subprocess, 'run', run)
-    assert prepare.main(['--root', str(tmp_path), '--dataset-name', 'A', '--rebuild-to', 'NEW', '--convert']) == 0
+    assert prepare.main(['--root', str(tmp_path), '--dataset-name', 'primary', '--rebuild-to', 'NEW', '--convert']) == 0
     assert len(calls) == 1
     assert curate.hashes(tmp_path / 'NEW/collect_data/1') == curate.hashes(e)
     assert not (tmp_path / 'NEW/collect_data/2').exists()
-    assert snapshot(tmp_path / 'A') == before
+    assert snapshot(tmp_path / 'primary') == before
     assert not (tmp_path / 'NEW/train_data/BUILDING.json').exists()
 
 
 def test_legacy_rate_warning_and_renamed_episode_refusal(tmp_path):
-    e = episode(tmp_path, 'B', '1')
+    e = episode(tmp_path, 'extra', '1')
     m = curate.metadata(e)
     del m['control_period_ms']
     (e / 'episode_metadata.json').write_text(json.dumps(m))
-    project(tmp_path, 'A')
-    registry = dict(A=config(), B=config())
-    p = plan(tmp_path, ['transfer', '--from', 'B', '--to', 'A', '--count', '1'], registry)
+    project(tmp_path, 'primary')
+    registry = dict(primary=config(), extra=config())
+    p = plan(tmp_path, ['transfer', '--from', 'extra', '--to', 'primary', '--count', '1'], registry)
     assert any('legacy metadata' in warning for warning in p.warnings)
     e.rename(e.with_name('1_update_policy'))
     with pytest.raises(ValueError, match='episode_id differs'):
-        plan(tmp_path, ['transfer', '--from', 'B', '--to', 'A', '--count', '1'], registry)
+        plan(tmp_path, ['transfer', '--from', 'extra', '--to', 'primary', '--count', '1'], registry)
 
 
 def test_quarantined_folders_excluded_from_review_and_conversion(tmp_path):
-    e = episode(tmp_path, 'A', '1', 'rejected')
-    curate.execute(plan(tmp_path, ['quarantine', '--project', 'A'], {}), yes=True)
+    e = episode(tmp_path, 'primary', '1', 'rejected')
+    curate.execute(plan(tmp_path, ['quarantine', '--project', 'primary'], {}), yes=True)
     from scripts.review_episodes import review_project
-    assert review_project(tmp_path / 'A', dry_run=True)['accepted'] == 0
-    assert count_project(tmp_path / 'A/collect_data')[1]['total'] == 0
+    assert review_project(tmp_path / 'primary', dry_run=True)['accepted'] == 0
+    assert count_project(tmp_path / 'primary/collect_data')[1]['total'] == 0
     assert not e.exists()
 
 
-@pytest.mark.parametrize('stage,bin_index', [('A', None), ('B', 1)])
-def test_real_fresh_conversion_and_review_round_trip(tmp_path, monkeypatch, stage, bin_index):
+@pytest.mark.parametrize('medium', ['envelope', 'poly_mailer', 'carton'])
+def test_real_fresh_conversion_and_review_round_trip(tmp_path, monkeypatch, medium):
     import cv2
-    episode(tmp_path, 'A', '1', 'rejected', stage=stage, bin_index=bin_index)
-    e = episode(tmp_path, 'A', '2', stage=stage, bin_index=bin_index, frames=2)
+    episode(tmp_path, 'primary', '1', 'rejected', medium=medium)
+    e = episode(tmp_path, 'primary', '2', medium=medium, frames=2)
     for p in (e / 'observation').glob('*.pkl'):
         obs = pickle.loads(p.read_bytes())
         obs.update(control=obs['joint_positions'].copy(), joint_velocities=np.zeros(14))
@@ -301,19 +299,18 @@ def test_real_fresh_conversion_and_review_round_trip(tmp_path, monkeypatch, stag
     for folder in curate.CAMERAS.values():
         for p in (e / folder).glob('*.jpg'):
             assert cv2.imwrite(str(p), np.full((480, 640, 3), 80, dtype=np.uint8))
-    stale = tmp_path / 'A/train_data/STALE.json'
+    stale = tmp_path / 'primary/train_data/STALE.json'
     stale.parent.mkdir()
     stale.write_text('{}')
-    cfg = config(stage=stage, bin_index=bin_index)
-    monkeypatch.setattr(prepare, 'PROJECTS', dict(A=cfg, NEW=cfg))
-    assert prepare.main(['--root', str(tmp_path), '--dataset-name', 'A', '--rebuild-to', 'NEW', '--convert']) == 0
+    cfg = config(medium=medium)
+    monkeypatch.setattr(prepare, 'PROJECTS', dict(primary=cfg, NEW=cfg))
+    assert prepare.main(['--root', str(tmp_path), '--dataset-name', 'primary', '--rebuild-to', 'NEW', '--convert']) == 0
     hdf5 = tmp_path / 'NEW/train_data/episode_init_0.hdf5'
     assert list(hdf5.parent.glob('*.hdf5')) == [hdf5]
     with h5py.File(str(hdf5), 'r') as converted:
         assert converted['action'].shape == (2, 14)
         assert json.loads(converted.attrs['episode_metadata_json']) == curate.metadata(e)
-        if stage == 'B':
-            np.testing.assert_array_equal(converted['observations/destination'][:], [[0, 1], [0, 1]])
+        assert set(converted['observations']) == {'qpos', 'qvel', 'images'}
     video = tmp_path / 'NEW/output_videos/2_video.mp4'
     assert video.is_file() and video.stat().st_size > 0
     from scripts.review_episodes import set_review_status
@@ -321,62 +318,51 @@ def test_real_fresh_conversion_and_review_round_trip(tmp_path, monkeypatch, stag
 
 
 def test_insufficient_accepted_and_wrong_quarantine_fail_without_changes(tmp_path):
-    episode(tmp_path, 'A', '1')
-    project(tmp_path, 'B')
+    episode(tmp_path, 'primary', '1')
+    project(tmp_path, 'extra')
     before = snapshot(tmp_path)
     with pytest.raises(ValueError, match='Not enough accepted'):
-        plan(tmp_path, ['top-up', '--to', 'B', '--from', 'A', '--target', '2'], dict(A=config(), B=config()))
+        plan(tmp_path, ['top-up', '--to', 'extra', '--from', 'primary', '--target', '2'], dict(primary=config(), extra=config()))
     with pytest.raises(ValueError, match='requires rejected'):
-        plan(tmp_path, ['quarantine', '--project', 'A', '--episodes', '1'], {})
+        plan(tmp_path, ['quarantine', '--project', 'primary', '--episodes', '1'], {})
     assert snapshot(tmp_path) == before
 
 
 def test_symlink_and_cross_filesystem_moves_refused(tmp_path, monkeypatch):
-    e = episode(tmp_path, 'A', '1')
+    e = episode(tmp_path, 'primary', '1')
     p = curate.Plan('test')
     (e / 'link').symlink_to(e / 'episode_metadata.json')
     with pytest.raises(ValueError, match='Symlink'):
-        p.add(e, tmp_path / 'B/collect_data/1')
+        p.add(e, tmp_path / 'extra/collect_data/1')
     (e / 'link').unlink()
     from types import SimpleNamespace
     monkeypatch.setattr(curate, 'nearest_parent', lambda _: SimpleNamespace(stat=lambda: SimpleNamespace(st_dev=-1)))
     with pytest.raises(ValueError, match='Cross-filesystem'):
-        p.add(e, tmp_path / 'B/collect_data/1')
+        p.add(e, tmp_path / 'extra/collect_data/1')
 
 
-def test_b_bin_mismatch_and_source_metadata_links_preserved(tmp_path):
-    a = episode(tmp_path, 'source_A', '1')
-    b = episode(tmp_path, 'source_B', '2', stage='B', bin_index=0)
-    m = curate.metadata(b)
-    m['source_metadata_path'] = str(a / 'episode_metadata.json')
-    (b / 'episode_metadata.json').write_text(json.dumps(m))
-    project(tmp_path, 'target_A')
-    project(tmp_path, 'target_B')
-    registry = dict(source_A=config(), target_A=config(), source_B=config('B', bin_index=0),
-                    target_B=config('B', bin_index=1))
-    with pytest.raises(ValueError, match='bin_index mismatch'):
-        plan(tmp_path, ['transfer', '--from', 'source_B', '--to', 'target_B', '--count', '1'], registry)
-    original = (b / 'episode_metadata.json').read_bytes()
-    p = plan(tmp_path, ['transfer', '--from', 'source_A', '--to', 'target_A', '--count', '1'], registry)
-    assert any('Link is preserved' in warning for warning in p.warnings)
-    curate.execute(p, yes=True)
-    assert (b / 'episode_metadata.json').read_bytes() == original
+def test_transfer_refuses_mixed_media(tmp_path):
+    episode(tmp_path, 'source', '1', medium='carton')
+    project(tmp_path, 'target')
+    with pytest.raises(ValueError, match='medium mismatch'):
+        plan(tmp_path, ['transfer', '--from', 'source', '--to', 'target', '--count', '1'],
+             dict(source=config(medium='carton'), target=config()))
 
 
 def test_frozen_dataset_and_split_warn_but_never_change(tmp_path):
-    e = episode(tmp_path, 'A', '1')
+    e = episode(tmp_path, 'primary', '1')
     artifact(e)
-    project(tmp_path, 'B')
+    project(tmp_path, 'extra')
     frozen = tmp_path / 'training'
     frozen.mkdir()
     split = frozen / 'split.json'
-    split.write_text(json.dumps(dict(sources=[dict(id='A/episode_init_0.hdf5')])))
+    split.write_text(json.dumps(dict(sources=[dict(id='primary/episode_init_0.hdf5')])))
     dataset = frozen / 'dataset.hdf5'
     with h5py.File(str(dataset), 'w') as output:
         demo = output.create_group('data/demo_0')
         demo.attrs['episode_metadata_json'] = json.dumps(curate.metadata(e))
     before = snapshot(frozen)
-    p = plan(tmp_path, ['transfer', '--from', 'A', '--to', 'B', '--count', '1'], dict(A=config(), B=config()))
+    p = plan(tmp_path, ['transfer', '--from', 'primary', '--to', 'extra', '--count', '1'], dict(primary=config(), extra=config()))
     assert any('Frozen dataset/split/config' in warning for warning in p.warnings)
     assert any('robomimic dataset' in warning for warning in p.warnings)
     curate.execute(p, yes=True)
@@ -384,23 +370,23 @@ def test_frozen_dataset_and_split_warn_but_never_change(tmp_path):
 
 
 def test_failed_fresh_conversion_keeps_training_blocked(tmp_path, monkeypatch):
-    episode(tmp_path, 'A', '1')
-    monkeypatch.setattr(prepare, 'PROJECTS', dict(A=config(), NEW=config()))
+    episode(tmp_path, 'primary', '1')
+    monkeypatch.setattr(prepare, 'PROJECTS', dict(primary=config(), NEW=config()))
     from types import SimpleNamespace
     monkeypatch.setattr(prepare.subprocess, 'run', lambda *args, **kwargs: SimpleNamespace(returncode=1))
-    assert prepare.main(['--root', str(tmp_path), '--dataset-name', 'A', '--rebuild-to', 'NEW', '--convert']) == 1
+    assert prepare.main(['--root', str(tmp_path), '--dataset-name', 'primary', '--rebuild-to', 'NEW', '--convert']) == 1
     assert (tmp_path / 'NEW/train_data/BUILDING.json').exists()
     with pytest.raises(ValueError, match='BUILDING.json'):
         require_training_folders(tmp_path / 'NEW/train_data')
 
 
 def test_rollback_preserves_prior_audit_and_stale_marker(tmp_path, monkeypatch):
-    episode(tmp_path, 'A', '1')
-    episode(tmp_path, 'A', '2')
-    project(tmp_path, 'B')
-    registry = dict(A=config(), B=config())
-    curate.execute(plan(tmp_path, ['transfer', '--from', 'A', '--to', 'B', '--count', '1'], registry), yes=True)
-    p = plan(tmp_path, ['transfer', '--from', 'A', '--to', 'B', '--count', '1'], registry)
+    episode(tmp_path, 'primary', '1')
+    episode(tmp_path, 'primary', '2')
+    project(tmp_path, 'extra')
+    registry = dict(primary=config(), extra=config())
+    curate.execute(plan(tmp_path, ['transfer', '--from', 'primary', '--to', 'extra', '--count', '1'], registry), yes=True)
+    p = plan(tmp_path, ['transfer', '--from', 'primary', '--to', 'extra', '--count', '1'], registry)
     before = snapshot(tmp_path)
     original = Path.write_text
 

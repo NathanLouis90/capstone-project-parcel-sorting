@@ -52,7 +52,7 @@ def converted_index(project):
 def check_converted_recording(episode, metadata, source, verify_payload):
     """Require matching episode identity; acceptance also verifies original data."""
     saved = json.loads(source.attrs['episode_metadata_json'])
-    for key in ('episode_id', 'cycle_id', 'policy_stage', 'medium'):
+    for key in ('episode_id', 'cycle_id', 'medium', 'label_face'):
         if saved.get(key) != metadata.get(key):
             raise ValueError('Raw/HDF5 {} differs: {}'.format(key, source.filename))
         if key != 'episode_id' and source.attrs.get(key) != metadata.get(key):
@@ -65,14 +65,6 @@ def check_converted_recording(episode, metadata, source, verify_payload):
         raise ValueError('Recording details changed since conversion; rebuild {}'.format(source.filename))
     frames = sorted((Path(episode) / 'observation').glob('*.pkl'), key=lambda path: int(path.stem))
     count = len(frames)
-    if metadata.get('destination') is not None:
-        if source.attrs.get('bin_index') != metadata['destination']['bin_index']:
-            raise ValueError('Raw/HDF5 destination differs: {}'.format(source.filename))
-    if metadata['policy_stage'] == 'B':
-        destination = source['observations/destination'][:]
-        bin_index = metadata['destination']['bin_index']
-        if destination.shape != (count, 2) or not np.all(destination == np.eye(2)[bin_index]):
-            raise ValueError('Converted B destination differs from raw recording')
     if source['observations/qpos'].shape != (count, 14) or source['action'].shape != (count, 14):
         raise ValueError('Raw/HDF5 joint or action shape differs: {}'.format(source.filename))
     mirror = np.asarray(source.attrs.get('mirror_state_multiply', SCRIPT_COLLECT2TRAIN['MIRROR_STATE_MULTIPLY']))
@@ -122,6 +114,13 @@ def set_review_status(episode, status, converted=None, dry_run=False, sync_only=
     metadata = read_metadata(episode)
     if status == 'accepted':
         inspect_episode(episode)
+        from scripts.dataset_checks import episode_warnings
+        qpos = []
+        for frame in sorted((episode / 'observation').glob('*.pkl'), key=lambda p: int(p.stem)):
+            with frame.open('rb') as stream:
+                qpos.append(pickle.load(stream)['joint_positions'])
+        for warning in episode_warnings(qpos, metadata)[1]:
+            print('[Warn]: ' + warning)
     if converted is None:
         converted = converted_index(episode.parent.parent).get(episode.name, [])
     mode = 'r' if dry_run else 'r+'

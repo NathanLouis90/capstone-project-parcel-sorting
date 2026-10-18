@@ -75,8 +75,6 @@ def main(argv=None):
         lengths = []
         output_name = args.rebuild_to or name
         project = PROJECTS[output_name]
-        expected_stage = project['policy_stage']
-        expected_bin = project['bin_index']
         for episode in episodes:
             try:
                 metadata = json.loads((episode / RECORDING['metadata_filename']).read_text())
@@ -102,10 +100,8 @@ def main(argv=None):
                         print('[Warn]: ' + warning)
             except (OSError, ValueError, KeyError) as error:
                 parser.error('{}: {}'.format(episode, error))
-            if (report['policy_stage'] != expected_stage
-                    or report['medium'] != project['medium']
-                    or (expected_bin is not None and report['bin_index'] != expected_bin)):
-                parser.error('Incorrect stage, medium, or destination: {}'.format(episode))
+            if report['medium'] != project['medium'] or report['legacy_recording']:
+                parser.error('Require fresh pick-to-scan recordings of the registered medium: {}'.format(episode))
             if report['frames'] > project['episode_len']:
                 parser.error('{} exceeds the configured {}-step episode length'.format(
                     episode, project['episode_len']))

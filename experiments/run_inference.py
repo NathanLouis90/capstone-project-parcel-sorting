@@ -1,119 +1,81 @@
-"""Run one explicitly selected Dobot ACT task on the robot."""
-import argparse
+"""Policy-step interface used by the parcel cycle supervisor."""
 from pathlib import Path
 import sys
-import time
-import threading
 import numpy as np
-
-REPO_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(REPO_ROOT))
-from experiments.experiments_config import CONTROL, RUN_INFERENCE
-from experiments.inference_safety import (
-    validate_action, resolve_episode_length, prepare_vendor_action, resolve_task_metadata,
-)
-from scripts.control_timing import wait_period
-from scripts.scripts_config import MANIPULATE_UTILS, PREPARE_ACT_DATASETS
+ROOT=Path(__file__).resolve().parent.parent
+sys.path.insert(0,str(ROOT))
+from experiments.experiments_config import MEDIA
+from experiments.handoff import home_action
+from experiments.inference_safety import prepare_vendor_action
 
 
-def parse_args(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--task-name', required=True)
-    parser.add_argument('--checkpoint-dir', required=True, type=Path)
-    parser.add_argument('--model-name', default=RUN_INFERENCE['model_name'])
-    parser.add_argument('--episode-len', type=int)
-    parser.add_argument('--robot-port', type=int, default=RUN_INFERENCE['robot_port'])
-    parser.add_argument('--hostname', default=RUN_INFERENCE['hostname'])
-    parser.add_argument('--show-img', action='store_true')
-    return parser.parse_args(argv)
+class VendorPolicy:
+    policy_type='ACT'
+
+    def __init__(self, medium, checkpoint_dir, model_name='policy_best.ckpt'):
+        from experiments.act_checkpoint import load_act_checkpoint
+        import pickle
+        from ModelTrain.constants import TASK_CONFIGS
+        checkpoint_dir=Path(checkpoint_dir).expanduser().resolve()
+        with (checkpoint_dir/'config.pkl').open('rb') as stream:
+            saved=pickle.load(stream)
+        task=saved['task_name']
+        if TASK_CONFIGS.get(task, {}).get('medium')!=medium:
+            raise ValueError('Checkpoint task must be registered for the requested medium')
+        self.medium=medium
+        self.model=load_act_checkpoint(checkpoint_dir,model_name,task)
+        self.reset()
+
+    def reset(self):
+        self.steps=0
+        if hasattr(self.model,'reset'): self.model.reset()
+        # Temporal aggregation and history must not leak into a retry.
+        import torch
+        with torch.inference_mode():
+            value=getattr(self.model,'all_time_actions',None)
+            if hasattr(value,'zero_'): value.zero_()
+        history=getattr(self.model,'qpos_history_raw',None)
+        if hasattr(history,'fill'): history.fill(0)
+        for name in ('qpos_list','target_qpos_list'):
+            history=getattr(self.model,name,None)
+            if hasattr(history,'clear'): history.clear()
+
+    def warmup(self, observation):
+        self.reset()
+        self.step(observation)
+        self.reset()
+
+    def step(self, observation):
+        # The camera source is RGB. The vendor was trained on OpenCV BGR files.
+        inputs=dict(qpos=observation['qpos'], images={
+            key:image[:,:,::-1].copy() for key,image in observation['images'].items()})
+        action=prepare_vendor_action(self.model.predict(inputs,self.steps))
+        self.steps+=1
+        return park_idle_arm(action,self.medium)
 
 
-def main(args):
-    # Reject invalid requests and load the checkpoint before opening any hardware.
-    from ModelTrain.constants import TASK_CONFIGS
-    episode_len = resolve_episode_length(args.task_name, args.episode_len, TASK_CONFIGS)
-    project = resolve_task_metadata(args.task_name, TASK_CONFIGS, PREPARE_ACT_DATASETS['projects'])
-    checkpoint_dir = args.checkpoint_dir.expanduser().resolve()
-    if not (checkpoint_dir / args.model_name).is_file():
-        raise ValueError('Missing checkpoint: {}'.format(checkpoint_dir / args.model_name))
-    from experiments.act_checkpoint import load_act_checkpoint
-    model = load_act_checkpoint(checkpoint_dir, args.model_name, args.task_name)
-    # B and mailer/carton A have one active arm. Envelope A uses both arms.
-    active = np.array([1, 1] if project['policy_stage'] == 'A' and project['medium'] == 'envelope'
-                      else [1, 0] if project['policy_stage'] == 'A' else [0, 1])
-    import cv2
-    from dobot_control.env import RobotEnv
-    from dobot_control.robots.robot_node import ZMQClientRobot
-    from dobot_control.cameras.realsense_camera import RealSenseCamera
-    from scripts.manipulate_utils import load_ini_data_camera
-    images, cameras, threads = {}, [], []
-    running = threading.Event()
-    running.set()
-
-    def read_camera(camera, name):
-        while running.is_set():
-            frame, _ = camera.read()
-            images[name] = frame[:, :, ::-1]
-
-    overruns, steps = 0, 0
-    try:
-        identities = load_ini_data_camera()
-        for name, identity, flip in (('top', identities['top'], RUN_INFERENCE['flip_top_right']),
-                                    ('left_wrist', identities['left'], RUN_INFERENCE['flip_left']),
-                                    ('right_wrist', identities['right'], RUN_INFERENCE['flip_top_right'])):
-            camera = RealSenseCamera(flip=flip, device_id=identity)
-            cameras.append(camera)
-            thread = threading.Thread(target=read_camera, args=(camera, name), daemon=True)
-            thread.start()
-            threads.append(thread)
-        time.sleep(RUN_INFERENCE['camera_startup_s'])
-        if len(images) != 3:
-            raise RuntimeError('All three cameras must supply images before startup')
-        env = RobotEnv(ZMQClientRobot(port=args.robot_port, host=args.hostname))
-        home = np.concatenate([np.deg2rad(MANIPULATE_UTILS['stage2_left_deg']),
-                               np.deg2rad(MANIPULATE_UTILS['stage2_right_deg'])])
-        home[[6, 13]] = RUN_INFERENCE['closed_gripper_command']
-        current = np.asarray(env.get_obs()['joint_positions'])
-        # Require explicit operator homing via robot_home.py before policy execution.
-        joint_indices = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12]
-        if np.abs(current[joint_indices] - home[joint_indices]).max() > PREPARE_ACT_DATASETS['home_tolerance_rad']:
-            raise ValueError('Both arms must be at home before inference; use robot_home.py')
-        validate_action(home, current)
-        obs = env.step(home, np.array([1, 1]))
-        obs['joint_positions'][[6, 13]] = RUN_INFERENCE['starting_gripper_observation']
-        previous = np.asarray(obs['joint_positions']).copy()
-        for t in range(episode_len):
-            start = time.monotonic()
-            if not all(thread.is_alive() for thread in threads):
-                raise RuntimeError('Camera thread stopped')
-            observation = {'qpos': previous.copy(), 'images': dict(images)}
-            if args.show_img:
-                cv2.imshow('Inference', np.hstack([images[k] for k in ('left_wrist', 'right_wrist', 'top')]))
-                if cv2.waitKey(1) & 0xff == ord('q'):
-                    break
-            # Vendor loader appends two base-action dimensions; robots have 14 DoF.
-            action = prepare_vendor_action(model.predict(observation, t))
-            for offset, enabled in zip((0, 7), active):
-                if not enabled:
-                    action[offset:offset + 7] = home[offset:offset + 7]
-            validate_action(action, previous)
-            obs = env.step(action, active)
-            previous = np.asarray(obs['joint_positions']).copy()
-            previous[[6, 13]] = action[[6, 13]]
-            steps += 1
-            elapsed = time.monotonic() - start
-            if elapsed > CONTROL['control_period_ms'] / 1000:
-                overruns += 1
-                print('[Warn]: inference control period overrun: {:.1f} ms'.format(elapsed * 1000))
-            wait_period(CONTROL['control_period_ms'], start, clock=time.monotonic)
-        print('Rollout ended; physical success requires operator evaluation.')
-    finally:
-        running.clear()
-        for thread in threads:
-            thread.join(timeout=RUN_INFERENCE['settle_s'])
-        cv2.destroyAllWindows()
-        print('Inference: {} steps, {} control overruns'.format(steps, overruns))
+def park_idle_arm(action, medium):
+    action=np.asarray(action,dtype=float).copy()
+    if action.shape != (14,) or not np.isfinite(action).all():
+        raise ValueError('Policy must produce 14 finite actions')
+    for offset,enabled in zip((0,7),MEDIA[medium]['active_arms']):
+        if not enabled: action[offset:offset+7]=home_action()[offset:offset+7]
+    action[[6,13]]=np.clip(action[[6,13]],0,1)
+    return action
 
 
-if __name__ == '__main__':
-    main(parse_args())
+class SimulatedPolicy:
+    policy_type='ACT'
+
+    def __init__(self, medium, scan_joints):
+        self.medium,self.scan_joints=medium,np.asarray(scan_joints)
+        self.reset()
+
+    def reset(self): self.steps=0
+
+    def step(self, observation):
+        action=observation['qpos'].copy()
+        offset=0 if MEDIA[self.medium]['holding_arm']=='left' else 7
+        action[offset:offset+6]+=np.clip(self.scan_joints-action[offset:offset+6],-.01,.01)
+        self.steps+=1
+        return action

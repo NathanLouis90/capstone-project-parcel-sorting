@@ -1,0 +1,31 @@
+# Third-Party Licenses
+
+This project uses code from other projects under the licenses listed below. Here are the details for each:
+
+## GELLO: A General, Low-Cost, and Intuitive Teleoperation Framework for Robot Manipulators
+
+- **Name**: GELLO: A General, Low-Cost, and Intuitive Teleoperation Framework for Robot Manipulators
+- **Author**: Philipp Wu
+- **License**: MIT
+- **Copyright Notice**: Copyright (c) 2023 Philipp Wu
+- **Reference**: https://github.com/wuphilipp/gello_software
+
+## Imitation Learning algorithms and Co-training for Mobile ALOHA
+
+- **Name**: Imitation Learning algorithms and Co-training for Mobile ALOHA
+- **Author**: Tony Z. Zhao
+- **License**: MIT
+- **Copyright Notice**: Copyright (c) 2023 Tony Z. Zhao
+- **Reference**: https://github.com/MarkFzp/act-plus-plus
+
+## License Texts
+
+For the full text of the licenses, please refer to the original repositories or the LICENSE files included with their distributions.
+
+ACT robomimic backend (third_party/act/)
+Source: https://github.com/tonyzhaozh/act/tree/robomimic
+Revision: 20fc6e990698534b89a41c2c85f54b7ff4b0c280
+ACT: MIT License, copyright Tony Z. Zhao.
+DETR model sources: Apache License 2.0, copyright Facebook, Inc. and affiliates.
+See third_party/act/LICENSE and third_party/act/act/detr/LICENSE.
+Local adaptations support device selection and optional pretrained weights.

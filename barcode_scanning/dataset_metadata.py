@@ -1,63 +1,50 @@
-"""Preserve episode provenance and destination observations during conversion."""
+"""Read current or legacy episodes and write observation-independent provenance."""
 import json
 from pathlib import Path
-
 from .barcode_scanning_config import RECORDING
-from .scanner_reader import destination_mapping
+from experiments.experiments_config import MEDIA as MEDIUM_SETTINGS
+
+MEDIA = ('envelope', 'poly_mailer', 'carton')
+
+
+def validate_medium_face(medium, label_face):
+    if medium not in MEDIA:
+        raise ValueError('Choose medium envelope, poly_mailer, or carton')
+    faces = MEDIUM_SETTINGS[medium]['label_faces']
+    if label_face not in faces:
+        raise ValueError('Invalid label face for {}: {}'.format(medium, label_face))
 
 
 def read_episode_metadata(episode_dir):
     path = Path(episode_dir) / RECORDING['metadata_filename']
     if not path.exists():
-        return None  # Older recordings remain convertible.
-    with path.open() as stream:
-        metadata = json.load(stream)
+        path = Path(episode_dir) / 'metadata.json'
+    if not path.exists():
+        return None
+    metadata = json.loads(path.read_text())
+    if metadata.get('schema_version', 0) < 3:
+        from .legacy_metadata import read_legacy_metadata
+        metadata = read_legacy_metadata(episode_dir)
+        if metadata is not None:
+            metadata = dict(metadata, legacy_recording=True)
+        return metadata
+    validate_medium_face(metadata.get('medium'), metadata.get('label_face'))
     if not metadata.get('recording_complete'):
         raise ValueError('Recording was interrupted; review it before conversion')
-    if metadata.get('policy_stage') not in ('A', 'B'):
-        raise ValueError('Unrecognised recording stage')
-    scan = metadata.get('scan')
-    if metadata.get('scanner_error'):
-        raise ValueError('Recording has a scanner error')
-    if scan is not None:
-        if destination_mapping().get(scan.get('barcode')) != scan.get('bin_index'):
-            raise ValueError('Recording barcode/bin differs from the current mapping')
-        if scan.get('cycle_id') != metadata.get('cycle_id'):
-            raise ValueError('Scan and recording cycle IDs differ')
-        # Older scan-only episodes have no explicit destination object.
-        if metadata.get('destination') is None:
-            metadata['destination'] = {'bin_index': scan['bin_index'], 'source': 'scanner'}
-        if metadata['destination']['bin_index'] != scan['bin_index']:
-            raise ValueError('Destination differs from accepted scan')
-    elif metadata.get('capture_barcode', True):
-        raise ValueError('Recording has no valid scanner destination')
-    if metadata['policy_stage'] == 'B':
-        destination = metadata.get('destination')
-        if (not destination or type(destination.get('bin_index')) is not int
-                or destination['bin_index'] not in destination_mapping().values()):
-            raise ValueError('Policy B requires a valid destination label')
-        if metadata.get('demonstrated_bin') != destination['bin_index']:
-            raise ValueError('Policy B demonstrated bin differs from its destination')
+    if not metadata.get('cycle_id') or not metadata.get('episode_id'):
+        raise ValueError('Recording requires episode and cycle IDs')
     return metadata
 
 
 def write_hdf5_metadata(root, metadata, timesteps):
     if metadata is None:
         return
-    root.attrs['episode_metadata_json'] = json.dumps(metadata)
-    root.attrs['policy_stage'] = metadata['policy_stage']
-    root.attrs['medium'] = metadata['medium']
-    root.attrs['cycle_id'] = metadata['cycle_id']
-    if metadata.get('scan') is not None:
-        root.attrs['barcode'] = metadata['scan']['barcode']
-    if metadata.get('destination') is not None:
-        root.attrs['bin_index'] = metadata['destination']['bin_index']
-        root.attrs['destination_source'] = metadata['destination']['source']
-    if metadata['policy_stage'] == 'B':
-        import numpy as np
-        bins = sorted(set(destination_mapping().values()))
-        if bins != list(range(len(bins))):
-            raise ValueError('Destination bin indices must be contiguous from zero')
-        destination = np.zeros((timesteps, len(bins)), dtype=np.float32)
-        destination[:, metadata['destination']['bin_index']] = 1
-        root.create_dataset('observations/destination', data=destination)
+    # New training files never receive scanner or legacy task fields.
+    keys = ('schema_version', 'episode_id', 'cycle_id', 'medium', 'label_face',
+            'started_at', 'ended_at', 'recording_complete', 'review_status', 'reviewed_at',
+            'frame_count', 'control_period_ms', 'control_overruns', 'source', 'legacy_recording')
+    saved = {key: metadata[key] for key in keys if key in metadata}
+    root.attrs['episode_metadata_json'] = json.dumps(saved)
+    for key in ('medium', 'label_face', 'cycle_id'):
+        if saved.get(key) is not None:
+            root.attrs[key] = saved[key]
