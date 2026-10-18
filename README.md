@@ -113,13 +113,6 @@ Live runs require fresh trained checkpoints and commissioned local waypoints.
 The medium classifier is deferred; the policy-step interface also allows a
 future VLA adapter.
 
-## Preserved artifacts
-
-[The archive](old_architecture_folder/README.md) contains the superseded source,
-guides and tests. Existing recordings and checkpoints were moved intact into
-its ignored local `datasets/` and `ckpt/` directories. The manifest records file
-counts and byte totals. Old local session recaps are archived alongside them. They are not part of new training datasets or Git pushes.
-
 ## References
 
 - Zhao et al. (2023), [Learning Fine-Grained Bimanual Manipulation with Low-Cost Hardware](https://arxiv.org/abs/2304.13705).

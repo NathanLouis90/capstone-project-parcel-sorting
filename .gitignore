@@ -32,13 +32,11 @@ __pycache__/
 *.swp
 *.swo
 
-# Preserved local artifacts from the superseded architecture
-/old_architecture_folder/datasets/
-/old_architecture_folder/ckpt/
+# Preserve the previous architecture locally without publishing it
+/old_architecture_folder/
 /experiments/waypoints.local.yaml
 /cycle_logs/
 .pytest_cache/
-/old_architecture_folder/recaps/
 
 # Generated labels; committed PDF examples live in label_examples/
 /barcode_scanning/labels/
