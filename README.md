@@ -58,10 +58,27 @@ For a new PC, follow sections 3–4 of the included [Dobot X-Trainer (Lightweigh
    ```
 
    Confirm `CUDA available: True` before training. `requirements.txt` alone does not install the complete training stack.
+
+   | Command part | What it does |
+   | --- | --- |
+   | `sudo apt update` / `sudo apt install ...` | Refresh Ubuntu's package list, then install the listed Git, build, and GUI dependencies with administrator privileges. |
+   | `git clone URL` / `cd capstone-project-parcel-sorting` | Download this repository into a new folder, then enter it. Use your existing checkout instead if already installed. |
+   | `conda create -n Xtrainer python=3.8.10` | Create an environment named `Xtrainer` with Python 3.8.10. `-n` sets its name. |
+   | `conda activate Xtrainer` | Select that environment in the current terminal. Repeat activation in every new terminal. |
+   | `python3 -m pip install ...` | Run the selected Python interpreter's package installer. `==` pins an exact package version. |
+   | `--index-url .../cu118` | Download the PyTorch packages from the CUDA 11.8 wheel index. |
+   | `-r requirements.txt` / `-r requirements-robomimic.txt` | Install the dependencies listed in that file. Both files are needed. |
+   | `-e PATH` | Install a local package in editable mode so imports use the source in that directory. |
+   | `--no-deps -e robomimic-r2d2` | Install bundled robomimic without replacing the dependencies installed above. |
+   | `python3 -c "..."` | Execute the quoted Python code; here it reports whether PyTorch can use CUDA. |
+
 3. **Configure the robot network.** Using DobotStudio Pro, configure the left and right followers as `192.168.5.1` and `192.168.5.2`, set their initial poses and payload as described in the guide, and enable TCP/IP secondary development mode. Give the PC's robot-facing Ethernet connection an unused address on `192.168.5.xxx` with subnet mask `255.255.255.0`. Match these addresses and the shared server port in [experiments/experiments_config.py](experiments/experiments_config.py).
 4. **Configure cameras, USB ports and calibration.** On the fresh checkout, copy `scripts/dobot_config/dobot_settings.example.ini` to `scripts/dobot_config/dobot_settings.ini`, fill in the three camera serial numbers and local device settings, and configure USB device access following the guide. Run `PYTHONPATH=. python3 scripts/1_find_port.py` to detect leader/gripper ports. Position and lock the leaders with `scripts/3_just_buttonA.py`, stop that helper, then run `PYTHONPATH=. python3 scripts/2_get_offset.py` for first-time calibration. Check camera images with `PYTHONPATH=. python3 scripts/5_camera_read.py` and stop the preview before recording. Keep the actual INI local and preserve working calibration on subsequent setups.
 
-See the [scripts README](scripts/README.md) for device settings and helper details, then follow the recording and cycle guides below.
+`PYTHONPATH=.` makes this checkout importable for one helper invocation; the
+numbered helpers above take no arguments in these examples. See the
+[scripts README](scripts/README.md) for device settings and helper details, then
+follow the recording and cycle guides below.
 
 
 ## Architecture and workflow
@@ -98,6 +115,8 @@ cannot replace operator evaluation.
 Run Bash commands from this repository's root in the `Xtrainer` environment.
 Replace example paths. Variable assignments and commands using them belong in
 the same terminal. Python configuration changes belong in the named file.
+The [terminal command guide](docs/terminal_commands.md) explains this syntax
+and which programs belong in each terminal.
 
 ## Offline checks
 
@@ -107,6 +126,18 @@ python3 experiments/scripted_motion.py --dry-run
 python3 experiments/run_cycle.py --medium poly_mailer --dry-run \
   --fake-token DEST-A-S138683 --csv /tmp/parcel-cycle.csv
 ```
+
+| Command part | Meaning and result |
+| --- | --- |
+| `PYTHONPATH=.:robomimic-r2d2` | Make this checkout and bundled robomimic importable for the test command. |
+| `-m pytest tests/ -q` | Run the repository's tests in `tests/`; `-q` reduces output to a concise test result. |
+| `scripted_motion.py --dry-run` | Exercise the validated motion loop in simulation without opening hardware. |
+| `--medium poly_mailer --dry-run` | Simulate one poly mailer cycle instead of using the robot. |
+| `--fake-token DEST-A-S138683` | Supply a simulated valid barcode for bin 0, Dover. |
+| `--csv /tmp/parcel-cycle.csv` | Append the simulated cycle result to this CSV file. |
+
+See [runtime and evaluation](docs/guides/runtime/evaluation.md) for expected
+outcomes, no-read checks, and checkpoint arguments.
 
 A simulated run tests software behavior and never establishes hardware safety.
 Live runs require fresh trained checkpoints and commissioned local waypoints.

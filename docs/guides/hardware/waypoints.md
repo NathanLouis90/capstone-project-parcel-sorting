@@ -175,5 +175,10 @@ python3 experiments/teach_waypoints.py --dry-run --output /tmp/example-waypoints
 python3 experiments/scripted_motion.py --dry-run
 ```
 
+For `teach_waypoints.py`, `--dry-run` writes example poses without reading an
+arm; `--output /tmp/example-waypoints.yaml` selects the file to create. For
+`scripted_motion.py`, `--dry-run` exercises a simulated joint stream and sends
+no hardware commands. These are separate programs with different outputs.
+
 The generated example poses are simulation-only and uncommissioned. Do not use
 them as live robot positions.

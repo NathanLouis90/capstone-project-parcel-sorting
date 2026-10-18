@@ -1,6 +1,6 @@
 # Return to the Xtrainer initial pose from a terminal
 
-Run the `bash` command blocks below in a terminal from the repository root with `Xtrainer` activated. Commands with motion flags move hardware; follow the preparation steps before running them.
+Run the `bash` command blocks below in a terminal from the repository root with `Xtrainer` activated. See [terminal setup](../../terminal_commands.md). Commands with motion flags move hardware; follow the preparation steps before running them.
 
 `experiments/robot_home.py` connects directly to the existing Dobot V3 TCP/IP
 interfaces. It does not require DobotStudio, leader arms, cameras, gripper
@@ -14,6 +14,25 @@ error-clearing delay, inspection samples, and stable samples. CLI arguments
 override the arm, speed, and stage timeout defaults. Restart the script after
 editing. Existing default values and motion limits are preserved; motion and
 recovery still require an explicit CLI action.
+
+## Understand the arguments
+
+Choose at most one action: `--inspect-pose`, `--recover`, `--lift-mm`, or
+`--move`. With none, the script only reads mode and alarms from real controllers.
+Read the corresponding procedure below before requesting recovery or motion.
+
+| Argument | Meaning |
+| --- | --- |
+| `--arm right` / `--arm left` | Select one follower controller. The default is `both`; `--arm both` makes that explicit. No leader arms are involved. |
+| `--inspect-pose` | Read joints/pose and calculate base/flange forward kinematics without moving or changing controller state. |
+| `--recover` | Stop prior execution and enable the selected arm after resolving alarms; do not send a home target. Enabling energizes the arm. |
+| `--lift-mm 10` | Move the selected arm 10 mm along base +Z. Requires one arm, a distance from 1 through 50 mm, and `--base-z-up`. |
+| `--base-z-up` | Confirm you checked that base +Z points upward, away from the contacted surface. Does not measure or change that direction. |
+| `--move` | Execute the two-stage joint movement to the configured Xtrainer initial pose. Defaults to both arms, sequentially. |
+| `--clear-errors` | Request alarm clearing after resolving the cause. Requires `--recover`, `--lift-mm`, or `--move`. |
+| `--power-on` | Explicitly request power if the selected controller is in powered-off mode 3. Requires a recovery or motion action. |
+| `--speed 10` | Set the requested global speed cap as a percentage, from 1 through 20. Default: 10. Withdrawal also has the stricter cap described below. |
+| `--timeout 300` | Allow up to 300 seconds per stage, not per whole session. Default: 300 seconds. |
 
 ## Inspect the robot first
 
@@ -200,6 +219,10 @@ Run the hardware-free tests from the repository root:
 ```bash
 python3 -m unittest discover -s tests -p test_robot_home.py -v
 ```
+
+`-m unittest` runs Python's test module. `discover` finds tests, `-s tests`
+selects the test directory, `-p test_robot_home.py` limits discovery to this
+filename, and `-v` prints each test result. No controller is opened by these tests.
 
 The script has been checked with simulated controllers. Actual movement and
 clearance must be verified on the installation before relying on the path.

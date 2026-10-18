@@ -4,6 +4,10 @@ Start with the repository [README](../README.md) for environment and device setu
 Run terminal examples from the repository root in the Python 3.8 `Xtrainer`
 environment. Each workflow below has one primary guide.
 
+Read [terminal commands](terminal_commands.md) for environment activation,
+arguments, shell variables, example paths, terminal roles, and dry-run effects.
+Each guide explains its own command values beside the example.
+
 ## Workflow
 
 | Step | Guide |

@@ -17,8 +17,18 @@ Mailer and envelope labels use the full stock. Barcode dimensions remain
 0.25 mm per module and 20 mm bar height, approximately 52 mm wide for the
 configured destination tokens. Print PDFs at actual size without scaling.
 
-Run `python3 barcode_scanning/make_labels.py --size 100x150` or
-`python3 barcode_scanning/make_labels.py --size carton`. Example PDFs are in
+From the repository root with `Xtrainer` activated, generate the two layouts:
+
+```bash
+python3 barcode_scanning/make_labels.py --size 100x150
+python3 barcode_scanning/make_labels.py --size carton
+```
+
+`--size 100x150` selects the full 100 × 150 mm envelope/mailer layout.
+`--size carton` selects the compact 80 × 40 mm carton layout. Both commands
+write PDFs for both destinations under `barcode_scanning/labels/`; they need no
+hardware. See [scanner and labels](barcodes.md#generate-printable-labels) for
+output-folder, combined-sheet, and crop-mark options. Example PDFs are in
 `barcode_scanning/label_examples/`. Purchase references come from the supplied reimplementation specification.
 Verify the physical items before updating dimensions.
 
