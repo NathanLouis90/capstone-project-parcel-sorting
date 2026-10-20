@@ -341,7 +341,6 @@ def _run_control(args, recording_session=None):
                 recording_session.start(Path(save_dir) / str(episode_timestamp))
             elif last_recording and not recording:
                 recording_session.stop()
-            recording_session.poll()
         last_recording = recording
 
         assert thread_cam_top.is_alive(), "Error: please check the top camera!"

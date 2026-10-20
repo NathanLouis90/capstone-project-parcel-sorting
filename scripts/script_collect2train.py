@@ -16,15 +16,11 @@ import glob
 import cv2
 import pickle
 import numpy as np
-from pygments.lexer import default
 
 if __package__:
     from .function_util import save_videos, mk_dir
 else:
     from function_util import save_videos, mk_dir
-from pathlib import Path
-import tyro
-from dataclasses import dataclass
 import click
 #
 # """
@@ -54,9 +50,6 @@ def load_data(one_dataset_dir):
     print(camera_names)
 
     data_pose_list = glob.glob(one_dataset_dir + 'observation/*.pkl')
-    # images_top_list = glob.glob(one_dataset_dir + 'topImg/*.npy')
-    # images_left_list = glob.glob(one_dataset_dir + 'leftImg/*.npy')
-    # images_right_list = glob.glob(one_dataset_dir + 'rightImg/*.npy')
     images_top_list = glob.glob(one_dataset_dir + 'topImg/*.jpg')
     images_left_list = glob.glob(one_dataset_dir + 'leftImg/*.jpg')
     images_right_list = glob.glob(one_dataset_dir + 'rightImg/*.jpg')
@@ -73,7 +66,6 @@ def load_data(one_dataset_dir):
     qpos = []
     qvel = []
     action = []
-    base_action = None
     image_dict = dict()
     image_li = [[], [], []]
     for cam_name in camera_names:
@@ -84,9 +76,6 @@ def load_data(one_dataset_dir):
             qpos.append(data_single['joint_positions'])
             qvel.append(data_single['joint_velocities'])
             action.append(data_single['control'])
-            # image_top = cv2.imdecode(np.asarray(np.load(images_top_list[i]), dtype="uint8"), cv2.IMREAD_COLOR)
-            # image_left = cv2.imdecode(np.asarray(np.load(images_left_list[i]), dtype="uint8"), cv2.IMREAD_COLOR)
-            # image_right = cv2.imdecode(np.asarray(np.load(images_right_list[i]), dtype="uint8"), cv2.IMREAD_COLOR)
             image_top = cv2.imread(images_top_list[i])
             image_left = cv2.imread(images_left_list[i])
             image_right = cv2.imread(images_right_list[i])
@@ -100,13 +89,13 @@ def load_data(one_dataset_dir):
     image_dict['top'] = image_li[0]
     image_dict['left_wrist'] = image_li[1]
     image_dict['right_wrist'] = image_li[2]
-    return np.array(qpos), np.array(qvel), np.array(action), base_action, image_dict, is_sim
+    return np.array(qpos), np.array(qvel), np.array(action), image_dict, is_sim
 
 
 @click.command()
 @click.option('-r', '--root_dir', required=True, default=SCRIPT_COLLECT2TRAIN["root_dir"], help='')
-@click.option('-d', '--dataset_name', required=True, default=SCRIPT_COLLECT2TRAIN["dataset_name"],  help='')
-@click.option('-t', '--date_collect', required=True, default=SCRIPT_COLLECT2TRAIN["date_collect"],  help='')
+@click.option('-d', '--dataset_name', required=True, help='Registered recording project')
+@click.option('-t', '--date_collect', required=True, help='Episode folder name')
 @click.option('-n', '--idx', required=True, default=SCRIPT_COLLECT2TRAIN["episode_index"],  help='')
 @click.option('--allow-rollouts', is_flag=True, help='Include rollouts only in explicitly named rollout projects')
 def main(root_dir, dataset_name, date_collect, idx, allow_rollouts=False):
@@ -115,10 +104,9 @@ def main(root_dir, dataset_name, date_collect, idx, allow_rollouts=False):
     if Path(date_collect).name != date_collect or date_collect in ('.', '..'):
         raise ValueError('Use an episode folder name, not a path')
     episode_metadata = read_episode_metadata(project / 'collect_data' / date_collect)
-    if episode_metadata is not None:
-        require_rollout_opt_in(episode_metadata, project, allow_rollouts)
-        if episode_metadata.get('review_status') != 'accepted':
-            raise ValueError('Conversion requires accepted review status')
+    require_rollout_opt_in(episode_metadata, project, allow_rollouts)
+    if episode_metadata.get('review_status') != 'accepted':
+        raise ValueError('Conversion requires accepted review status')
     dataset_dir = root_dir + "/" + dataset_name + "/collect_data/"
     mk_dir(dataset_dir)
     output_video_dir = root_dir + "/" + dataset_name + "/output_videos/"
@@ -129,42 +117,17 @@ def main(root_dir, dataset_name, date_collect, idx, allow_rollouts=False):
     if os.path.exists(dataset_path + '.hdf5'):
         raise FileExistsError('Refuse to overwrite: ' + dataset_path + '.hdf5')
     MIRROR_STATE_MULTIPLY = np.array(SCRIPT_COLLECT2TRAIN["MIRROR_STATE_MULTIPLY"])
-    MIRROR_BASE_MULTIPLY = np.array(SCRIPT_COLLECT2TRAIN["MIRROR_BASE_MULTIPLY"])
 
 
     one_data_dir = dataset_dir+date_collect+"/"
     print(one_data_dir)
-    qpos, qvel, action, base_action, image_dict, is_sim = load_data(one_data_dir)
+    qpos, qvel, action, image_dict, is_sim = load_data(one_data_dir)
     qpos = np.concatenate([qpos[:, :7] * MIRROR_STATE_MULTIPLY, qpos[:, 7:] * MIRROR_STATE_MULTIPLY], axis=1)
     qvel = np.concatenate([qvel[:, :7] * MIRROR_STATE_MULTIPLY, qvel[:, 7:] * MIRROR_STATE_MULTIPLY], axis=1)
     action = np.concatenate([action[:, :7] * MIRROR_STATE_MULTIPLY, action[:, 7:] * MIRROR_STATE_MULTIPLY], axis=1)
 
-    if base_action is not None:
-        base_action = base_action * MIRROR_BASE_MULTIPLY
-
-    if 'left_wrist' in image_dict.keys():
-        image_dict['left_wrist'], image_dict['right_wrist'] = \
-            image_dict['left_wrist'], image_dict['right_wrist']
-    elif 'cam_left_wrist' in image_dict.keys():
-        image_dict['cam_left_wrist'], image_dict['cam_right_wrist'] = \
-            image_dict['cam_left_wrist'][:, :, ::-1], image_dict['cam_right_wrist'][:, :, ::-1]
-    else:
-        raise Exception('No left_wrist or cam_left_wrist in image_dict')
-
-    if 'top' in image_dict.keys():
-        image_dict['top'] = image_dict['top']
-    elif 'cam_high' in image_dict.keys():
-        image_dict['cam_high'] = image_dict['cam_high'][:, :, ::-1]
-    else:
-        raise Exception('No top or cam_high in image_dict')
-
     # saving
     data_dict = {
-        '/observations/qpos': qpos,
-        '/observations/qvel': qvel,
-        '/action': action,
-        '/base_action': base_action,
-    } if base_action is not None else {
         '/observations/qpos': qpos,
         '/observations/qvel': qvel,
         '/action': action,
@@ -215,7 +178,7 @@ def main(root_dir, dataset_name, date_collect, idx, allow_rollouts=False):
         root.attrs['jpeg_quality'] = SCRIPT_COLLECT2TRAIN['jpeg_quality']
         root.attrs['mirror_state_multiply'] = MIRROR_STATE_MULTIPLY
         obs = root.create_group('observations')
-        write_hdf5_metadata(root, episode_metadata, max_timesteps)
+        write_hdf5_metadata(root, episode_metadata)
         image = obs.create_group('images')
         for cam_name in image_dict.keys():
             if COMPRESS:
@@ -227,8 +190,6 @@ def main(root_dir, dataset_name, date_collect, idx, allow_rollouts=False):
         qpos = obs.create_dataset('qpos', (max_timesteps, 14))
         qvel = obs.create_dataset('qvel', (max_timesteps, 14))
         action = root.create_dataset('action', (max_timesteps, 14))
-        if base_action is not None:
-            base_action = root.create_dataset('base_action', (max_timesteps, 2))
 
         for name, array in data_dict.items():
             root[name][...] = array

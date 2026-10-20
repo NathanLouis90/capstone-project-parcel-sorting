@@ -7,6 +7,8 @@ Curation plans operations, checks compatible medium/schema/cameras/rate,
 refuses collisions and symlinks, hashes file payloads, and logs provenance.
 Metadata and recorded actions are never rewritten. New training collections
 require fresh pick-to-scan schema-3 episodes; do not transfer archived episodes.
+The recorded `control_period_ms` must be present and match the destination;
+curation never assumes a rate for missing metadata.
 
 ```bash
 python3 scripts/curate_datasets.py status --project poly_mailer

@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from experiments.inference_safety import joint_jump_exceeds, resolve_episode_length, validate_action
+from experiments.inference_safety import joint_jump_exceeds, validate_action
 from experiments.kinematics import forward_kinematics
 from scripts.control_timing import wait_period
 
@@ -23,15 +23,6 @@ def test_grippers_do_not_trigger_joint_jump():
 def test_invalid_action_rejected():
     with pytest.raises(ValueError, match='finite'):
         validate_action(np.full(14, np.nan), np.zeros(14))
-
-
-def test_task_horizon():
-    tasks = {'parcel': {'episode_len': 400}}
-    assert resolve_episode_length('parcel', None, tasks) == 400
-    with pytest.raises(ValueError):
-        resolve_episode_length('parcel', 401, tasks)
-    with pytest.raises(ValueError):
-        resolve_episode_length('unknown', 1, tasks)
 
 
 def test_pacing_and_overrun():
@@ -81,9 +72,3 @@ def test_vendor_base_dimensions_removed_and_grippers_clipped():
     action = prepare_vendor_action(prediction)
     assert action.shape == (14,)
     np.testing.assert_array_equal(action[[6, 13]], [0, 1])
-
-
-def test_medium_metadata_required():
-    from experiments.inference_safety import resolve_task_metadata
-    assert resolve_task_metadata('poly_mailer', {'poly_mailer': {'medium': 'poly_mailer'}}, {}) == {'medium': 'poly_mailer'}
-    with pytest.raises(ValueError): resolve_task_metadata('unknown', {}, {})

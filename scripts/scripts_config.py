@@ -100,11 +100,8 @@ MANIPULATE_UTILS = {
 # script_collect2train.py
 SCRIPT_COLLECT2TRAIN = {
     "MIRROR_STATE_MULTIPLY": [1, 1, 1, 1, 1, 1, 1],
-    "MIRROR_BASE_MULTIPLY": [1, 1],
     "COMPRESS": True,
     "root_dir": str(DATASETS_DIR),
-    "dataset_name": "dataset_package_test",
-    "date_collect": "20241010",
     "jpeg_quality": 50,
     "video_frame_period_s": CONTROL["control_period_ms"] / 1000,
     "episode_index": '0',

@@ -1,10 +1,27 @@
-"""Read current or legacy episodes and write observation-independent provenance."""
+"""Read schema-3 pick-to-scan episodes and write their provenance."""
 import json
+import math
 from pathlib import Path
 from .barcode_scanning_config import RECORDING
 from experiments.experiments_config import MEDIA as MEDIUM_SETTINGS
 
 MEDIA = ('envelope', 'poly_mailer', 'carton')
+SCHEMA_VERSION = 3
+
+
+def require_current_schema(metadata):
+    if (not isinstance(metadata, dict)
+            or type(metadata.get('schema_version')) is not int
+            or metadata['schema_version'] != SCHEMA_VERSION):
+        raise ValueError('Recording metadata must use pick-to-scan schema {}'.format(SCHEMA_VERSION))
+
+
+def recording_period_ms(metadata):
+    period = metadata.get('control_period_ms')
+    if (isinstance(period, bool) or not isinstance(period, (int, float))
+            or not math.isfinite(period) or period <= 0):
+        raise ValueError('Invalid recording rate: control_period_ms must be positive and finite')
+    return period
 
 
 def validate_medium_face(medium, label_face):
@@ -18,16 +35,10 @@ def validate_medium_face(medium, label_face):
 def read_episode_metadata(episode_dir):
     path = Path(episode_dir) / RECORDING['metadata_filename']
     if not path.exists():
-        path = Path(episode_dir) / 'metadata.json'
-    if not path.exists():
-        return None
+        raise ValueError('Required recording metadata missing: {}'.format(path))
     metadata = json.loads(path.read_text())
-    if metadata.get('schema_version', 0) < 3:
-        from .legacy_metadata import read_legacy_metadata
-        metadata = read_legacy_metadata(episode_dir)
-        if metadata is not None:
-            metadata = dict(metadata, legacy_recording=True)
-        return metadata
+    require_current_schema(metadata)
+    recording_period_ms(metadata)
     validate_medium_face(metadata.get('medium'), metadata.get('label_face'))
     if not metadata.get('recording_complete'):
         raise ValueError('Recording was interrupted; review it before conversion')
@@ -36,13 +47,12 @@ def read_episode_metadata(episode_dir):
     return metadata
 
 
-def write_hdf5_metadata(root, metadata, timesteps):
-    if metadata is None:
-        return
-    # New training files never receive scanner or legacy task fields.
+def write_hdf5_metadata(root, metadata):
+    require_current_schema(metadata)
+    # Provenance is separate from policy observations and scanner results.
     keys = ('schema_version', 'episode_id', 'cycle_id', 'medium', 'label_face',
             'started_at', 'ended_at', 'recording_complete', 'review_status', 'reviewed_at',
-            'frame_count', 'control_period_ms', 'control_overruns', 'source', 'legacy_recording')
+            'frame_count', 'control_period_ms', 'control_overruns', 'source')
     saved = {key: metadata[key] for key in keys if key in metadata}
     root.attrs['episode_metadata_json'] = json.dumps(saved)
     for key in ('medium', 'label_face', 'cycle_id'):

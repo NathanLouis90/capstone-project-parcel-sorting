@@ -6,6 +6,7 @@ from experiments.experiments_config import CONTROL, RUN_INFERENCE, SUPERVISOR
 from experiments.inference_safety import joint_limits_ok
 from experiments.handoff import home_action, HandoffCheck
 from scripts.scripts_config import PREPARE_ACT_DATASETS
+from barcode_scanning.dataset_metadata import recording_period_ms
 
 
 def episode_warnings(qpos, metadata, config=PREPARE_ACT_DATASETS, waypoints=None):
@@ -28,7 +29,7 @@ def episode_warnings(qpos, metadata, config=PREPARE_ACT_DATASETS, waypoints=None
         warnings.append('Scan pose is unconfigured; teach {}'.format(key))
     else:
         check = HandoffCheck(metadata['medium'], poses[key])
-        period = metadata.get('control_period_ms', CONTROL['control_period_ms']) / 1000
+        period = recording_period_ms(metadata) / 1000
         for i, frame in enumerate(qpos):
             settled = check.update(frame, i * period)
         if not settled:

@@ -50,8 +50,8 @@ def test_checkpoint_config_and_paths_ignore_inference_cli(checkpoint, monkeypatc
 
     vendor.Imitate_Model = Model
     monkeypatch.setitem(sys.modules, vendor.__name__, vendor)
-    monkeypatch.setattr(sys, 'argv', ['run_inference.py', '--task-name', 'parcel',
-                                    '--checkpoint-dir', str(directory), '--show-img'])
+    monkeypatch.setattr(sys, 'argv', ['run_cycle.py', '--medium', 'poly_mailer', '--live',
+                                    '--backend', 'vendor', '--checkpoint', str(directory)])
     argv = sys.argv[:]
     path = sys.path[:]
     try:
@@ -98,7 +98,7 @@ def test_model_builder_uses_overrides_without_parsing_cli(monkeypatch, kind):
 
     monkeypatch.setattr(main, 'build_{}_model'.format(kind), build)
     monkeypatch.setattr(main.torch.optim, 'AdamW', lambda *args, **kwargs: 'optimizer')
-    monkeypatch.setattr(sys, 'argv', ['run_inference.py', '--task-name', 'parcel', '--show-img'])
+    monkeypatch.setattr(sys, 'argv', ['run_cycle.py', '--medium', 'poly_mailer', '--dry-run'])
     builder = getattr(main, 'build_{}_model_and_optimizer'.format(kind))
     _, optimizer = builder({'num_queries': 23, 'hidden_dim': 512, 'lr': 2e-5})
     assert optimizer == 'optimizer'
