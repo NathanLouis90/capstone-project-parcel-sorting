@@ -18,6 +18,7 @@ import numpy as np
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 from barcode_scanning.barcode_scanning_config import RECORDING
+from barcode_scanning.dataset_metadata import require_current_schema
 from barcode_scanning.recording import inspect_episode, write_metadata
 from scripts.scripts_config import REVIEW_EPISODES, SCRIPT_COLLECT2TRAIN
 
@@ -28,6 +29,7 @@ REVIEW_FIELDS = {'review_status', 'reviewed_at'}
 
 def read_metadata(episode):
     metadata = json.loads((Path(episode) / RECORDING['metadata_filename']).read_text())
+    require_current_schema(metadata)
     if metadata.get('episode_id') != Path(episode).name:
         raise ValueError('Episode ID differs from folder name: {}'.format(episode))
     return metadata
@@ -39,9 +41,9 @@ def converted_index(project):
         with h5py.File(str(path), 'r') as source:
             text = source.attrs.get('episode_metadata_json')
             if text is None:
-                print('[Warn]: {} has no episode metadata; cannot synchronize it'.format(path))
-                continue
+                raise ValueError('Converted file has no episode metadata: {}'.format(path))
             metadata = json.loads(text)
+            require_current_schema(metadata)
             identifier = metadata.get('episode_id')
             if not identifier:
                 raise ValueError('Converted file has no episode ID: {}'.format(path))

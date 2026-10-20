@@ -43,7 +43,7 @@ def recording(project, identifier, status='unreviewed'):
     index = len(list(data.glob('*.hdf5')))
     converted = data / 'episode_init_{}.hdf5'.format(index)
     with h5py.File(str(converted), 'w') as source:
-        write_hdf5_metadata(source, session.metadata, 2)
+        write_hdf5_metadata(source, session.metadata)
         source.attrs['compress'] = True
         source.attrs['jpeg_quality'] = SCRIPT_COLLECT2TRAIN['jpeg_quality']
         source.attrs['mirror_state_multiply'] = SCRIPT_COLLECT2TRAIN['MIRROR_STATE_MULTIPLY']
@@ -72,6 +72,24 @@ def payload(path):
     with h5py.File(str(path), 'r') as source:
         source.visititems(lambda key, node: result.update({key: node[:]}) if isinstance(node, h5py.Dataset) else None)
     return result
+
+
+@pytest.mark.parametrize('schema', [None, 2, 4])
+def test_unsupported_converted_metadata_blocks_review_without_changes(tmp_path, schema):
+    episode, converted = recording(tmp_path / 'project', '001')
+    with h5py.File(str(converted), 'r+') as source:
+        if schema is None:
+            del source.attrs['episode_metadata_json']
+        else:
+            saved = json.loads(source.attrs['episode_metadata_json'])
+            saved['schema_version'] = schema
+            source.attrs['episode_metadata_json'] = json.dumps(saved)
+    raw_path = episode / RECORDING['metadata_filename']
+    original_raw, original_converted = raw_path.read_bytes(), converted.read_bytes()
+    with pytest.raises(ValueError, match='episode metadata|schema 3'):
+        review.set_review_status(episode, 'rejected')
+    assert raw_path.read_bytes() == original_raw
+    assert converted.read_bytes() == original_converted
 
 
 def test_accept_updates_both_statuses_and_preserves_payload(tmp_path):

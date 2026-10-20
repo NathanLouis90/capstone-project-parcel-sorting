@@ -120,6 +120,9 @@ and which programs belong in each terminal.
 
 ## Offline checks
 
+See the [tests README](tests/README.md) for setup, focused commands, and each
+test module's purpose.
+
 ```bash
 PYTHONPATH=.:robomimic-r2d2 python3 -m pytest tests/ -q
 python3 experiments/scripted_motion.py --dry-run

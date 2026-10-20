@@ -17,7 +17,7 @@ def joint_limits_ok(action, config=RUN_INFERENCE):
 
 
 def commanded_workspace_ok(action, config=RUN_INFERENCE):
-    # The legacy claw_width convention disagrees with the command convention.
+    # claw_width uses the opposite convention to gripper commands.
     # Check the full possible jaw span conservatively until geometry is calibrated.
     width = max(claw_width(0), claw_width(1))
     for side, offset, robot_type in zip(('left', 'right'), (0, 7), config['robot_types']):
@@ -52,21 +52,3 @@ def prepare_vendor_action(prediction):
         raise ValueError('Predicted robot action must contain finite values')
     action[[6, 13]] = np.clip(action[[6, 13]], 0, 1)
     return action
-
-
-def resolve_episode_length(task, requested, tasks):
-    if task not in tasks:
-        raise ValueError('Unknown task: {}'.format(task))
-    limit = tasks[task]['episode_len']
-    length = limit if requested is None else requested
-    if length <= 0 or length > limit:
-        raise ValueError('Requested length must be in 1..{} for {}'.format(limit, task))
-    return length
-
-
-def resolve_task_metadata(task, tasks, recording_projects):
-    """Resolve arm-selection details for a recording or combined training task."""
-    metadata = recording_projects.get(task, tasks.get(task, {}))
-    if metadata.get('medium') not in ('poly_mailer', 'carton', 'envelope'):
-        raise ValueError('Task requires medium for robot deployment: {}'.format(task))
-    return metadata

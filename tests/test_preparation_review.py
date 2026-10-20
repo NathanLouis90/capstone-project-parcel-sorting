@@ -2,6 +2,7 @@ import json
 import pickle
 from types import SimpleNamespace
 import numpy as np
+import pytest
 from barcode_scanning.recording import RecordingSession
 from barcode_scanning.barcode_scanning_config import RECORDING
 from scripts import prepare_act_datasets as prepare
@@ -66,3 +67,23 @@ def test_rejected_incomplete_episode_skipped(tmp_path, monkeypatch):
     monkeypatch.setattr(prepare, 'PROJECTS', {'poly_mailer': dict(schema_version=3, medium='poly_mailer',
                                                      episode_len=400)})
     assert prepare.main(['--root', str(tmp_path), '--convert']) == 0
+
+
+@pytest.mark.parametrize('metadata_present', [False, True])
+def test_direct_converter_rejects_missing_or_unsupported_metadata(tmp_path, monkeypatch, metadata_present):
+    from click.testing import CliRunner
+    from scripts import script_collect2train as converter
+    episode = raw_episode(tmp_path, '01', 'accepted')
+    path = episode / RECORDING['metadata_filename']
+    if metadata_present:
+        metadata = json.loads(path.read_text())
+        metadata['schema_version'] = 2
+        path.write_text(json.dumps(metadata))
+    else:
+        path.unlink()
+    monkeypatch.setattr(converter, 'load_data', lambda *args: pytest.fail('Invalid metadata must fail before loading frames'))
+    result = CliRunner().invoke(converter.main, ['--root_dir', str(tmp_path),
+                               '--dataset_name', 'poly_mailer', '--date_collect', '01', '--idx', '0'])
+    assert isinstance(result.exception, ValueError)
+    assert not (tmp_path / 'poly_mailer/train_data').exists()
+    assert not (tmp_path / 'poly_mailer/output_videos').exists()

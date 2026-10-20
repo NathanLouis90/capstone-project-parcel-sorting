@@ -94,13 +94,10 @@ def main(argv=None):
                 report = inspect_episode(episode)
                 if args.rebuild_to:
                     from scripts.curate_datasets import signature, compatible
-                    assumptions = set()
-                    compatible(signature(episode, assumptions), project, episode)
-                    for warning in sorted(assumptions):
-                        print('[Warn]: ' + warning)
+                    compatible(signature(episode), project, episode)
             except (OSError, ValueError, KeyError) as error:
                 parser.error('{}: {}'.format(episode, error))
-            if report['medium'] != project['medium'] or report['legacy_recording']:
+            if report['medium'] != project['medium']:
                 parser.error('Require fresh pick-to-scan recordings of the registered medium: {}'.format(episode))
             if report['frames'] > project['episode_len']:
                 parser.error('{} exceeds the configured {}-step episode length'.format(

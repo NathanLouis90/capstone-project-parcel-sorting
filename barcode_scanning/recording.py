@@ -6,7 +6,7 @@ import tempfile
 import time
 import uuid
 from .barcode_scanning_config import RECORDING
-from .dataset_metadata import validate_medium_face
+from .dataset_metadata import SCHEMA_VERSION, validate_medium_face
 from experiments.experiments_config import CONTROL
 
 
@@ -35,7 +35,7 @@ class RecordingSession:
         if self.active or episode_dir.exists():
             raise ValueError('Recording active or episode already exists: {}'.format(episode_dir))
         self.path = episode_dir / RECORDING['metadata_filename']
-        self.metadata = dict(schema_version=3, medium=self.medium, label_face=self.label_face,
+        self.metadata = dict(schema_version=SCHEMA_VERSION, medium=self.medium, label_face=self.label_face,
                              episode_id=episode_dir.name, cycle_id=uuid.uuid4().hex,
                              started_at=time.time(), recording_complete=False,
                              review_status='unreviewed', frame_count=0, control_overruns=0,
@@ -45,9 +45,6 @@ class RecordingSession:
 
     def _save(self):
         write_metadata(self.path, self.metadata)
-
-    def poll(self):
-        pass  # Scanner ownership belongs exclusively to the runtime supervisor.
 
     def record_frame(self):
         if self.active:
@@ -64,8 +61,6 @@ def inspect_episode(episode_dir):
     from .dataset_metadata import read_episode_metadata
     episode_dir = Path(episode_dir).expanduser().resolve()
     metadata = read_episode_metadata(episode_dir)
-    if metadata is None:
-        raise ValueError('No recording metadata found')
     identifiers = []
     for folder, extension in [('observation', '.pkl'), ('topImg', '.jpg'),
                               ('leftImg', '.jpg'), ('rightImg', '.jpg')]:
@@ -77,5 +72,4 @@ def inspect_episode(episode_dir):
         raise ValueError('Frame count or numeric identifiers differ from metadata')
     return dict(episode=str(episode_dir), medium=metadata['medium'],
                 label_face=metadata.get('label_face'), frames=len(observations),
-                cycle_id=metadata['cycle_id'], review_status=metadata['review_status'],
-                legacy_recording=metadata.get('legacy_recording', False))
+                cycle_id=metadata['cycle_id'], review_status=metadata['review_status'])

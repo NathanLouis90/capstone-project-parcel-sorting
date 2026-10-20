@@ -53,3 +53,16 @@ def test_changed_source_refuses_frozen_split(tmp_path):
     with h5py.File(str(p/'train_data/episode_init_0.hdf5'),'r+') as f: f['action'][0,0]=.1
     with pytest.raises(ValueError,match='sources changed'):
         convert([p],'poly_mailer',tmp_path/'second.hdf5',split)
+
+
+@pytest.mark.parametrize('schema', [None, 2, 4])
+def test_unsupported_metadata_refused_before_creating_outputs(tmp_path, schema):
+    p = project(tmp_path)
+    with h5py.File(str(p / 'train_data/episode_init_0.hdf5'), 'r+') as source:
+        metadata = json.loads(source.attrs['episode_metadata_json'])
+        metadata['schema_version'] = schema
+        source.attrs['episode_metadata_json'] = json.dumps(metadata)
+    output, split = tmp_path / 'data.hdf5', tmp_path / 'split.json'
+    with pytest.raises(ValueError, match='schema 3'):
+        convert([p], 'poly_mailer', output, split)
+    assert not output.exists() and not split.exists()

@@ -7,6 +7,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from barcode_scanning.barcode_scanning_config import RECORDING
+from barcode_scanning.dataset_metadata import require_current_schema
 from scripts.scripts_config import COUNT_EPISODES
 
 
@@ -21,6 +22,7 @@ def count_project(collect_dir):
             metadata = json.loads((episode / RECORDING['metadata_filename']).read_text())
             if not isinstance(metadata, dict):
                 raise ValueError('Metadata must be an object')
+            require_current_schema(metadata)
             medium = metadata.get('medium')
             if medium:
                 media.add(medium)
@@ -71,6 +73,7 @@ def main(argv=None):
                     continue
                 try:
                     metadata = json.loads((episode / RECORDING['metadata_filename']).read_text())
+                    require_current_schema(metadata)
                     print('  {}: medium={}, label_face={}, review={}{}'.format(
                         episode.name, metadata.get('medium'), metadata.get('label_face'),
                         metadata.get('review_status', 'unreviewed'),
@@ -79,7 +82,7 @@ def main(argv=None):
                     print('  {}: {}'.format(episode.name, error))
     print('\nComplete: stopped recording with a nonzero metadata frame count.')
     print('Incomplete: active, interrupted, or zero-frame recording.')
-    print('Unknown: missing or unreadable metadata, including older recordings.')
+    print('Unknown: missing, unreadable, or unsupported recording metadata.')
     print('Counts do not verify frame files or physical task success.')
     return 0
 

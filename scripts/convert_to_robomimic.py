@@ -15,6 +15,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 from scripts.scripts_config import PREPARE_ACT_DATASETS, ROBOMIMIC
 from barcode_scanning.barcode_scanning_config import RECORDING
+from barcode_scanning.dataset_metadata import require_current_schema, write_hdf5_metadata
 from scripts.dataset_integrity import require_fresh, require_rollout_opt_in, explicit_rollout_name
 
 
@@ -36,8 +37,7 @@ def inspect_sources(projects, recipe, allow_rollouts=False):
                 if medium != recipe['medium']:
                     continue
                 metadata = json.loads(source.attrs.get('episode_metadata_json', '{}'))
-                if metadata.get('schema_version', 0) < 3 or metadata.get('legacy_recording'):
-                    raise ValueError('Require fresh pick-to-scan recordings: {}'.format(path))
+                require_current_schema(metadata)
                 if metadata.get('source') == 'rollout' and not allow_rollouts:
                     print('Skip {}: rollout excluded by default'.format(path))
                     continue
@@ -145,9 +145,8 @@ def convert(projects, recipe_name, output, split_path, allow_rollouts=False):
             for i, entry in enumerate(entries):
                 with h5py.File(entry['path'], 'r') as source:
                     demo = data.create_group('demo_{}'.format(i))
-                    from barcode_scanning.dataset_metadata import write_hdf5_metadata
                     metadata = json.loads(source.attrs['episode_metadata_json'])
-                    write_hdf5_metadata(demo, metadata, len(source['action']))
+                    write_hdf5_metadata(demo, metadata)
                     demo.attrs['recording_id'] = entry['id']
                     n = len(source['action'])
                     demo.attrs['num_samples'] = n

@@ -1,4 +1,3 @@
-from collections import deque
 import numpy as np
 import pytest
 from experiments.robomimic_runner import RobomimicPolicy

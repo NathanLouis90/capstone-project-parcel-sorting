@@ -1,16 +1,13 @@
-"""Hardware-free scanner, recording, and conversion contract tests."""
+"""Hardware-free scanner and recording-button contract tests."""
 import ast
 import contextlib
 import io
-import json
 from pathlib import Path
-import tempfile
 import threading
 import types
 import unittest
 from unittest.mock import patch
 
-import h5py
 import numpy as np
 
 from barcode_scanning.scanner_reader import KeyboardDecoder, ScanWindow, ScannerReader, list_devices, main

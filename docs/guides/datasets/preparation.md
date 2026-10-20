@@ -100,5 +100,10 @@ Dobot training folders must be rebuilt before retraining because its loader read
 all HDF5 files. Curation marks affected conversions stale; stale/incomplete
 folders are refused by training and downstream conversion.
 
-Legacy recordings remain readable through the compatibility reader. Do not reuse
-or truncate them for the new 50-demonstration collections.
+Only schema-3 `episode_metadata.json` recordings are supported. Other schemas,
+missing metadata, and the alternate `metadata.json` filename are rejected.
+Raw metadata must include a positive, finite `control_period_ms`; the tools do
+not guess a missing recording rate. Review also refuses converted files with
+missing or unsupported provenance.
+Record fresh demonstrations for each collection; the tools do not migrate
+unsupported recordings or modify archived datasets.

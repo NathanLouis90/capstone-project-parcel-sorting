@@ -264,15 +264,23 @@ def test_fresh_rebuild_copies_only_accepted_and_leaves_source_untouched(tmp_path
     assert not (tmp_path / 'NEW/train_data/BUILDING.json').exists()
 
 
-def test_legacy_rate_warning_and_renamed_episode_refusal(tmp_path):
+def test_missing_recording_rate_refused_without_changes(tmp_path):
     e = episode(tmp_path, 'extra', '1')
     m = curate.metadata(e)
     del m['control_period_ms']
     (e / 'episode_metadata.json').write_text(json.dumps(m))
     project(tmp_path, 'primary')
     registry = dict(primary=config(), extra=config())
-    p = plan(tmp_path, ['transfer', '--from', 'extra', '--to', 'primary', '--count', '1'], registry)
-    assert any('legacy metadata' in warning for warning in p.warnings)
+    before = snapshot(tmp_path)
+    with pytest.raises(ValueError, match='Invalid recording rate'):
+        plan(tmp_path, ['transfer', '--from', 'extra', '--to', 'primary', '--count', '1'], registry)
+    assert snapshot(tmp_path) == before
+
+
+def test_renamed_episode_refused(tmp_path):
+    e = episode(tmp_path, 'extra', '1')
+    project(tmp_path, 'primary')
+    registry = dict(primary=config(), extra=config())
     e.rename(e.with_name('1_update_policy'))
     with pytest.raises(ValueError, match='episode_id differs'):
         plan(tmp_path, ['transfer', '--from', 'extra', '--to', 'primary', '--count', '1'], registry)

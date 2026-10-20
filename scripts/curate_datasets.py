@@ -21,6 +21,7 @@ import uuid
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 from barcode_scanning.barcode_scanning_config import RECORDING
+from barcode_scanning.dataset_metadata import recording_period_ms, require_current_schema
 from experiments.experiments_config import CONTROL
 from scripts.dataset_integrity import require_rollout_opt_in
 from scripts.scripts_config import PREPARE_ACT_DATASETS
@@ -32,6 +33,7 @@ def metadata(episode):
     value = json.loads((episode / RECORDING['metadata_filename']).read_text())
     if not isinstance(value, dict):
         raise ValueError('Metadata must be an object: {}'.format(episode))
+    require_current_schema(value)
     return value
 
 
@@ -90,14 +92,12 @@ def settings(project, registry):
     return registry[project.name]
 
 
-def signature(episode, warnings):
+def signature(episode):
     m = metadata(episode)
     if m.get('episode_id') != episode.name:
         raise ValueError('episode_id differs from folder name: {}'.format(episode))
     if not m.get('recording_complete') or not m.get('frame_count', 0):
         raise ValueError('Incomplete recording: {}'.format(episode))
-    if m.get('schema_version', 0) < 3 or m.get('medium') not in ('poly_mailer', 'carton', 'envelope'):
-        raise ValueError('Fresh pick-to-scan medium metadata required: {}'.format(episode))
     from barcode_scanning.dataset_metadata import validate_medium_face
     validate_medium_face(m['medium'], m.get('label_face'))
     ids = {p.stem for p in (episode / 'observation').glob('*.pkl')}
@@ -111,13 +111,7 @@ def signature(episode, warnings):
             cameras.append(camera)
             if {p.stem for p in (episode / folder).glob('*.jpg')} != ids:
                 raise ValueError('camera set/frame identifiers mismatch: {}'.format(episode))
-    rate = m.get('control_period_ms')
-    if rate is None:
-        rate = CONTROL['control_period_ms']
-        warnings.add('{}: legacy metadata has no control_period_ms; assume configured {} ms. '
-                     'Measured playback rate still needs review.'.format(episode, rate))
-    if isinstance(rate, bool) or not isinstance(rate, (int, float)) or not math.isfinite(rate) or rate <= 0:
-        raise ValueError('Invalid recording rate: {}'.format(episode))
+    rate = recording_period_ms(m)
     return dict(medium=m['medium'], schema_version=m['schema_version'],
                 camera_names=sorted(cameras), control_period_ms=rate, frames=len(ids))
 
@@ -242,13 +236,13 @@ def add_transfer(plan, sources, destination, registry, copy=False, allow_rollout
     expected = settings(destination, registry)
     # Check retained episodes too; destination folder names do not prove compatibility.
     for path in episodes(destination):
-        compatible(signature(path, plan.warnings), expected, path)
+        compatible(signature(path), expected, path)
     for source in sources:
         m = metadata(source)
         if m.get('review_status') != 'accepted':
             raise ValueError('Transfer/merge requires accepted review status, got {}: {}'.format(m.get('review_status'), source))
         require_rollout_opt_in(m, destination, allow_rollouts)
-        actual = signature(source, plan.warnings)
+        actual = signature(source)
         source_project = source.parent.parent
         if source_project == destination:
             raise ValueError('Source and destination must differ: {}'.format(destination))
