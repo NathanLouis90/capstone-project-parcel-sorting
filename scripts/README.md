@@ -1,7 +1,8 @@
 # Setup and dataset tools
 
 Run from the repository root in Python 3.8 `Xtrainer`.
-See [terminal commands](../docs/terminal_commands.md) for activation and syntax.
+Follow [terminal preparation](../docs/terminal_commands.md) for activation;
+read the [terminal reference](../docs/README.md#terminal-syntax) for syntax.
 
 ## Local hardware settings
 
@@ -26,7 +27,8 @@ locks/unlocks leaders; use `run_control.py` to make followers track them.
 
 ## Data workflow
 
-Fresh projects default to `envelope`, `poly_mailer`, and `carton`. Register custom
+Fresh projects default to `<medium>_<label_face>`, such as `poly_mailer_bottom`.
+Existing medium-only project names remain registered. Register custom
 names under `PREPARE_ACT_DATASETS["projects"]` in `scripts_config.py`, including
 schema 3, medium, episode length, training fraction, cameras and control period.
 Each episode ends with a held scan pose; release and home are outside the demo.
@@ -40,9 +42,10 @@ Each episode ends with a held scan pose; release and home are outside the demo.
 | `convert_to_robomimic.py` | Build one medium dataset with a frozen split |
 | `configure_robomimic.py` | Generate matched ACT and DP training configs |
 
-See [recording](../docs/guides/recording/README.md),
+See [recording](../docs/guides/recording/protocol.md),
 [preparation](../docs/guides/datasets/preparation.md), and
-[training](../docs/guides/training/act_dp.md) for commands and argument explanations.
+[training](../docs/guides/training/act_dp.md) for procedures.
+Use the [topic READMEs](../docs/guides/README.md) for explanations and command options.
 Use [curation](../docs/guides/datasets/curation.md) for file operations.
 Converted images become RGB for
 robomimic; vendor ACT retains its BGR preprocessing. `script_collect2train.py`

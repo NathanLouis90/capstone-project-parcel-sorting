@@ -1,47 +1,50 @@
-# Matched ACT and Diffusion Policy training
+# Train matched ACT and Diffusion Policy models
 
-Both algorithms use the same RGB images, 14 joint/gripper observations, action
-normalization and frozen train/validation split. Train a separate pair for each
-medium. No scanner, destination or label-face input is given to either policy.
+Complete [recording](../recording/protocol.md) and
+[dataset preparation](../datasets/preparation.md). Stop the recorder. Prepare
+[one terminal](../../terminal_commands.md) with Python 3.8 `Xtrainer` activated
+and the complete training dependencies installed. No robot server is needed.
 
-Complete [recording](../recording/README.md) and [preparation](../datasets/preparation.md).
-Run these steps in one terminal from the repository root with Python 3.8
-`Xtrainer` activated. No robot server is needed. Stop recording before training.
-See [terminal setup](../../terminal_commands.md).
+Read the [training README](README.md) for algorithms, options, dataset selection,
+frozen splits, and checkpoint formats. Train a separate ACT/DP pair per medium.
 
 ## 1. Build a dataset and freeze its split
+
+Set the medium and select a prepared collection:
 
 ```bash
 MEDIUM=poly_mailer
 python3 scripts/convert_to_robomimic.py --recipe "$MEDIUM" \
-  --projects "datasets/$MEDIUM" \
+  --projects "datasets/${MEDIUM}_bottom" \
   --output "datasets/training/$MEDIUM.hdf5" \
   --split-file "datasets/training/$MEDIUM.split.json"
 ```
 
-`MEDIUM=poly_mailer` sets a variable for this terminal. Use `envelope` or `carton`
-to repeat the workflow for another medium. Keep the variable set for later steps.
+1. Keep `MEDIUM` set in this terminal. Use `envelope` or `carton` for another medium.
+2. Replace the `--projects` value with the prepared folders you want to include.
+   Keep one medium per recipe. For a rebuilt project, use its actual folder,
+   such as `--projects datasets/poly_mailer_v2`, with `--recipe poly_mailer`.
+3. Choose unused output filenames for a new snapshot. Include at least two
+   independent accepted cycles and keep rollout inclusion off for demonstrations.
+4. To combine top and bottom mailers, use this alternative command after
+   preparing both projects:
 
-| Argument | Meaning |
-| --- | --- |
-| `--recipe "$MEDIUM"` | Select the medium's dataset recipe; here it is `poly_mailer`. |
-| `--projects "datasets/$MEDIUM"` | Read this prepared project folder containing `train_data/`. Several compatible folders can follow this option. |
-| `--output "datasets/training/$MEDIUM.hdf5"` | Write the combined robomimic dataset to this new file. |
-| `--split-file "datasets/training/$MEDIUM.split.json"` | Save the train/validation allocation and source hashes for both algorithms to share. |
+```bash
+python3 scripts/convert_to_robomimic.py --recipe poly_mailer \
+  --projects datasets/poly_mailer_top datasets/poly_mailer_bottom \
+  --output datasets/training/poly_mailer_top_bottom.hdf5 \
+  --split-file datasets/training/poly_mailer_top_bottom.split.json
+```
 
-If you rebuilt into `poly_mailer_v2`, use `--projects datasets/poly_mailer_v2`
-while keeping `--recipe poly_mailer`. The recipe is the parcel type; the project
-path identifies the actual prepared collection. Choose unused output filenames
-when creating another training snapshot.
-
-Default 80/20 allocation gives 40 training and 10 validation episodes from 50
-independent accepted demonstrations. Linked cycles stay in one partition. At
-least two independent cycles are needed. Source hashes protect the split;
-changed sources require fresh dataset and split paths. An existing matching
-split can be reused. `--allow-rollouts` is an explicit opt-in for separately
-named rollout projects; leave it off for demonstration collections.
+For cartons, list the desired `carton_top`, `carton_bottom`, `carton_front`, and
+`carton_rear` project paths. Existing medium-only folders can also be selected.
+Use your chosen dataset and split paths together in step 2; replace both paths
+there if you used the combined example.
 
 ## 2. Generate the two training configurations
+
+Edit shared defaults in `scripts/scripts_config.py` before generating configs
+if you need different experiment settings. For the first example above, run:
 
 ```bash
 python3 scripts/configure_robomimic.py \
@@ -50,16 +53,8 @@ python3 scripts/configure_robomimic.py \
   --output-dir "ckpt/${MEDIUM}_configs"
 ```
 
-| Argument | Meaning |
-| --- | --- |
-| `--dataset ...hdf5` | Use the dataset created in step 1. |
-| `--split-file ...split.json` | Verify and use the same frozen split; it must match the dataset. |
-| `--output-dir "ckpt/${MEDIUM}_configs"` | Write both JSON configs and helper scripts here; for this example, `ckpt/poly_mailer_configs/`. |
-
-The generated training configs are `poly_mailer_act.json` and
-`poly_mailer_diffusion_policy.json`. Their `train.output_dir` points to `runs/`
-under the configuration directory. Edit settings in `scripts/scripts_config.py`
-before generating configs when changing shared experiment defaults.
+Check for `${MEDIUM}_act.json` and `${MEDIUM}_diffusion_policy.json` under the
+output directory. Keep both configurations on the same frozen split.
 
 ## 3. Train ACT, then Diffusion Policy
 
@@ -72,17 +67,14 @@ PYTHONPATH=.:robomimic-r2d2 python3 robomimic-r2d2/robomimic/scripts/train.py \
   --config "ckpt/${MEDIUM}_configs/${MEDIUM}_diffusion_policy.json"
 ```
 
-`PYTHONPATH=.:robomimic-r2d2` makes the repository and bundled trainer importable
-for each command. `--config` selects the generated JSON file, including the
-algorithm, dataset, split, hyperparameters, and output location. It does not
-select an existing checkpoint. Keep the split unchanged and train both models
-from scratch. Training saves timestamped experiment folders beneath
-`ckpt/poly_mailer_configs/runs/`; use a saved `.pth` file from the experiment's
-`models/` directory for evaluation.
+Train both from scratch. Keep the split unchanged. Find timestamped runs under
+`ckpt/${MEDIUM}_configs/runs/` and select a saved `.pth` from a run's `models/`
+directory for [checkpoint checks and physical evaluation](../runtime/evaluation.md).
+Use separate held-out physical placements to compare success and cycle time.
 
 ## Small configuration checks
 
-To generate small CPU configurations from your prepared dataset, use:
+To generate small CPU configurations from your prepared dataset, run:
 
 ```bash
 python3 scripts/configure_robomimic.py \
@@ -91,30 +83,19 @@ python3 scripts/configure_robomimic.py \
   --output-dir "ckpt/${MEDIUM}_smoke_configs" --smoke --cpu
 ```
 
-The three path arguments have the meanings above; the separate output directory
-keeps these configs apart from full runs. `--smoke` reduces model sizes and
-training to one epoch with two training steps. `--cpu` disables CUDA in the
-generated configs. This command generates files; it does not train models.
-To train them, use step 3's commands with the smoke directory and filenames
-`poly_mailer_act_smoke.json` and `poly_mailer_diffusion_policy_smoke.json`
-(substitute your medium). These models validate software only and must not run
-live hardware. Model files, normalization statistics, and configuration are saved
-in robomimic `.pth` checkpoints. The [runner](../runtime/evaluation.md) restores
-normalization and pads/updates DP observation history, resetting it each cycle.
-
-Compare physical success and cycle time using separate held-out placements;
-validation loss alone is not a sorting-success measurement.
+Check the generated `${MEDIUM}_act_smoke.json` and
+`${MEDIUM}_diffusion_policy_smoke.json` files. To train them, use step 3's commands
+with these filenames and the smoke configuration directory. Keep outputs separate
+from full runs. Never use smoke checkpoints on live hardware.
 
 ## Reproduce the software smoke check
 
-For a complete synthetic check that needs no recorded dataset:
+For a complete synthetic check without recorded datasets, choose a new output
+folder and run:
 
 ```bash
 python3 scripts/smoke_training.py --output /tmp/parcel-model-smoke
 ```
 
-`--output /tmp/parcel-model-smoke` chooses a new result directory; the command
-refuses an existing one. Change the path for another run. It creates synthetic
-files, trains tiny ACT and DP models, reloads each checkpoint and requests three actions without opening
-hardware. It writes logs and `results.json`; the checkpoints are not usable
-production policies.
+Read the logs and `results.json` under the output folder. Use another folder for
+another run. Do not use these synthetic checkpoints for physical policies.

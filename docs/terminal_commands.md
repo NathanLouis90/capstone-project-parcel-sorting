@@ -1,66 +1,49 @@
-# Read and run terminal commands
+# Prepare terminals and run guide commands
 
-The guides use Bash on the robot PC. Run commands from the repository root,
-which contains `experiments/`, `scripts/`, and `README.md`.
+Read the [terminal syntax reference](README.md#terminal-syntax) for option,
+variable, path, and line-continuation meanings. Use Bash on the robot PC.
 
 ## Prepare each terminal
+
+Run these commands in every new terminal:
 
 ```bash
 conda activate Xtrainer
 cd /home/adiel/dobot_xtrainer
 ```
 
-`conda activate Xtrainer` selects this project's Python environment. `cd` changes
-the working directory. Replace `/home/adiel/dobot_xtrainer` if your checkout is
-elsewhere. Repeat both commands in each new terminal. The installation commands
-in the main README are for initial setup, not every session.
+Replace the checkout path if yours differs. Check that this directory contains
+`experiments/`, `scripts/`, and `README.md`. Follow the repository installation
+procedure once on a new PC; do not repeat installation for every session.
 
-## Understand the syntax
+## Choose the terminals for your task
 
-| Example | Meaning |
+| Task | Instructions |
 | --- | --- |
-| `python3 experiments/run_cycle.py` | Run the named Python script. Its arguments follow the filename. |
-| `--medium poly_mailer` | An option followed by its value. Here, select the poly mailer workflow. |
-| `--show-img` | A switch with no following value. Including it enables the image preview. |
-| `status` in `curate_datasets.py status` | A subcommand: choose the operation before giving its options. |
-| `PROJECT=poly_mailer` | Save a shell variable in the current terminal. Do not add spaces around `=`. |
-| `"datasets/$PROJECT"` | Substitute the variable, giving `datasets/poly_mailer`. Quotes keep a path containing spaces together. |
-| `"ckpt/${MEDIUM}_configs"` | Braces separate the variable name from the suffix, giving `ckpt/poly_mailer_configs`. |
-| `PYTHONPATH=.:robomimic-r2d2` before `python3` | Make the repository (`.`) and bundled robomimic package importable for that command. `:` separates directories on Linux. |
-| `\` at the end of a line | Continue the same command on the next line. Copy the whole block; leave no spaces after `\`. |
-| `/path/to/model.pth` or `EPISODE_ID` | A placeholder. Replace it with an actual checkpoint path or episode folder name before running. |
-| `/tmp/carton-cycle.csv` | An example output path in temporary storage. Choose a persistent path for results you need to keep. |
+| Record demonstrations | Keep `launch_nodes.py` in Terminal 1 and run `run_control.py` in Terminal 2. Follow the [recording procedure](guides/recording/protocol.md). |
+| Teach poses | Keep those two processes running. Disable following on both arms, then save with `teach_waypoints.py` in Terminal 3. Follow the [waypoint walkthrough](guides/hardware/waypoints.md#use-three-terminals). |
+| Run a live cycle | Stop the recorder. Keep the server in Terminal 1 and run `run_cycle.py` in Terminal 2. Follow [cycle startup](guides/runtime/evaluation.md). |
+| Review, convert, train, or simulate | Use one terminal without starting a robot server. Stop recording before training. |
+| Inspect, recover, or home | Follow the [home procedure](guides/hardware/homing.md). Stop command clients before recovery or motion. |
 
-`--help` prints an entrypoint's options and exits. Use it on the documented
-recording, dataset, training, scanner, waypoint, and cycle entrypoints when you
-need the full option list. Numbered calibration helpers are hardware programs;
-follow their setup instructions rather than assuming they accept `--help`.
+Do not start duplicate servers or competing motion clients. Check each hardware
+procedure before startup; server startup cycles grippers and recorder startup
+homes both followers.
 
-## Know what stays running
+## Run a guide's example
 
-| Task | Terminals and programs |
-| --- | --- |
-| Record demonstrations | Terminal 1: keep `launch_nodes.py` running. Terminal 2: run `run_control.py`. |
-| Teach poses with leaders | Keep those two running; use Terminal 3 for `teach_waypoints.py` after disabling following on both arms. See the [walkthrough](guides/hardware/waypoints.md#use-three-terminals). |
-| Run a live cycle | Terminal 1: robot server. Terminal 2: `run_cycle.py`. Stop the recorder first. |
-| Review, convert, train, or simulate | One terminal; these commands do not need a robot server. Stop recording before training. |
-| Inspect, recover, or home directly | Use `robot_home.py` as described in [homing](guides/hardware/homing.md). Stop command clients before recovery or motion. |
-
-Keep shell variables and commands that use them in the same terminal. `Ctrl+C`
-requests that the foreground program stop; during hardware motion it does not
-replace the physical emergency stop.
-
-## Check what a dry run writes
-
-`--dry-run` means different things in different tools. Read the explanation next
-to the example before running it.
-
-| Tool | Effect of `--dry-run` |
-| --- | --- |
-| `run_control.py` | Opens no hardware; writes a metadata-only episode, with no usable training frames. |
-| `teach_waypoints.py` | Opens no hardware; writes uncommissioned example poses to `--output`. |
-| `run_cycle.py` | Simulates motion/scanner behavior and appends cycle rows to `--csv`. |
-| `robomimic_runner.py` | Loads a checkpoint and prints predictions on synthetic observations; sends no robot commands. |
-| `scripted_motion.py` | Exercises the simulated joint stream without moving hardware. |
-| `review_episodes.py` | Checks a batch status/synchronization operation without changing files. |
-| `curate_datasets.py` | Prints a proposed file operation plan without applying it. |
+1. Choose the relevant procedure from the [documentation index](README.md#workflow).
+2. Complete its prerequisites before running its command blocks.
+3. Replace placeholders such as `/path/to/model.pth` and `EPISODE_ID` with actual
+   local paths or episode folder names.
+4. Keep shell variable assignments and commands that use them in the same terminal.
+5. Copy a complete multiline block. Leave no spaces after a trailing `\`.
+6. Check [dry-run effects](README.md#dry-run-effects) before running a dry-run command;
+   several tools still create files or append logs.
+7. Choose persistent output paths for results you need to retain.
+8. Use an entrypoint's `--help` to inspect options when needed. Follow the specific
+   setup procedure for numbered hardware calibration helpers instead of assuming
+   they accept `--help`.
+9. Stop foreground processes with Ctrl+C when the procedure instructs you to do
+   so. During hardware motion, use the physical emergency stop when necessary;
+   Ctrl+C does not replace it.

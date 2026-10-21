@@ -1,41 +1,41 @@
 # Review and prepare datasets
 
-Run from the repository root with `Xtrainer` activated. Review and conversion
-need no robot server. See [terminal setup](../../terminal_commands.md).
+Prepare [one terminal](../../terminal_commands.md) in the repository root with
+`Xtrainer` activated. Stop recording before preparing data. No robot server is
+needed. Read the [dataset README](README.md) for file formats, playback, options,
+and conversion rules.
 
 ## 1. Count and review episodes
 
+Choose the collection and keep this terminal open for the remaining steps:
+
 ```bash
-PROJECT=poly_mailer
+PROJECT=poly_mailer_bottom
 python3 scripts/count_episodes.py --details
 python3 scripts/review_episodes.py --project "datasets/$PROJECT"
 ```
 
-`PROJECT=poly_mailer` selects the example collection in this terminal. Use
-`envelope`, `carton`, or a custom registered project name for another collection.
+Replace `poly_mailer_bottom` with another registered medium/face or custom
+project. Review each collection you intend to train on.
 
-| Argument | Meaning |
-| --- | --- |
-| `count_episodes.py --details` | Print totals plus each episode's medium, label face, and review status. |
-| `count_episodes.py --project poly_mailer` | Optional: count only that exact project folder instead of every project. |
-| `count_episodes.py --root datasets` | Optional: set the parent dataset directory; `datasets/` is the default. |
-| `review_episodes.py --project "datasets/$PROJECT"` | Open recordings from this project folder; here the path is `datasets/poly_mailer`. Unlike the count tool, this option takes a folder path. |
+1. Focus the video window.
+2. Check a home start, prompt motion, successful grasp, correct label face, and
+   a stationary held scan pose at the end. Check the assisting/unused arm is home.
+3. Press `a` to accept, `r` to reject, `s` to skip, `p` to replay, space to pause,
+   or `q` to quit. Inspect physical success yourself.
+4. Read any scan-pose or rate warnings before accepting. Teach missing scan poses
+   before collecting further data. Do not force a tighter grip to silence the
+   [current gripper check](../recording/README.md#gripper-width-and-handoff).
+5. Add `--include-reviewed` to revisit decisions, or `--only-rejected` to revisit
+   rejections. Do not combine those two options.
+6. Use `--episodes EPISODE_ID_1 EPISODE_ID_2` for specific episode folder names.
+   Use `--terminal-only` only after inspecting the recordings elsewhere.
 
-Focus the video window. Press `a` to accept, `r` to reject, `s` to skip, `p` to
-replay, space to pause, or `q` to quit. Decisions are saved immediately and
-synchronized with matching HDF5 files. Physical success remains an operator decision.
+Never load untrusted observation pickles.
 
-The default review queue contains unreviewed episodes. Add options after the
-project path to select a different queue:
+### Apply decisions already made
 
-| Review option | Meaning |
-| --- | --- |
-| `--include-reviewed` | Revisit accepted and rejected episodes as well as unreviewed ones. |
-| `--only-rejected` | Review only current rejections. Do not combine with `--include-reviewed`. |
-| `--episodes EPISODE_ID_1 EPISODE_ID_2` | Select exact folder names under `collect_data/`; replace the example IDs. |
-| `--terminal-only` | Ask for decisions in the terminal without opening video. Inspect the videos separately first. |
-
-For decisions already made, batch updates are available:
+Replace `EPISODE_ID` with an actual folder name. Preview each operation separately:
 
 ```bash
 python3 scripts/review_episodes.py --project "datasets/$PROJECT" \
@@ -44,66 +44,47 @@ python3 scripts/review_episodes.py --project "datasets/$PROJECT" \
   --sync-review-status --include-reviewed --dry-run
 ```
 
-Replace `EPISODE_ID` with the actual episode folder name. `--set-status rejected`
-plans that review decision; other values are `accepted` and `unreviewed`.
-`--sync-review-status` copies existing raw decisions into matching HDF5 files
-without choosing a new decision. These modes are mutually exclusive.
-`--dry-run` checks the batch operation without writing; remove it to apply the
-same operation. It is only supported with one of these two batch modes.
-
-Check a home start, a prompt start of motion, a successful grasp, and a held scan
-pose at the end. The holding arm must meet FK position/orientation tolerances,
-both gripper commands must be closed, the other arm must be home, and joints
-must settle for at least 0.5 seconds. Missing local scan poses produce a warning;
-teach them before collecting real data. The driver reports placeholder velocities,
-so settling uses differences between joint observations.
+Inspect the proposed operation, then rerun that command without `--dry-run` to
+apply it. Do not combine `--set-status` with `--sync-review-status`. Use batch
+`--dry-run` only with one of those two modes.
 
 ## 2. Validate, then convert accepted episodes
 
-Keep using the terminal where you set `PROJECT`. First check the project,
-then run conversion if the check succeeds:
+Keep using the terminal where `PROJECT` is set. Validate first:
 
 ```bash
 python3 scripts/prepare_act_datasets.py --dataset-name "$PROJECT"
+```
+
+Resolve errors and inspect warnings. Then convert:
+
+```bash
 python3 scripts/prepare_act_datasets.py --dataset-name "$PROJECT" --convert
 ```
 
-| Argument | Meaning |
-| --- | --- |
-| `--dataset-name "$PROJECT"` | Select a name registered in `PREPARE_ACT_DATASETS["projects"]` in `scripts/scripts_config.py`. This is a name, not a folder path. |
-| `--convert` | Write the accepted episodes' HDF5 files, review videos, and conversion logs. Without this switch, the command validates and reports only. |
-| `--root datasets` | Optional: use another parent dataset directory. Keep the training configuration pointed at the same root. |
-| `--allow-rollouts` | Optional: include rollout sources only in explicitly named `rollout`/`rollouts` projects. Leave it off for demonstration collections. |
-
-Only accepted, complete, fresh schema-3 episodes enter new training files.
-Camera/observation frame identifiers must match. Output includes `train_data/`,
-`output_videos/`, and `conversion_logs/`. Originals remain untouched.
+Check `train_data/`, `output_videos/`, and `conversion_logs/` beneath the project.
+For conversion failures, inspect the printed log path. Do not overwrite existing
+conversions; follow the rebuild procedure below. Keep rollout inclusion disabled
+for demonstration collections.
 
 ## 3. Rebuild after decisions change
 
-Conversion refuses overwrites. Register `poly_mailer_v2` as another project of
-the same medium in `scripts/scripts_config.py`, then use a destination folder
-that does not exist yet:
+1. Register a new project such as `poly_mailer_v2` in
+   `PREPARE_ACT_DATASETS["projects"]` in `scripts/scripts_config.py`. Use the same
+   medium and compatible camera, rate, horizon, and any label-face settings.
+2. Choose a destination folder that does not exist.
+3. Rebuild accepted episodes from the source project:
 
 ```bash
 python3 scripts/prepare_act_datasets.py --dataset-name "$PROJECT" \
   --rebuild-to poly_mailer_v2 --convert
 ```
 
-`--dataset-name` selects the source collection. `--rebuild-to poly_mailer_v2`
-copies its accepted raw episodes into `datasets/poly_mailer_v2/` and converts
-them there. `--convert` is required with `--rebuild-to`. Choose a fresh registered
-name for each rebuild; the source recordings are preserved.
+4. Inspect the new conversions and videos.
+5. Select the new project for [ACT/DP training](../training/act_dp.md) or
+   [vendor ACT](../training/vendor_act.md). Create fresh downstream dataset,
+   split, configuration, and checkpoint outputs as needed.
 
-A rejection does not erase raw recordings or alter trained checkpoints. Existing
-Dobot training folders must be rebuilt before retraining because its loader reads
-all HDF5 files. Curation marks affected conversions stale; stale/incomplete
-folders are refused by training and downstream conversion.
-
-Only schema-3 `episode_metadata.json` recordings are supported. Other schemas,
-missing metadata, and the alternate `metadata.json` filename are rejected.
-Raw metadata must include a positive, finite `control_period_ms`; the tools do
-not guess a missing recording rate. Review also refuses converted files with
-missing or unsupported provenance.
-Record fresh demonstrations for each collection; the tools do not migrate
-unsupported recordings or modify archived datasets.
+Rebuild before retraining after rejecting converted episodes. Do not train from
+stale or incomplete folders. Record fresh schema-3 demonstrations rather than
+trying to migrate unsupported archived recordings.

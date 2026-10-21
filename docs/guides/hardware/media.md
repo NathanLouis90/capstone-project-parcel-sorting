@@ -1,38 +1,45 @@
-# Hardware and media
+# Prepare hardware and parcel media
 
-| Item | Dimensions | Candidate label faces | Purchase reference |
-| --- | --- | --- | --- |
-| Poly mailer, fixed bubble-wrap filling | 130 × 190 mm | Top, bottom | [Shopee](https://sg.shp.ee/KEAi1vGk) |
-| Carton, exterior | 150 × 75 × 45 mm | Top, bottom, front, rear | [Lazada](https://s.lazada.sg/s.6ELRP?c=d&t=p-i1DjcEO-s2CK0KWD) |
-| DL envelope | 110 × 220 mm | Top, bottom | [Lazada](https://s.lazada.sg/s.6ELkQ?c=d&t=p-i3XhIlx-sNuvvNZ) |
-| USB HID presentation scanner | See the purchased scanner listing | Not applicable | [Shopee](https://sg.shp.ee/M8FZszsv) |
-| Label stock | 100 × 150 mm | Cut an 80 × 40 mm layout for cartons | Not specified |
+Read the [hardware README](README.md#parcel-dimensions-and-label-faces) for
+specifications, face definitions, purchase references, and scan geometry.
 
-Carton front and rear are the long 150 × 45 mm faces, not the 75 × 45 mm ends.
-An end-on grasp aligns the wrist roll with the long axis, exposing the four
-candidate faces in 90° steps. Keep approximately 25 mm at each end clear for
-the fingertips. Apply the label centrally on its assigned face.
+## 1. Prepare the workspace
 
-Mailer and envelope labels use the full stock. Barcode dimensions remain
-0.25 mm per module and 20 mm bar height, approximately 52 mm wide for the
-configured destination tokens. Print PDFs at actual size without scaling.
+1. Complete the repository [device and environment setup](../../../README.md#software-setup).
+2. Mark the shared layout X/Y origin between the arm bases with the robot home,
+   and use the EVA board surface as Z = 0.
+3. Place the 700 × 700 mm board and fixtures at the centres in the
+   [workspace layout table](README.md#workspace-layout-and-coordinate-frame).
+   Check placement against the ±10 mm tolerance.
+4. Position the top camera over receiving and remove the intermediate platform.
+5. Keep one parcel in the receiving zone at a time.
+6. Prepare 130 × 190 mm mailers with fixed bubble-wrap filling, 110 × 220 mm DL
+   envelopes, and 150 × 75 × 45 mm cartons. Verify the actual items before
+   changing configured dimensions.
 
-From the repository root with `Xtrainer` activated, generate the two layouts:
+## 2. Generate and fit labels
+
+Prepare [one terminal](../../terminal_commands.md) with `Xtrainer` activated.
+Generate the two layouts:
 
 ```bash
 python3 barcode_scanning/make_labels.py --size 100x150
 python3 barcode_scanning/make_labels.py --size carton
 ```
 
-`--size 100x150` selects the full 100 × 150 mm envelope/mailer layout.
-`--size carton` selects the compact 80 × 40 mm carton layout. Both commands
-write PDFs for both destinations under `barcode_scanning/labels/`; they need no
-hardware. See [scanner and labels](barcodes.md#generate-printable-labels) for
-output-folder, combined-sheet, and crop-mark options. Example PDFs are in
-`barcode_scanning/label_examples/`. Purchase references come from the supplied reimplementation specification.
-Verify the physical items before updating dimensions.
+1. Find the PDFs under `barcode_scanning/labels/`.
+2. Print at actual size without scaling, on stock large enough for the PDF.
+3. Use the full layout for mailers/envelopes and cut the 80 × 40 mm carton layout.
+4. Apply each label centrally on its assigned face, clear of the fingertips.
+5. For cartons, use the long 150 × 45 mm sides as front and rear, and leave
+   approximately 25 mm at each end clear for grasping.
+6. Follow [scanner and label checks](barcodes.md#generate-printable-labels) for
+   custom output folders, combined sheets, crop marks, and physical reads.
 
-Move receiving beneath the top camera and remove the intermediate platform.
-Teach scan, bin, and receiving-return joint waypoints for each holding arm.
-Check stationary reads at every candidate face and cable slack throughout the
-carton's 270° sweep before enabling a live cycle.
+## 3. Check scan and drop geometry
+
+1. Teach [scan, bin, and receiving-return waypoints](waypoints.md) for both arms.
+2. Check stationary reads on every candidate face.
+3. Check wrist cable slack, grasp retention, and tool/parcel clearance through
+   the carton's complete 270° sweep before enabling a live cycle.
+4. Continue with [recording by medium](../recording/media.md).

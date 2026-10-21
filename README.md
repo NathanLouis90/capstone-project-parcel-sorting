@@ -30,9 +30,12 @@ Transformers (ACT) and Diffusion Policy (DP).
 
 ## Hardware and media
 
-See [hardware and media](docs/guides/hardware/media.md) for dimensions, label faces, purchase
+See [hardware reference](docs/guides/hardware/README.md#parcel-dimensions-and-label-faces) for dimensions, label faces, purchase
 references and scanner checks. Receiving is beneath the top camera. Keep one
 parcel in the receiving zone, with fixed bubble-wrap contents for poly mailers.
+Use the [measured workspace layout](docs/guides/hardware/README.md#workspace-layout-and-coordinate-frame)
+for the EVA board, bin, scanner, and receiving-area centres and the shared
+coordinate-frame definition.
 
 ## Software setup
 
@@ -100,10 +103,11 @@ cannot replace operator evaluation.
 
 ## Where to start
 
-[Documentation index](docs/README.md) groups the guides by workflow.
+[Documentation index](docs/README.md) pairs step-by-step guides with separate
+explanation READMEs for each workflow.
 
 1. [Teach waypoints](docs/guides/hardware/waypoints.md), then follow the
-   [recording protocol](docs/guides/recording/README.md) and
+   [recording protocol](docs/guides/recording/protocol.md) and
    [instructions by medium](docs/guides/recording/media.md).
 2. [Review and prepare data](docs/guides/datasets/preparation.md), then
    [train matched ACT/DP models](docs/guides/training/act_dp.md) or
@@ -115,8 +119,8 @@ cannot replace operator evaluation.
 Run Bash commands from this repository's root in the `Xtrainer` environment.
 Replace example paths. Variable assignments and commands using them belong in
 the same terminal. Python configuration changes belong in the named file.
-The [terminal command guide](docs/terminal_commands.md) explains this syntax
-and which programs belong in each terminal.
+Follow the [terminal preparation guide](docs/terminal_commands.md) for terminal
+roles; read the [terminal reference](docs/README.md#terminal-syntax) for syntax.
 
 ## Offline checks
 

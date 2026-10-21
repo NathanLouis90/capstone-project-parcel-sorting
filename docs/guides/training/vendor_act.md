@@ -1,44 +1,38 @@
-# Dobot ACT training
+# Train Dobot ACT
 
-Use this optional vendor route for `.ckpt` models. For the ACT/DP comparison,
-use [matched robomimic training](act_dp.md). The checkpoint formats
-are distinct; select the matching supervisor backend.
+Use [matched ACT/DP training](act_dp.md) for comparison experiments. Use this
+procedure for vendor `.ckpt` models. Read the [training README](README.md) for
+option meanings and checkpoint compatibility.
 
-Record and prepare a fresh per-medium project first. Run from the repository
-root in the Python 3.8 `Xtrainer` environment with CUDA available:
+## 1. Prepare the training input
+
+1. Review and [convert a fresh project](../datasets/preparation.md).
+2. Rebuild accepted-only conversions if review decisions changed after conversion.
+3. Stop recording. Prepare [one terminal](../../terminal_commands.md) with Python
+   3.8 `Xtrainer` activated, the full dependencies installed, and CUDA available.
+4. Choose the exact registered project, such as `poly_mailer_bottom`,
+   `envelope_top`, or `carton_front`. Keep custom projects registered for the
+   correct medium in `scripts/scripts_config.py`.
+5. Choose a fresh checkpoint directory for this run. No robot server is needed.
+
+## 2. Start training
 
 ```bash
 PYTHONPATH=. MPLBACKEND=Agg python3 ModelTrain/model_train.py \
-  --task_name poly_mailer --ckpt_dir ./ckpt/poly_mailer_vendor \
+  --task_name poly_mailer_bottom --ckpt_dir ./ckpt/poly_mailer_bottom_vendor \
   --batch_size 8 --num_steps 30000 --lr 2e-5 \
   --chunk_size 45 --kl_weight 10 --seed 0
 ```
 
-| Command part | Meaning |
-| --- | --- |
-| `PYTHONPATH=.` | Allow this command to import modules from the repository root. |
-| `MPLBACKEND=Agg` | Save plots without opening interactive plotting windows. |
-| `--task_name poly_mailer` | Select a registered training task and its prepared dataset. Use the exact project name from `scripts/scripts_config.py`. |
-| `--ckpt_dir ./ckpt/poly_mailer_vendor` | Save this run's checkpoints, configuration, statistics, and plots in this directory. Choose a fresh directory per run. |
-| `--batch_size 8` | Use eight training samples per batch; reduce this if GPU memory is insufficient. |
-| `--num_steps 30000` | Set the training step limit to 30,000. This is not an episode count. |
-| `--lr 2e-5` | Set the optimizer learning rate to `0.00002`. |
-| `--chunk_size 45` | Predict a sequence of 45 actions at each policy query. |
-| `--kl_weight 10` | Set the ACT latent-distribution regularization weight to 10. |
-| `--seed 0` | Set the random seed for this run. Keep seeds recorded when comparing results. |
+Replace the task and checkpoint directory together for another collection.
+Keep underscore option names, such as `--task_name`. Reduce `--batch_size` if
+GPU memory is insufficient. Set `--validate_every 100` or `--save_every 1000`
+when different validation/checkpoint intervals are needed, and record your seed.
 
-These option names use underscores, such as `--task_name`, rather than the
-hyphens used by most other repository tools. Optional `--validate_every 100`
-checks validation loss every 100 steps; `--save_every 1000` writes periodic
-checkpoints every 1,000 steps. Both values are step intervals. No robot server
-is needed. See [terminal setup](../../terminal_commands.md).
+## 3. Keep and evaluate the saved model
 
-Use `envelope` or `carton` for the other registered tasks. Keep `config.pkl`,
-`dataset_stats.pkl`, and `policy_best.ckpt` together. The saved task must remain registered for
-the requested medium, including when training a custom accepted-only project. Specify a fresh checkpoint directory for each run.
-
-The loader reads every HDF5 file in the training folder. Rebuild accepted-only
-files after rejecting an already-converted episode. Shared task settings in
-`scripts/scripts_config.py` determine camera names, episode horizon, and the
-training fraction. Stop the recorder before training. Physical evaluation uses
-[the cycle supervisor](../runtime/evaluation.md).
+Keep `config.pkl`, `dataset_stats.pkl`, and `policy_best.ckpt` together in the
+checkpoint directory. Keep its saved task registered for the requested medium.
+Follow [cycle evaluation](../runtime/evaluation.md) with `--backend vendor` and
+the checkpoint directory. Use the [ACT/DP workflow](act_dp.md#1-build-a-dataset-and-freeze-its-split)
+when selecting several prepared collections for matched training.

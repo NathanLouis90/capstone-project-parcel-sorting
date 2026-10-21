@@ -1,11 +1,9 @@
-# Scanner and labels
+# Check the scanner and print labels
 
-Run from the repository root with `Xtrainer` activated. These standalone checks
-need no robot server. See [terminal setup](../../terminal_commands.md).
-
-The scanner is a dedicated USB HID device. Check its identity before using
-exclusive capture; never substitute the normal keyboard. Configure a US keyboard
-layout and continuous/presentation scanning if the device supports it.
+Prepare [one terminal](../../terminal_commands.md) with `Xtrainer` activated.
+These standalone checks need no robot server. Read the
+[hardware README](README.md#scanner-and-destination-mapping) for token mapping,
+scanner behavior, and command options.
 
 ## Test the barcode mapping without a scanner
 
@@ -13,76 +11,61 @@ layout and continuous/presentation scanning if the device supports it.
 python3 barcode_scanning/scanner_reader.py --simulate DEST-A-S138683
 ```
 
-`--simulate` feeds the following token as text, without opening an input device.
-This example prints a mapped bin-0 result and exits with status 0. An unknown
-token produces no destination and exit status 2. This does not verify a physical
-label or scanner. `--help` prints all scanner options and exits.
-
-| Token | Destination |
-| --- | --- |
-| `DEST-A-S138683` | Bin 0, Dover |
-| `DEST-B-S828608` | Bin 1, Punggol |
+Check that a mapped bin-0 result prints and the command exits with status 0.
+Use `DEST-B-S828608` to check bin 1. An unknown token should produce no destination
+and exit status 2. Test the physical scanner separately below.
 
 ## Check the physical scanner
 
+1. List connected input devices:
+
 ```bash
 python3 barcode_scanning/scanner_reader.py --list-devices
+```
+
+2. Identify the dedicated scanner. Check its name/vendor/product in
+   `SCANNER_READER` in `barcode_scanning/barcode_scanning_config.py`.
+   **Never select the normal keyboard for exclusive capture.**
+3. Configure a US keyboard layout and continuous/presentation scanning if the
+   device supports it.
+4. Stop other scanner readers, then run:
+
+```bash
 python3 barcode_scanning/scanner_reader.py --once --window 10
 ```
 
-Run the first command to identify devices, then check the scanner identity in
-`SCANNER_READER` in `barcode_scanning/barcode_scanning_config.py` before capture.
-
-| Argument | Meaning |
-| --- | --- |
-| `--list-devices` | Print input device paths and identities without starting exclusive capture. |
-| `--once` | Capture one valid mapped barcode, then exit. |
-| `--window 10` | Allow up to 10 seconds for the one-shot read. This value is in seconds. |
-| `--device /dev/input/eventN` | Optional: replace `eventN` with the actual scanner path from the listing. Configured name/vendor/product must still match. |
-| `--debug` | Optional: print scanner key events and decoded characters while troubleshooting. |
-| `--continuous` | Optional: keep reading until stopped with `Ctrl+C`; this is also the default when `--once` is omitted. |
-
-Capture grabs the scanner exclusively. Stop this reader before starting the
-cycle supervisor; only one process should own the scanner at a time.
+5. Present a mapped label within the 10-second window. Check the decoded token
+   and destination. If needed, use `--device /dev/input/eventN` with the actual
+   scanner path; keep its configured identity checks intact.
+6. Add `--debug` when investigating key-event decoding. Use `--continuous` for
+   repeated reads and Ctrl+C to stop that reader.
+7. Verify each face reads while the parcel is held still at its taught scan pose.
+   For cartons, check all four faces with paused 90° wrist steps and adequate
+   cable slack.
+8. Stop this standalone reader before starting the cycle supervisor.
 
 ## Generate printable labels
+
+Generate the full and compact layouts:
 
 ```bash
 python3 barcode_scanning/make_labels.py --size 100x150
 python3 barcode_scanning/make_labels.py --size carton
 ```
 
-| Argument | Meaning |
-| --- | --- |
-| `--size 100x150` | Generate full 100 × 150 mm layouts for envelopes and poly mailers. |
-| `--size carton` | Select the preset for compact 80 × 40 mm carton-face layouts. |
-| `--outdir barcode_scanning/labels` | Optional output folder; this is the default. Each run writes labels for both destinations. |
-| `--combined` | Optional: also create one PDF with both destination labels side by side. |
-| `--no-crop-marks` | Optional: omit the cutting guides from the PDFs. |
-
-To choose a separate output folder and include the combined sheet:
+To use a separate output folder and add a combined sheet, run:
 
 ```bash
 python3 barcode_scanning/make_labels.py --size carton \
   --outdir /tmp/carton-labels --combined
 ```
 
-This writes the compact labels and combined sheet to `/tmp/carton-labels/`.
-Output names include
-`label_carton_DEST-A-S138683.pdf`, `label_carton_DEST-B-S828608.pdf`, and, with
-`--combined`, `labels_carton_combined.pdf`. Barcode PNGs are also generated.
-Rerunning with the same size and output folder replaces those generated files.
-
-Print at actual size without scaling. Use a page or label stock large enough
-for the chosen PDF, especially combined sheets. See [hardware](media.md) for
-face definitions and dimensions.
-
-Only the cycle supervisor owns the scanner during runtime. Recording does not
-open it. Each scan window is armed for a fresh cycle after handoff; stale,
-unknown, partial and unmapped input cannot choose a bin. Stop at the first
-accepted read. Scanner/device failures are faults; an exhausted valid sweep
-without a token is a no-read and follows the taught receiving-return path.
-
-Before live operation, confirm each face reads while held still at the scan
-pose. Check all four carton faces with paused 90° wrist steps and sufficient
-cable slack. A failed read never changes a policy observation.
+1. Inspect the PDFs and barcode PNGs in the selected folder. Expect
+   `label_carton_DEST-A-S138683.pdf`, `label_carton_DEST-B-S828608.pdf`, and
+   `labels_carton_combined.pdf` for the combined carton example.
+2. Choose a different folder if you need to retain earlier generated files;
+   rerunning the same size in the same folder replaces them.
+3. Add `--no-crop-marks` only if you do not need cutting guides.
+4. Print at actual size without scaling. Use stock large enough for the PDF,
+   especially for combined sheets.
+5. Fit labels using the [parcel preparation steps](media.md).
