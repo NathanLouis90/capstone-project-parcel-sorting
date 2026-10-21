@@ -112,11 +112,14 @@ def signature(episode):
             if {p.stem for p in (episode / folder).glob('*.jpg')} != ids:
                 raise ValueError('camera set/frame identifiers mismatch: {}'.format(episode))
     rate = recording_period_ms(m)
-    return dict(medium=m['medium'], schema_version=m['schema_version'],
+    return dict(medium=m['medium'], label_face=m['label_face'], schema_version=m['schema_version'],
                 camera_names=sorted(cameras), control_period_ms=rate, frames=len(ids))
 
 
 def compatible(actual, expected, episode):
+    if expected.get('label_face') is not None and actual['label_face'] != expected['label_face']:
+        raise ValueError('label_face mismatch for {}: recorded {!r}, expected {!r}'.format(
+            episode, actual['label_face'], expected['label_face']))
     for key in ('schema_version', 'medium', 'camera_names', 'control_period_ms'):
         wanted = expected.get(key, CONTROL['control_period_ms'] if key == 'control_period_ms' else None)
         if key == 'camera_names':

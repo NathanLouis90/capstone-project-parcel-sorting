@@ -182,13 +182,18 @@ def convert(projects, recipe_name, output, split_path, allow_rollouts=False):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--recipe', required=True, choices=sorted(ROBOMIMIC['recipes']))
-    parser.add_argument('--projects', nargs='+', type=Path, help='Project folders, each containing train_data')
+    parser.add_argument('--projects', nargs='+', type=Path,
+                        help='Use only these project folders, each containing train_data; '
+                             'default: existing registered projects for the recipe medium')
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--split-file', required=True, type=Path)
     parser.add_argument('--allow-rollouts', action='store_true')
     args = parser.parse_args(argv)
-    projects = args.projects or [Path(PREPARE_ACT_DATASETS['root_dir']) / name
-                                for name in PREPARE_ACT_DATASETS['projects']]
+    projects = args.projects if args.projects is not None else [
+        Path(PREPARE_ACT_DATASETS['root_dir']) / name
+        for name, project in PREPARE_ACT_DATASETS['projects'].items()
+        if project['medium'] == ROBOMIMIC['recipes'][args.recipe]['medium']
+        and (Path(PREPARE_ACT_DATASETS['root_dir']) / name / 'train_data').is_dir()]
     for project in projects:
         if not (project / 'train_data').is_dir():
             parser.error('Missing train_data: {}'.format(project))

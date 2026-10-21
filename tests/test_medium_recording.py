@@ -1,9 +1,51 @@
 import json
+from pathlib import Path
 import h5py
 import pytest
 from barcode_scanning.recording import RecordingSession
 from barcode_scanning.dataset_metadata import read_episode_metadata, write_hdf5_metadata
 from barcode_scanning.barcode_scanning_config import RECORDING
+from experiments.experiments_config import MEDIA
+
+
+@pytest.mark.parametrize('medium,face', [
+    (medium, face) for medium, settings in MEDIA.items() for face in settings['label_faces']
+])
+def test_recorder_uses_registered_medium_face_project(tmp_path, monkeypatch, medium, face):
+    from experiments import run_control
+    from scripts.scripts_config import PREPARE_ACT_DATASETS
+    from ModelTrain.constants import TASK_CONFIGS
+
+    captured = []
+    monkeypatch.setattr(run_control, '_run_control', lambda args, session: captured.append(
+        (args.project_name, session.medium, session.label_face)))
+    args = run_control.Args(medium=medium, label_face=face, save_data_path=str(tmp_path))
+    run_control.main(args)
+    name = '{}_{}'.format(medium, face)
+    assert captured == [(name, medium, face)]
+    assert not list(tmp_path.iterdir())
+    assert PREPARE_ACT_DATASETS['projects'][name]['medium'] == medium
+    assert PREPARE_ACT_DATASETS['projects'][name]['label_face'] == face
+    task = TASK_CONFIGS[name]
+    assert task['medium'] == medium
+    assert task['dataset_dir'] == str(
+        Path(PREPARE_ACT_DATASETS['root_dir']) / name / 'train_data')
+
+
+@pytest.mark.parametrize('override', [None, 'poly_mailer_session2'])
+def test_recorder_dry_run_path_and_custom_project(tmp_path, override):
+    from experiments import run_control
+
+    args = run_control.Args(medium='poly_mailer', label_face='bottom',
+                            save_data_path=str(tmp_path), project_name=override, dry_run=True)
+    run_control.main(args)
+    project = override or 'poly_mailer_bottom'
+    assert [path.name for path in tmp_path.iterdir()] == [project]
+    episodes = list((tmp_path / project / 'collect_data').iterdir())
+    assert len(episodes) == 1
+    metadata = read_episode_metadata(episodes[0])
+    assert metadata['medium'] == 'poly_mailer'
+    assert metadata['label_face'] == 'bottom'
 
 
 def test_new_metadata_has_no_scanner_input(tmp_path):

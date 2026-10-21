@@ -1,4 +1,4 @@
-"""Dobot training tasks share the per-medium dataset registry."""
+"""Dobot training tasks share the medium and label-face dataset registry."""
 from pathlib import Path
 from scripts.scripts_config import PREPARE_ACT_DATASETS
 

@@ -69,6 +69,44 @@ def test_rejected_incomplete_episode_skipped(tmp_path, monkeypatch):
     assert prepare.main(['--root', str(tmp_path), '--convert']) == 0
 
 
+@pytest.mark.parametrize('face', ['top', 'bottom'])
+def test_prepare_face_project_checks_metadata(tmp_path, monkeypatch, face):
+    episode = raw_episode(tmp_path, '01', 'accepted')
+    destination = tmp_path / 'poly_mailer_bottom'
+    episode.parent.parent.rename(destination)
+    path = destination / 'collect_data' / '01' / RECORDING['metadata_filename']
+    metadata = json.loads(path.read_text())
+    metadata['label_face'] = face
+    path.write_text(json.dumps(metadata))
+    calls = []
+    monkeypatch.setattr(prepare.subprocess, 'run', lambda command, **kwargs: (
+        calls.append(command) or SimpleNamespace(returncode=0)))
+    command = ['--root', str(tmp_path), '--dataset-name', 'poly_mailer_bottom', '--convert']
+    if face == 'top':
+        with pytest.raises(SystemExit):
+            prepare.main(command)
+        assert not calls
+    else:
+        assert prepare.main(command) == 0
+        assert len(calls) == 1
+        assert calls[0][calls[0].index('--dataset_name') + 1] == 'poly_mailer_bottom'
+
+
+def test_direct_converter_refuses_wrong_face_before_writing(tmp_path):
+    from click.testing import CliRunner
+    from scripts import script_collect2train as converter
+
+    episode = raw_episode(tmp_path, '01', 'accepted')
+    destination = tmp_path / 'poly_mailer_top'
+    episode.parent.parent.rename(destination)
+    result = CliRunner().invoke(converter.main, ['--root_dir', str(tmp_path),
+                               '--dataset_name', 'poly_mailer_top', '--date_collect', '01', '--idx', '0'])
+    assert isinstance(result.exception, ValueError)
+    assert 'label_face mismatch' in str(result.exception)
+    assert not (destination / 'train_data').exists()
+    assert not (destination / 'output_videos').exists()
+
+
 @pytest.mark.parametrize('metadata_present', [False, True])
 def test_direct_converter_rejects_missing_or_unsupported_metadata(tmp_path, monkeypatch, metadata_present):
     from click.testing import CliRunner

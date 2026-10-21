@@ -99,6 +99,9 @@ def main(argv=None):
                 parser.error('{}: {}'.format(episode, error))
             if report['medium'] != project['medium']:
                 parser.error('Require fresh pick-to-scan recordings of the registered medium: {}'.format(episode))
+            if project.get('label_face') is not None and report['label_face'] != project['label_face']:
+                parser.error('label_face mismatch for {}: recorded {!r}, expected {!r}'.format(
+                    episode, report['label_face'], project['label_face']))
             if report['frames'] > project['episode_len']:
                 parser.error('{} exceeds the configured {}-step episode length'.format(
                     episode, project['episode_len']))

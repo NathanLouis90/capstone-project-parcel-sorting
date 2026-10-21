@@ -8,6 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from barcode_scanning.dataset_metadata import read_episode_metadata, write_hdf5_metadata
 from scripts.dataset_integrity import require_fresh, require_rollout_opt_in
+from scripts.scripts_config import PREPARE_ACT_DATASETS
 
 import time
 import h5py
@@ -104,6 +105,11 @@ def main(root_dir, dataset_name, date_collect, idx, allow_rollouts=False):
     if Path(date_collect).name != date_collect or date_collect in ('.', '..'):
         raise ValueError('Use an episode folder name, not a path')
     episode_metadata = read_episode_metadata(project / 'collect_data' / date_collect)
+    settings = PREPARE_ACT_DATASETS['projects'].get(dataset_name, {})
+    for key in ('medium', 'label_face'):
+        if settings.get(key) is not None and episode_metadata[key] != settings[key]:
+            raise ValueError('{} mismatch for {}: recorded {!r}, expected {!r}'.format(
+                key, project, episode_metadata[key], settings[key]))
     require_rollout_opt_in(episode_metadata, project, allow_rollouts)
     if episode_metadata.get('review_status') != 'accepted':
         raise ValueError('Conversion requires accepted review status')

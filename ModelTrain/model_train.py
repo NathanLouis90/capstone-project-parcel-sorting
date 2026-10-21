@@ -7,7 +7,7 @@ from scripts.dataset_integrity import require_training_folders
 def arg_config():
     parser = argparse.ArgumentParser()
     parser.add_argument('--ckpt_dir', action='store', type=str, help='ckpt_dir', required=True)
-    parser.add_argument('--task_name', action='store', type=str, help='Registered medium task', required=True)
+    parser.add_argument('--task_name', action='store', type=str, help='Registered dataset project, e.g. poly_mailer_bottom', required=True)
     parser.add_argument('--batch_size', action='store', type=int, help='batch_size', default=16, required=False)
     parser.add_argument('--seed', action='store', type=int, help='seed', default=0,required=False)
     parser.add_argument('--num_steps', action='store', type=int, help='num_steps', default=30000, required=False)

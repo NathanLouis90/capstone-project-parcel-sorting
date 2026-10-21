@@ -19,6 +19,21 @@ def config(medium='poly_mailer', length=400):
                 episode_len=length, camera_names=list(curate.CAMERAS), control_period_ms=40)
 
 
+def test_transfer_respects_face_project_constraints(tmp_path):
+    source = episode(tmp_path, 'poly_mailer_bottom', '1')
+    registry = {
+        'poly_mailer_bottom': dict(config(), label_face='bottom'),
+        'poly_mailer_top': dict(config(), label_face='top'),
+        'poly_mailer': config(),
+    }
+    with pytest.raises(ValueError, match='label_face mismatch'):
+        curate.add_transfer(curate.Plan('copy'), [source], tmp_path / 'poly_mailer_top', registry, copy=True)
+    plan = curate.Plan('copy')
+    curate.add_transfer(plan, [source], tmp_path / 'poly_mailer', registry, copy=True)
+    assert len(plan.operations) == 1
+    assert source.exists()
+
+
 def episode(root, project, identifier, status='accepted', medium='poly_mailer',
             frames=1, period=40, source=None, started=None):
     path = root / project / 'collect_data' / identifier

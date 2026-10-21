@@ -28,6 +28,7 @@ class Args:
     hostname: str = RUN_CONTROL["hostname"]
     show_img: bool = RUN_CONTROL["show_img"]
     save_data_path: str = RUN_CONTROL["save_data_path"]
+    # Override the default <medium>_<label_face> collection name.
     project_name: Optional[str] = RUN_CONTROL["project_name"]
     dry_run: bool = False
 
@@ -453,8 +454,9 @@ def _run_control(args, recording_session=None):
 
 
 def main(args):
-    args.project_name = args.project_name or args.medium
+    args.project_name = args.project_name or '{}_{}'.format(args.medium, args.label_face)
     session = RecordingSession(args.medium, args.label_face)
+    print('Recording project: {}'.format(args.project_name))
     if args.dry_run:
         episode = Path(args.save_data_path) / args.project_name / 'collect_data' / ('dry_' + datetime.datetime.now().strftime('%Y%m%d%H%M%S%f'))
         session.start(episode)

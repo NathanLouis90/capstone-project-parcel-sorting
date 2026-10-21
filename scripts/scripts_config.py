@@ -8,7 +8,7 @@ Protocol constants, array indices, and mathematical constants remain in code.
 """
 
 from pathlib import Path
-from experiments.experiments_config import CONTROL
+from experiments.experiments_config import CONTROL, MEDIA
 
 # All dataset defaults are rooted inside this repository.
 DATASETS_DIR = Path(__file__).resolve().parent.parent / "datasets"
@@ -23,6 +23,8 @@ COUNT_EPISODES = {
 # training use the same paths, episode lengths, split, and camera inputs.
 # For another recording project, add an entry with its folder name as the key.
 # Each project contains fresh pick-to-scan demonstrations for one medium.
+# Medium-only entries remain available for existing collections. New recordings
+# default to the medium and label face; those projects are registered below.
 PREPARE_ACT_DATASETS = {
     "root_dir": str(DATASETS_DIR),
     "home_tolerance_rad": 0.12,
@@ -36,6 +38,12 @@ PREPARE_ACT_DATASETS = {
         for medium in ("envelope", "poly_mailer", "carton")
     },
 }
+PREPARE_ACT_DATASETS["projects"].update({
+    "{}_{}".format(medium, face): dict(
+        PREPARE_ACT_DATASETS["projects"][medium], label_face=face)
+    for medium, settings in MEDIA.items()
+    for face in settings["label_faces"]
+})
 
 # 1_find_port.py
 SCRIPT_1_FIND_PORT = {
