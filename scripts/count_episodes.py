@@ -60,13 +60,15 @@ def main(argv=None):
         print('No projects with collect_data folders found.')
         return 0
     width = max(len('Project'), max(len(path.name) for path in projects))
-    row = '{:<{width}}  {:<5}  {:>5}  {:>8}  {:>10}  {:>7}'
+    summaries = [(project, *count_project(project / 'collect_data')) for project in projects]
+    medium_width = max(len('Medium'), max(len(medium) for _, medium, _ in summaries))
+    row = '{:<{width}} | {:<{medium_width}} | {:>5} | {:>8} | {:>10} | {:>7}'
     print(row.format('Project', 'Medium', 'Total', 'Complete', 'Incomplete',
-                     'Unknown', width=width))
-    for project in projects:
-        medium, counts = count_project(project / 'collect_data')
+                     'Unknown', width=width, medium_width=medium_width))
+    for project, medium, counts in summaries:
         print(row.format(project.name, medium, counts['total'], counts['complete'],
-                         counts['incomplete'], counts['unknown'], width=width))
+                         counts['incomplete'], counts['unknown'], width=width,
+                         medium_width=medium_width))
         if args.details:
             for episode in sorted((project / 'collect_data').iterdir()):
                 if not episode.is_dir() or episode.name.startswith('.'):
