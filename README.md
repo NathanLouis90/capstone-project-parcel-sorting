@@ -122,23 +122,25 @@ the same terminal. Python configuration changes belong in the named file.
 Follow the [terminal preparation guide](docs/terminal_commands.md) for terminal
 roles; read the [terminal reference](docs/README.md#terminal-syntax) for syntax.
 
-## Offline checks
+## Robot checks
 
-See the [tests README](tests/README.md) for setup, focused commands, and each
-test module's purpose.
+Follow the [robot check instructions](tests/README.md) to start the server in
+Terminal 1 and run a live check in Terminal 2. With `--live`, the waypoint check
+moves the arm to the selected taught pose after you type `MOVE`. The wrist check
+rotates from the taught scan pose; the full cycle performs pickup, scanning,
+and bin placement. To preview the scripts without hardware:
 
 ```bash
-PYTHONPATH=.:robomimic-r2d2 python3 -m pytest tests/ -q
-python3 experiments/scripted_motion.py --dry-run
-python3 experiments/run_cycle.py --medium poly_mailer --dry-run \
+python3 tests/check_waypoint.py --dry-run --name drop_bin0_left
+python3 tests/check_wrist_rotation.py --dry-run --fake-read-at 180
+python3 tests/check_full_cycle.py --medium poly_mailer --dry-run \
   --fake-token DEST-A-S138683 --csv /tmp/parcel-cycle.csv
 ```
 
 | Command part | Meaning and result |
 | --- | --- |
-| `PYTHONPATH=.:robomimic-r2d2` | Make this checkout and bundled robomimic importable for the test command. |
-| `-m pytest tests/ -q` | Run the repository's tests in `tests/`; `-q` reduces output to a concise test result. |
-| `scripted_motion.py --dry-run` | Exercise the validated motion loop in simulation without opening hardware. |
+| `check_waypoint.py --dry-run --name drop_bin0_left` | Check the configured route to the left bin-0 pose in simulation. |
+| `check_wrist_rotation.py --dry-run --fake-read-at 180` | Check all four wrist positions with a simulated read at 180 degrees. |
 | `--medium poly_mailer --dry-run` | Simulate one poly mailer cycle instead of using the robot. |
 | `--fake-token DEST-A-S138683` | Supply a simulated valid barcode for bin 0, Dover. |
 | `--csv /tmp/parcel-cycle.csv` | Append the simulated cycle result to this CSV file. |

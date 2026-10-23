@@ -316,7 +316,7 @@ reaching the controller. Collision detection and emergency stops are not bypasse
 
 ### Verification scope
 
-`python3 -m unittest discover -s tests -p test_robot_home.py -v` runs the Python
-unit-test module, searches `tests/`, limits the filename, and prints each result.
-The tests use simulated controllers and open no robot connection. They verify
-software responses, not installation clearance or physical motion safety.
+Use `python3 experiments/robot_home.py --arm right --inspect-pose` to inspect
+the current right-arm pose without moving. The [practical robot checks](../../../tests/README.md)
+provide separate wrist, waypoint, and full-cycle checks. Software checks do not
+establish installation clearance or physical motion safety.

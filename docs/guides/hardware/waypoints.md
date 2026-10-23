@@ -128,6 +128,11 @@ Terminal 1 is running and that its host/port match `LAUNCH_NODES`.
 8. Set `commissioned: true` only after those checks. Recheck it after every save;
    waypoint capture resets it to false.
 
+Use the [stepped waypoint and four-position wrist checks](../../../tests/README.md)
+while `commissioned: false`. They can validate a partial taught file, require
+explicit current jaw settings, and pause before each live move. Full cycles
+continue to require all taught poses and `commissioned: true`.
+
 Do not treat joint-increment and jaw-command checks as proof of parcel clearance
 or grasp retention. Follow [live cycle prerequisites](../runtime/evaluation.md#prerequisites)
 before operation.

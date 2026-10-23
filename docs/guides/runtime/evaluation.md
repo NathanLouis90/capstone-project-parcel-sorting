@@ -66,6 +66,8 @@ python3 experiments/launch_nodes.py
 ```
 
 Leave this process running. Keep standalone scanner readers stopped.
+The cycle supervisor opens its own barcode reader; do not start a second reader
+during evaluation. A policy prediction check alone does not test barcode scanning.
 
 ## Terminal 2: run one live parcel cycle
 

@@ -5,7 +5,7 @@ from experiments.experiments_config import LAUNCH_NODES, RUN_INFERENCE
 
 
 class LiveRuntime:
-    def __init__(self):
+    def __init__(self, with_cameras=True):
         self.controllers=[]; self.cameras=[]; self.threads=[]; self.frames={}
         self.running=threading.Event(); self.running.set()
         self.lock=threading.Lock(); self.error=None; self.robot=None
@@ -22,6 +22,8 @@ class LiveRuntime:
             self.robot._socket.setsockopt(zmq.SNDTIMEO,1000)
             self.env=RobotEnv(self.robot)
             self.health()
+            if not with_cameras:
+                return
             from dobot_control.cameras.realsense_camera import RealSenseCamera
             from scripts.manipulate_utils import load_ini_data_camera
             ids=load_ini_data_camera()

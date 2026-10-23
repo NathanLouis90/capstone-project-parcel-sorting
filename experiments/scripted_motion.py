@@ -37,13 +37,16 @@ class SimulatedEnv:
 
 class MotionLoop:
     def __init__(self, env, waypoints, config=SUPERVISOR, clock=time.monotonic,
-                 sleep=time.sleep, stop=None, health=None):
+                 sleep=time.sleep, stop=None, health=None, grippers=(1, 1)):
         self.env, self.waypoints, self.config = env, waypoints, config
         self.clock, self.sleep = clock, sleep
         self.stop_callback = stop or getattr(env, 'stop', lambda: None)
         self.health = health or (lambda: None)
         self.last_action = np.asarray(env.get_obs()['joint_positions']).copy()
-        self.last_action[[6, 13]] = 1
+        grippers = np.asarray(grippers, dtype=float)
+        if grippers.shape != (2,) or not np.isfinite(grippers).all() or np.any((grippers < 0) | (grippers > 1)):
+            raise ValueError('Provide two finite gripper commands in 0..1')
+        self.last_action[[6, 13]] = grippers
         self.halted, self.overruns = False, 0
 
     def observe(self):
@@ -138,13 +141,17 @@ class MotionLoop:
         self.move(target)
 
 
-def load_waypoints(path, live=False):
+def load_waypoints(path, live=False, required_poses=None):
     value = yaml.safe_load(Path(path).read_text())
+    if not isinstance(value, dict): raise ValueError('Waypoint file must contain a mapping')
     if value.get('units') != 'radians': raise ValueError('Waypoint units must be radians')
+    if live and value.get('simulation_only'):
+        raise ValueError('Simulation waypoints cannot be used on hardware')
     if live and value.get('commissioned') is not True:
         raise ValueError('Teach and commission all paths before live operation')
     poses = value.get('poses', {})
-    required = ['{}_{}'.format(name, arm) for arm in ('left', 'right')
+    required = required_poses if required_poses is not None else [
+                '{}_{}'.format(name, arm) for arm in ('left', 'right')
                 for name in ('scan', 'drop_bin0', 'drop_bin1', 'drop_receiving')]
     for name in required:
         pose = np.asarray(poses.get(name), dtype=float)
@@ -179,7 +186,7 @@ def simulation_waypoints():
         for i, name in enumerate(('scan', 'drop_bin0', 'drop_bin1', 'drop_receiving')):
             target = home[offset:offset + 6].copy(); target[0] += .08 * (i + 1)
             poses[name + '_' + arm] = target.tolist()
-    return dict(units='radians', commissioned=False, poses=poses, routes={},
+    return dict(units='radians', commissioned=False, simulation_only=True, poses=poses, routes={},
                 joint_limits_rad=[[-2*np.pi, 2*np.pi] for _ in range(12)])
 
 

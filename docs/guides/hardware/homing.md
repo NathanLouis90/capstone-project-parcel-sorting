@@ -120,11 +120,12 @@ bypass emergency stops. Grippers are not commanded by the home script.
 
 ## Verification
 
-Run the hardware-free tests:
+Inspect the current pose without moving:
 
 ```bash
-python3 -m unittest discover -s tests -p test_robot_home.py -v
+python3 experiments/robot_home.py --arm right --inspect-pose
 ```
 
-Confirm the tests pass. Verify actual movement and clearance on the installation
-before relying on a path; simulated controller tests do not establish clearance.
+Use the [practical robot checks](../../../tests/README.md) to inspect taught
+waypoints separately. Verify actual movement and clearance on the installation
+before relying on a path; neither pose inspection nor simulation establishes clearance.
