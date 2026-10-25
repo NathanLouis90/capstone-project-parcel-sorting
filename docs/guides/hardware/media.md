@@ -11,7 +11,10 @@ specifications, face definitions, purchase references, and scan geometry.
 3. Place the 700 × 700 mm board and fixtures at the centres in the
    [workspace layout table](README.md#workspace-layout-and-coordinate-frame).
    Check placement against the ±10 mm tolerance.
-4. Position the top camera over receiving and remove the intermediate platform.
+4. Position the top camera over receiving. For mailer demonstrations, install
+   the elevated flip platform at a fixed, measured position and height, visible
+   to the cameras. Verify both arms' platform clearance; keep the platform clear
+   of envelope and carton paths when it is not used.
 5. Keep one parcel in the receiving zone at a time.
 6. Prepare 130 × 190 mm mailers with fixed bubble-wrap filling, 110 × 220 mm DL
    envelopes, and 150 × 75 × 45 mm cartons. Verify the actual items before

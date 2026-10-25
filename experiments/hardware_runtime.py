@@ -6,20 +6,24 @@ from experiments.experiments_config import LAUNCH_NODES, RUN_INFERENCE
 
 class LiveRuntime:
     def __init__(self, with_cameras=True):
-        self.controllers=[]; self.cameras=[]; self.threads=[]; self.frames={}
+        self.cameras=[]; self.threads=[]; self.frames={}
         self.running=threading.Event(); self.running.set()
-        self.lock=threading.Lock(); self.error=None; self.robot=None
+        self.lock=threading.Lock(); self.error=None; self.robot=None; self.stop_robot=None
         try:
-            from experiments.robot_home import Channel
-            # Emergency stops use dashboard sockets independent of the ZMQ stream.
-            for ip in (LAUNCH_NODES['left_robot_ip'],LAUNCH_NODES['right_robot_ip']):
-                self.controllers.append(Channel(ip,29999))
             from dobot_control.env import RobotEnv
             from dobot_control.robots.robot_node import ZMQClientRobot
             import zmq
             self.robot=ZMQClientRobot(port=LAUNCH_NODES['robot_port'],host=LAUNCH_NODES['hostname'])
             self.robot._socket.setsockopt(zmq.RCVTIMEO,1000)
             self.robot._socket.setsockopt(zmq.SNDTIMEO,1000)
+            capabilities=self.robot.get_observations().get('server_capabilities', [])
+            if not {'get_controller_status', 'emergency_stop'}.issubset(capabilities):
+                raise RuntimeError('Restart experiments/launch_nodes.py to load controller status/stop support')
+            # Dashboard port 29999 accepts one client. The launcher owns it.
+            # Keep a separate ZMQ request socket for stops after a main-socket timeout.
+            self.stop_robot=ZMQClientRobot(port=LAUNCH_NODES['robot_port'],host=LAUNCH_NODES['hostname'])
+            self.stop_robot._socket.setsockopt(zmq.RCVTIMEO,1000)
+            self.stop_robot._socket.setsockopt(zmq.SNDTIMEO,1000)
             self.env=RobotEnv(self.robot)
             self.health()
             if not with_cameras:
@@ -52,10 +56,13 @@ class LiveRuntime:
 
     def health(self):
         if self.error: raise RuntimeError('Camera failure: '+self.error)
-        from experiments.robot_home import status, require_no_alarms
-        for dashboard in self.controllers:
-            mode,alarms=status(dashboard); require_no_alarms(alarms)
-            if mode not in (5,7,8): raise RuntimeError('Controller not enabled for servo commands: {}'.format(mode))
+        from experiments.robot_home import require_no_alarms
+        states=self.robot.get_controller_status()
+        for arm in ('left', 'right'):
+            mode,alarms=states[arm]['mode'],states[arm]['alarms']
+            require_no_alarms(alarms)
+            if mode not in (5,7,8):
+                raise RuntimeError('{} controller not enabled for servo commands: {}'.format(arm,mode))
 
     def images(self):
         self.health()
@@ -65,11 +72,7 @@ class LiveRuntime:
             return {name:image.copy() for name,(image,_) in self.frames.items()}
 
     def stop(self):
-        errors=[]
-        for dashboard in self.controllers:
-            try: dashboard.command('EmergencyStop()')
-            except Exception as error: errors.append(str(error))
-        if errors: raise RuntimeError('Stop acknowledgement failed: '+'; '.join(errors))
+        self.stop_robot.emergency_stop()
 
     def close(self):
         self.running.clear()
@@ -77,6 +80,6 @@ class LiveRuntime:
             try: camera._pipeline.stop()
             except Exception: pass
         for thread in self.threads: thread.join(timeout=1)
-        for dashboard in self.controllers: dashboard.close()
-        if self.robot is not None:
-            self.robot._socket.close(linger=0); self.robot._context.term()
+        for robot in (self.robot, self.stop_robot):
+            if robot is not None:
+                robot._socket.close(linger=0); robot._context.term()

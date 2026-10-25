@@ -133,6 +133,16 @@ while `commissioned: false`. They can validate a partial taught file, require
 explicit current jaw settings, and pause before each live move. Full cycles
 continue to require all taught poses and `commissioned: true`.
 
+Set joint speed, both gripper positions, an optional report, and the waypoint
+file in [tests/waypoint_config.py](../../../tests/waypoint_config.py). Restart
+after editing. Start `python3 tests/check_waypoint.py` for a persistent numbered
+menu that controls the real robot. No command-line arguments are needed.
+Choose a waypoint number or name, confirm with `MOVE`, and return to the menu after arrival.
+Missing poses are listed as `unrecorded`. The menu includes configured home
+targets for each arm. Return the active arm home before choosing the other arm;
+the checker verifies the idle arm's measured home joints before every command.
+Type `q` at a menu or confirmation prompt to quit without automatic homing.
+
 Do not treat joint-increment and jaw-command checks as proof of parcel clearance
 or grasp retention. Follow [live cycle prerequisites](../runtime/evaluation.md#prerequisites)
 before operation.

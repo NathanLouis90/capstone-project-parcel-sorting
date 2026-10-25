@@ -2,11 +2,14 @@
 
 Receiving supplies one parcel with arbitrary position and yaw. Manual medium
 selection chooses one pick-to-scan policy: envelope (both arms, right holds),
-poly mailer (left holds), or carton (left holds). ACT and DP share the policy-step
+poly mailer (both arms, right holds), or carton (left holds). ACT and DP share the policy-step
 contract: `reset()`, then `step({qpos, images}) -> 14 joint/gripper commands`.
 A future classifier or VLA adapter can use the same supervisor boundary.
 
-Flat-media demonstrations learn a 180° carry flip when the label faces upwards.
+Envelope demonstrations learn a 180° carry flip when the label faces upwards.
+For a top-facing mailer, the left arm flips it on a fixed elevated platform;
+the right then grasps a corner and carries to scan while the left returns home.
+Bottom-facing mailers skip the flip. Both policy arms remain enabled for mailers.
 Carton scanning uses scripted wrist rotation. A shared FK and settling check
 ends learned execution before scanner-driven rotation and placement begin.
 No token, bin, or label-face metadata enters policy observations.

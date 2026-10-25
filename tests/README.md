@@ -1,6 +1,7 @@
 # Run the robot checks
 
-**Yes: the `--live` commands below move the real robot.** Start the follower
+**The waypoint tool controls the real robot.** The wrist and full-cycle checks
+also control real hardware when run with `--live`. Start the follower
 server in Terminal 1, then run one check in Terminal 2. The waypoint check
 commands the selected arm to the saved pose; you do not have to guide it there
 with a leader during the check.
@@ -9,13 +10,13 @@ Choose the check you need:
 
 | What you want to do | Script | What moves |
 | --- | --- | --- |
-| Send the robot to a taught pose and inspect clearance | `check_waypoint.py` | The selected arm follows saved via points, then reaches the requested pose. |
+| Select taught poses repeatedly and inspect clearance | `check_waypoint.py` | One selected arm follows saved via points; the other must remain home. |
 | Check whether wrist rotation exposes a carton label | `check_wrist_rotation.py` | Starting at the taught scan pose, the selected wrist visits offsets 0°, 90°, 180°, and 270°. |
 | Pick a parcel, scan it, and place it in bin 0 or bin 1 | `check_full_cycle.py` | The trained policy picks and approaches the scanner; the supervisor rotates, places, and returns home. |
 
 The waypoint and wrist scripts ask you to type `MOVE` before each step.
 The full-cycle script starts the cycle after initialization without that prompt.
-`--dry-run`, `--list`, and pytest do **not** move the robot.
+`--dry-run` and `--list` do **not** move the robot.
 
 ## 1. Prepare the saved poses
 
@@ -66,6 +67,13 @@ Wait for `Starting robot server on port 6001`, then leave this terminal running.
 If this server is already running, reuse it. Do not start a second instance.
 Do not restart the server while holding a parcel.
 
+After updating server code, restart it once with empty grippers and all motion
+clients stopped. The checks request controller status and emergency stops
+through the launcher's existing dashboard connections. Port 29999 accepts one
+client; a separate controller connection can close with
+`Controller closed the connection`. If a check asks you to restart
+`launch_nodes.py`, the running server predates this status/stop interface.
+
 ### Terminal 2: run one check
 
 Stop `run_control.py` and any other motion client before starting a check.
@@ -83,54 +91,81 @@ or other arm.
 
 Perform this first with **no parcel held**.
 
-1. In Terminal 2, list your saved targets. This command only lists poses:
+1. In Terminal 2, start the menu without arguments:
 
    ```bash
-   python3 tests/check_waypoint.py --live --list
+   python3 tests/check_waypoint.py
    ```
 
-2. Determine both arms' current jaw command values. `0` means open, `1` means
-   closed, and partial widths use values between them. The driver cannot reliably
-   measure these settings, so you must supply them. The examples below assume
-   both jaw commands are `1`. Replace `--grippers 1 1` with the actual left and
-   right values; for example, use `--grippers 0 0` if both are open. Each motion
-   command resends the supplied jaw settings.
+2. Configure defaults in [waypoint_config.py](waypoint_config.py) before starting
+   the tool. Under `WAYPOINT_DEFAULTS`, set `speed_rad_s`, `left_gripper`, and
+   `right_gripper`. For example, set `speed_rad_s` to `0.2` for a faster check.
+   Gripper values can be `"open"`, `"closed"`, or a number from `0.0` (open) to
+   `1.0` (closed). These are position commands, not grip force. The driver cannot
+   reliably measure the jaw command, so match the configured positions to the
+   intended hold. Only the selected arm receives its gripper command after MOVE.
+3. The same config contains `waypoint_file` and `report_file`. Reports are off
+   when `report_file` is `None`. To save history, set it to a filename such as
+   `REPO_ROOT / "waypoint_reports" / "waypoint_checks.jsonl"`. A report records
+   waypoint choices, measured angles, and outcomes; it does not run a parcel-
+   sorting cycle. Relative paths resolve from the repository root.
 
-3. To move the left arm to its saved scanner pose, run:
+4. The numbered menu shows `home_left`, `home_right`, both arms' scan, bin, and
+   receiving-return targets, and any additional taught poses. Angles are shown
+   in degrees; missing or null poses show `unrecorded`. Select a number or exact
+   waypoint name, such as `scan_left`. Unrecorded choices send no commands.
+5. Wait for preflight and the displayed target joints. Inspect the full path,
+   then type uppercase `MOVE` and press Enter. **The selected arm now moves.**
+   Each via point and final target requires its own `MOVE`. Press Enter to
+   cancel the selection, or type `q` to quit at a confirmation prompt.
 
-   ```bash
-   python3 tests/check_waypoint.py --live --name scan_left \
-     --grippers 1 1 --report cycle_logs/waypoint_checks.jsonl
-   ```
-
-4. Wait for the preflight result and displayed target joints. The robot has not
-   moved to the target yet. Inspect the full path, then type uppercase `MOVE`
-   and press Enter. **The selected arm now moves.** If the route has via points,
-   repeat this confirmation at each point and at the final target.
-
-5. Watch the entire movement. At arrival, inspect the physical pose and the
+6. Watch the entire movement. At arrival, inspect the physical pose and the
    printed `target_rad`, `observed_rad`, and `max_error_rad`. The script requires
    joint error no greater than `0.025` radians per joint. Check the actual tool
    location as well as the numbers.
 
-6. The script exits with the arm at the requested pose. It does not open the
-   gripper or return home. The other arm keeps its starting commanded joints.
+7. The menu returns after the move. You can select another target for that same
+   arm. Before switching arms, select that arm's `home_left` or `home_right`
+   entry and confirm its path. Home uses the configured Xtrainer final home
+   joints and any taught `home_left`/`home_right` via-point route.
 
-7. To check a bin pose from this new starting position, run the next command
-   separately and confirm its path before typing `MOVE`:
+8. Type `q` at the menu to exit at the current pose. Quitting does not release
+   the grippers or move either arm home. During motion, Ctrl+C requests a stop;
+   use the physical emergency stop when needed.
 
-   ```bash
-   python3 tests/check_waypoint.py --live --name drop_bin0_left \
-     --grippers 1 1 --report cycle_logs/waypoint_checks.jsonl
-   ```
+The menu displays the configured defaults and has waypoint selections plus `q`.
+There is no settings submenu or real/simulation selector. Defaults are loaded
+at startup; restart after editing the config. Opening the menu or editing the
+config sends no movement or gripper commands. MOVE remains required.
 
-   Use `drop_bin1_left` to check bin 1, `drop_receiving_left` to check the
-   receiving-return pose, or a taught name ending in `_right` to move the right
-   arm. Every command starts from the robot's current posture. Do not paste a
-   sequence of destination commands and assume every transition is clear.
+The idle arm must be within `SUPERVISOR["waypoint_home_tolerance_rad"]` of its
+configured home joints (default `0.025` radians per joint, about 1.43 degrees).
+This check uses measured joint feedback before each selection and before every
+motion command. Only the selected follower receives movement/gripper commands.
+For example, `scan_left`, then `drop_bin0_left`, is allowed while the right arm
+is home. Selecting `scan_right` is blocked until `home_left` completes. If both
+arms start away from home, all menu moves are blocked; quit and recover manually.
 
-Default joint speed is `0.1` radians/s. Add `--speed 0.05` for a slower check.
-The report appends each reached target and measured joint angles. Check all
+Blocked selections, failed preflight, and cancelled moves return to the menu.
+A controller/communication fault or failure during movement stops the session;
+movement failures request both controllers' stop. Do not resume until the cause
+has been resolved. Successful, cancelled, and blocked recorded selections append
+individual entries to the report file.
+
+For a single check that exits afterward, the existing `--name` form remains
+available and enforces the same idle-arm interlock:
+
+```bash
+python3 tests/check_waypoint.py --name drop_bin0_left
+```
+
+Use `drop_bin1_left` for bin 1, `drop_receiving_left` for the receiving return,
+or a taught name ending in `_right` for the right arm. Every selection starts
+from the robot's current posture. Check the path for each transition.
+
+Default joint speed is `0.1` radians/s. Set a different `speed_rad_s` in the config
+when needed; the maximum is `0.25` radians/s. When enabled, the report appends each
+reached target and measured joint angles. Check all
 required approaches and retreats, including paths from possible final scan
 angles. Reaching a destination once does not validate other starting postures.
 
@@ -208,6 +243,9 @@ This check uses the normal three cameras and the physical scanner.
    grippers. Leave it running. Keep the recorder and standalone scanner readers
    stopped.
 4. Place the labeled poly mailer in the receiving area. Keep both arms at home.
+   For a top-facing label, use the same fixed elevated platform as training.
+   Use a checkpoint trained for left-arm platform flipping and right-arm corner
+   pickup, and commission the right-arm scan/drop paths with that grasp.
 5. In Terminal 2, replace `/path/to/model.pth` with your actual trained robomimic
    ACT or DP checkpoint and run:
 
@@ -251,12 +289,12 @@ make the check pass. If the waypoint file is missing, teach actual poses first.
 
 ## Optional: preview without moving hardware
 
-These commands need no server, scanner, cameras, or trained model. They use the
-local waypoint file if present, otherwise explicitly marked synthetic poses.
+The wrist and full-cycle preview commands need no server, scanner, cameras, or
+trained model. They use the local waypoint file if present, otherwise explicitly
+marked synthetic poses.
 They do not establish physical clearance.
 
 ```bash
-python3 tests/check_waypoint.py --dry-run --name drop_bin0_left
 python3 tests/check_wrist_rotation.py --dry-run --fake-read-at 180
 python3 tests/check_full_cycle.py --medium poly_mailer --dry-run \
   --fake-token DEST-B-S828608 --csv /tmp/poly-mailer-cycle.csv
@@ -265,11 +303,3 @@ python3 tests/check_full_cycle.py --medium poly_mailer --dry-run \
 Use `--fake-no-read` for a wrist no-read check. Omit `--fake-token` for a
 full-cycle no-read check. Both return status `2` when no barcode is read.
 Synthetic files are rejected by live checks and full cycles.
-
-To run the small mocked regression module without moving the robot:
-
-```bash
-python3 -m pytest tests/ -q
-```
-
-Pytest runs software guards only; it does not execute the live scripts.

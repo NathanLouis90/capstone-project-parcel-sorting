@@ -11,7 +11,9 @@ only when addresses or configured defaults need adjustment; restart after edits.
 
 ## Inspect the robot first
 
-Before clearing an alarm, capture status:
+Before clearing an alarm, stop `run_control.py`, `launch_nodes.py`, and other
+dashboard clients, then capture status. This standalone tool connects directly
+to port 29999, which accepts one client per controller:
 
 ```bash
 python3 experiments/robot_home.py

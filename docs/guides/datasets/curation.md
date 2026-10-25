@@ -57,6 +57,20 @@ episode again before accepting it; restoration does not change its rejection.
    existing `poly_mailer`, `poly_mailer_extra`, and `poly_mailer_session2` projects,
    plus a registered, unused `poly_mailer_combined` destination.
 
+The face-specific overflow projects `poly_mailer_bottom_extra` and
+`poly_mailer_top_extra` are registered with the same settings as their sources.
+Create their raw recording folders before using `transfer`:
+
+```bash
+mkdir -p datasets/poly_mailer_bottom_extra/collect_data
+mkdir -p datasets/poly_mailer_top_extra/collect_data
+```
+
+`transfer --count N` selects the earliest accepted recordings by start time.
+To keep the earliest 50 accepted episodes in a source and move only newer
+overflow episodes, select their exact folder IDs with `--episodes ID ...`
+instead. Rejected episodes do not count toward the accepted total.
+
 Move five accepted episodes:
 
 ```bash

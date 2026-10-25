@@ -73,29 +73,35 @@ hold target for disabled arms would require a code change and is not implemented
 by these documentation changes.
 
 Envelope pickup uses both arms: the left slides/assists, the right grasps and
-carries, and the left returns home before the final scan hold. For mailers and
-cartons, the right follower remains home. The current automatic holding-arm
-assignment is explained in the [runtime README](../runtime/README.md#holding-arm-selection).
+carries, and the left returns home before the final scan hold. Mailer policies
+also use both arms: the left flips top-facing labels on the elevated platform,
+then the right grasps a corner and carries while the left returns home. Bottom-
+facing mailers skip the flip. For cartons, the right follower remains home.
+The current automatic holding-arm assignment is explained in the
+[runtime README](../runtime/README.md#holding-arm-selection).
 
 ## Scan poses and label schedules
 
 Both arms use the same physical scanner, but `scan_left` and `scan_right` contain
-different six-joint configurations. `scan_left` is shared by mailers and cartons;
-`scan_right` is used for envelopes. A waypoint defines the arm posture, not the
-jaw opening. A consistent endpoint gives the learned policy a repeatable target
-and lets the supervisor recognize the end of pick-and-carry.
+different six-joint configurations. `scan_left` is used for cartons;
+`scan_right` is shared by envelopes and mailers. Verify that this shared posture
+works with each parcel's grasp and barcode clearance. A waypoint defines the arm
+posture, not the jaw opening. A consistent endpoint gives the learned policy a
+repeatable target and lets the supervisor recognize the end of pick-and-carry.
 
 | Medium | Holding arm | Label schedule | Runtime backup scan |
 | --- | --- | --- | --- |
 | Envelope | Right; left assists the initial slide | Alternate 25 top and 25 bottom | One 180° J6 roll |
-| Poly mailer | Left | Alternate 25 top and 25 bottom | One 180° J6 roll |
+| Poly mailer | Right; left assists the platform flip | Alternate 25 top and 25 bottom | One 180° J6 roll |
 | Carton | Left | Cycle top, bottom, front, rear; 12–13 per face | Up to three 90° J6 rolls |
 
 The target collection has 50 accepted demonstrations per medium, distributed
-across receiving positions and yaw. Flat-media top labels use a demonstrated
-180° carry flip to arrive label-down; bottom labels do not need that carry flip.
-The roll direction stays consistent. Cartons arrive as grasped; the supervisor
-performs the candidate-face sweep. Carton front/rear are the long 150 × 45 mm
+across receiving positions and yaw. Top-facing envelopes use a demonstrated
+180° carry flip with a consistent roll direction. Top-facing mailers instead
+use a demonstrated left-arm flip on the elevated platform before right-arm
+corner pickup. Bottom-facing envelopes and mailers skip the flip. Cartons arrive
+as grasped; the supervisor performs the candidate-face sweep. Carton front/rear
+are the long 150 × 45 mm
 faces. Mailer bubble-wrap filling stays fixed to keep grasp behavior comparable.
 
 ## Gripper width and handoff

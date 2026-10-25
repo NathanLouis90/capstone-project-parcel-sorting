@@ -44,6 +44,11 @@ PREPARE_ACT_DATASETS["projects"].update({
     for medium, settings in MEDIA.items()
     for face in settings["label_faces"]
 })
+PREPARE_ACT_DATASETS["projects"].update({
+    "poly_mailer_{}_extra".format(face): dict(
+        PREPARE_ACT_DATASETS["projects"]["poly_mailer_{}".format(face)])
+    for face in MEDIA["poly_mailer"]["label_faces"]
+})
 
 # 1_find_port.py
 SCRIPT_1_FIND_PORT = {

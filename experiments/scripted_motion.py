@@ -37,11 +37,14 @@ class SimulatedEnv:
 
 class MotionLoop:
     def __init__(self, env, waypoints, config=SUPERVISOR, clock=time.monotonic,
-                 sleep=time.sleep, stop=None, health=None, grippers=(1, 1)):
+                 sleep=time.sleep, stop=None, health=None, grippers=(1, 1),
+                 active_arm=None, command_guard=None):
         self.env, self.waypoints, self.config = env, waypoints, config
         self.clock, self.sleep = clock, sleep
         self.stop_callback = stop or getattr(env, 'stop', lambda: None)
         self.health = health or (lambda: None)
+        # Commissioning can command one follower and check its peer before every step.
+        self.active_arm, self.command_guard = active_arm, command_guard
         self.last_action = np.asarray(env.get_obs()['joint_positions']).copy()
         grippers = np.asarray(grippers, dtype=float)
         if grippers.shape != (2,) or not np.isfinite(grippers).all() or np.any((grippers < 0) | (grippers > 1)):
@@ -77,7 +80,13 @@ class MotionLoop:
         if limits.shape != (12, 2) or np.any(joint_values < limits[:, 0]) or np.any(joint_values > limits[:, 1]):
             raise ValueError('Command exceeds taught joint/cable limits')
         validate_action(action, self.last_action)
-        obs = self.env.step(action, np.ones(2, dtype=int))
+        if self.active_arm not in (None, 'left', 'right'):
+            raise ValueError('Active arm must be left, right, or None')
+        flags = np.ones(2, dtype=int) if self.active_arm is None else np.array(
+            [self.active_arm == 'left', self.active_arm == 'right'], dtype=int)
+        if self.command_guard is not None:
+            self.command_guard(action, observed)
+        obs = self.env.step(action, flags)
         self.last_action = action
         if self.clock() - start > CONTROL['control_period_ms'] / 1000:
             self.overruns += 1
@@ -162,6 +171,8 @@ def load_waypoints(path, live=False, required_poses=None):
         raise ValueError('Set 12 joint/cable limit pairs in radians')
     for name, pose in poses.items():
         if name.endswith(('_left', '_right')):
+            if pose is None and name not in required:
+                continue
             side = 0 if name.endswith('_left') else 6
             pose = np.asarray(pose, dtype=float)
             if pose.shape != (6,) or not np.isfinite(pose).all() or np.any(pose < limits[side:side+6, 0]) or np.any(pose > limits[side:side+6, 1]):

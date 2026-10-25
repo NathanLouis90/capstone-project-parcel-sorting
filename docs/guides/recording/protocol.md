@@ -7,7 +7,9 @@ explanation. Use [medium-specific steps](media.md) for each grasp and label face
 
 1. Complete the repository [hardware setup](../../../README.md#software-setup).
 2. Prepare [each terminal](../../terminal_commands.md).
-3. Place receiving beneath the top camera and remove the intermediate platform.
+3. Place receiving beneath the top camera. For mailers, install the elevated
+   flip platform at a fixed, measured pose and check both arms' clearance. Keep
+   the platform out of envelope and carton paths when it is not used.
 4. Teach the [scan waypoints](../hardware/waypoints.md#use-three-terminals).
 5. Verify stationary scanner reads, tool clearance, and wrist cable slack through
    the full scan sweep. Stop standalone scanner capture before recording.
@@ -41,7 +43,8 @@ Wait for `Ok, let's start`. Check all three camera views. Expect recordings unde
 2. Hold the relevant yellow button for about two seconds, then release it.
 3. Wait for alignment to finish.
 4. Support the leader and short-press yellow for under 0.5 seconds to unlock it.
-5. Enable both arms when demonstrating the envelope slide and grasp.
+5. Enable both arms when demonstrating the envelope slide or the mailer
+   platform flip followed by right-arm pickup.
 6. Keep an unused follower home. If its following is disabled, keep its leader
    locked and aligned with that follower; see the [recording limitation](README.md#synchronization-and-saved-actions).
 

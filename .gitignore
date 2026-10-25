@@ -1,5 +1,6 @@
 # Local recordings, converted training data, and exported videos
 /datasets/
+/archived_datasets/
 # Capstone proposal
 /docs/RSE4018_Proposal_2302637_AdielFirqin.pdf
 # session recaps
@@ -36,6 +37,7 @@ __pycache__/
 /old_architecture_folder/
 /experiments/waypoints.local.yaml
 /cycle_logs/
+/waypoint_reports/
 .pytest_cache/
 
 # Generated labels; committed PDF examples live in label_examples/

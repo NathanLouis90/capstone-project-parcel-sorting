@@ -64,6 +64,12 @@ class ZMQServerRobot:
                     # log_write(str(self.port) + ": command_joint_state end")
                 elif method == "get_observations":
                     result = self._robot.get_observations()
+                    result["server_capabilities"] = ["get_controller_status", "emergency_stop"]
+                elif method in ("get_controller_status", "emergency_stop"):
+                    try:
+                        result = {"result": getattr(self._robot, method)()}
+                    except Exception as error:
+                        result = {"error": str(error)}
                 elif method == "set_do_status":
                     result = self._robot.set_do_status(**args)
                 elif method == "get_XYZrxryrz_state":
@@ -104,6 +110,21 @@ class ZMQClientRobot(Robot):
         self._socket.send(send_message)
         result = pickle.loads(self._socket.recv())
         return result
+
+    def _controller_request(self, method):
+        self._socket.send(pickle.dumps({"method": method, "args": {}}))
+        result = pickle.loads(self._socket.recv())
+        if not isinstance(result, dict) or ("result" not in result and "error" not in result):
+            raise RuntimeError('Invalid controller reply; restart experiments/launch_nodes.py')
+        if "error" in result:
+            raise RuntimeError(result["error"])
+        return result["result"]
+
+    def get_controller_status(self):
+        return self._controller_request("get_controller_status")
+
+    def emergency_stop(self):
+        return self._controller_request("emergency_stop")
 
     def get_joint_state(self) -> np.ndarray:
         """Get the current state of the leader robot.

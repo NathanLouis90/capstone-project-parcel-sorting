@@ -1,4 +1,4 @@
-"""Run an operator-stepped waypoint check; see tests/README.md."""
+"""Choose real-robot waypoints using waypoint_config.py; see tests/README.md."""
 from pathlib import Path
 import sys
 

@@ -21,8 +21,10 @@ Embodied AI is applied where perception and contact make the task difficult
 to script. Per-medium policies trained by imitation learning from human
 demonstrations, recorded as camera images and robot joint states, grasp each
 parcel from an arbitrary pose and bring it to the scanner. For mailers and
-envelopes, the policy also learns to flip the parcel during transport when
-the label is visible on top. A scripted supervisor handles the deterministic
+envelopes, the policy also learns to flip a top-facing label down: envelopes
+use a carry flip, while mailers use left-arm flipping on an elevated platform
+followed by right-arm corner pickup. The left arm returns home before the
+right-arm scan handoff. A scripted supervisor handles the deterministic
 steps: rotating the wrist above the scanner until the barcode is read, then
 placing the parcel in the bin selected by the barcode. The project compares
 two imitation learning approaches for these policies: Action Chunking with
@@ -125,13 +127,14 @@ roles; read the [terminal reference](docs/README.md#terminal-syntax) for syntax.
 ## Robot checks
 
 Follow the [robot check instructions](tests/README.md) to start the server in
-Terminal 1 and run a live check in Terminal 2. With `--live`, the waypoint check
-moves the arm to the selected taught pose after you type `MOVE`. The wrist check
+Terminal 1 and run a check in Terminal 2. Configure waypoint defaults in
+[tests/waypoint_config.py](tests/waypoint_config.py), then run
+`python3 tests/check_waypoint.py`. This real-robot menu moves the selected arm
+after you type `MOVE`. The wrist check
 rotates from the taught scan pose; the full cycle performs pickup, scanning,
 and bin placement. To preview the scripts without hardware:
 
 ```bash
-python3 tests/check_waypoint.py --dry-run --name drop_bin0_left
 python3 tests/check_wrist_rotation.py --dry-run --fake-read-at 180
 python3 tests/check_full_cycle.py --medium poly_mailer --dry-run \
   --fake-token DEST-A-S138683 --csv /tmp/parcel-cycle.csv
@@ -139,7 +142,6 @@ python3 tests/check_full_cycle.py --medium poly_mailer --dry-run \
 
 | Command part | Meaning and result |
 | --- | --- |
-| `check_waypoint.py --dry-run --name drop_bin0_left` | Check the configured route to the left bin-0 pose in simulation. |
 | `check_wrist_rotation.py --dry-run --fake-read-at 180` | Check all four wrist positions with a simulated read at 180 degrees. |
 | `--medium poly_mailer --dry-run` | Simulate one poly mailer cycle instead of using the robot. |
 | `--fake-token DEST-A-S138683` | Supply a simulated valid barcode for bin 0, Dover. |

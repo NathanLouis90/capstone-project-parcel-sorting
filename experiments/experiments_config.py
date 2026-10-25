@@ -25,7 +25,7 @@ CONTROL = {"control_period_ms": 40}
 
 MEDIA = {
     "envelope": {"dimensions_mm": [110, 220], "label_faces": ["top", "bottom"], "holding_arm": "right", "active_arms": [1, 1], "rotation_deg": 180, "max_rotations": 1},
-    "poly_mailer": {"dimensions_mm": [130, 190], "label_faces": ["top", "bottom"], "holding_arm": "left", "active_arms": [1, 0], "rotation_deg": 180, "max_rotations": 1},
+    "poly_mailer": {"dimensions_mm": [130, 190], "label_faces": ["top", "bottom"], "holding_arm": "right", "active_arms": [1, 1], "rotation_deg": 180, "max_rotations": 1},
     "carton": {"dimensions_mm": [150, 75, 45], "label_faces": ["top", "bottom", "front", "rear"], "holding_arm": "left", "active_arms": [1, 0], "rotation_deg": 90, "max_rotations": 3},
 }
 
@@ -41,6 +41,7 @@ SUPERVISOR = {
     "joint_speed_rad_s": 0.25,
     "motion_timeout_s": 40.0,
     "tracking_tolerance_rad": 0.15,
+    "waypoint_home_tolerance_rad": 0.025,
     "cycle_csv": str(Path(__file__).resolve().parent.parent / "cycle_logs" / "cycles.csv"),
 }
 
@@ -51,8 +52,10 @@ RUN_CONTROL = {
     "hostname": "127.0.0.1",
     "show_img": False,
     "project_name": None,
-    "x_range_left": (-450, 290),
-    "x_range_right": (-290, 450),
+    # "x_range_left": (-450, 290), # original
+    "x_range_left": (-490, 340),
+    # "x_range_right": (-290, 450), # original
+    "x_range_right": (-340, 450),
     "y_range": (-750, -160),
     "z_range_left": 44,
     "z_range_right": 42,
@@ -84,7 +87,7 @@ RUN_INFERENCE = {
     'left_x_max_mm': 210,
     'right_x_max_mm': 410,
     'right_x_min_mm': -210,
-    'y_min_mm': -700,
+    'y_min_mm': -740,
     'y_max_mm': -210,
     'z_min_mm': 42,
     "flip_top_right": True,

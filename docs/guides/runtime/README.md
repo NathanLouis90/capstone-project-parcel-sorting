@@ -12,14 +12,17 @@ then supplies the expected holding arm and active policy arms:
 | Medium | Policy arms during pickup | Expected arm at scan/drop |
 | --- | --- | --- |
 | Envelope | Both; left can slide/assist and right grasps | Right |
-| Poly mailer | Left; right stays home | Left |
+| Poly mailer | Both; left flips on the platform when needed, right grasps a corner | Right |
 | Carton | Left; right stays home | Left |
 
 The current code does not infer parcel type or the holding arm from cameras or
 grasp sensors. Selecting a different carrier at runtime based on which scan
 pose is reached is a possible future change; it has not been implemented. Both
-arms may participate in envelope pickup, but the left must return home before
-the right-arm scan handoff.
+arms may participate in envelope and mailer pickup, but the left must return
+home before the right-arm scan handoff. The mailer platform flip is learned
+from demonstrations; it is not a scripted platform trajectory. Use newly
+trained checkpoints for this right-arm mailer workflow. Existing left-arm
+mailer checkpoints do not match it.
 
 ## Policy handoff and scanning
 
@@ -70,6 +73,13 @@ Faults and interruptions stop further motion commands and request both
 controllers' emergency stop. The cycle logs `fault`; it does not release or home
 automatically. Network requests are not a substitute for physical emergency-stop
 access or the installation's recovery procedure.
+
+Controller status and network stop requests go through `launch_nodes.py`, which
+owns each controller's single dashboard connection on port 29999. Stops use a
+separate ZMQ request socket, but still depend on a responsive launcher and
+controller connection. Restart the launcher after updating its status/stop
+interface, with empty grippers and all motion clients stopped. Do not open a
+standalone dashboard client alongside it.
 
 ## Runtime options
 

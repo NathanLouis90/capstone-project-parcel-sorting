@@ -51,8 +51,12 @@ roll with the long axis, exposing the four candidate faces in 90° steps. About
 clear of the grasp.
 
 Mailer filling is fixed so deformation and grasp behavior remain comparable.
-Receiving sits below the top camera, with one parcel at a time and no intermediate
-platform. The same scanner serves both arms.
+Receiving sits below the top camera, with one parcel at a time. Mailer pickup
+uses an elevated platform for the left-arm flip when the label starts facing
+up, followed by right-arm corner pickup. The platform's position, size, and
+height must be measured on the installation; they are not specified by the
+layout table. Verify clearance against both learned pickup paths and scripted
+scan/drop/home routes. The same scanner serves both arms.
 
 ## Scanner and destination mapping
 
@@ -129,8 +133,8 @@ reading range, clearances, and release geometry.
 
 | Name | Arm | Position to teach |
 | --- | --- | --- |
-| `scan_left` | Left | Hold the parcel above the scanner, within reading range and with room to rotate the wrist. Used for mailers and cartons. |
-| `scan_right` | Right | Hold the parcel above the same scanner using the right arm. Used for envelopes. |
+| `scan_left` | Left | Hold the parcel above the scanner, within reading range and with room to rotate the wrist. Used for cartons. |
+| `scan_right` | Right | Hold the parcel above the same scanner using the right arm. Used for envelopes and corner-grasped mailers. Verify barcode clearance for both. |
 | `drop_bin0_left` / `drop_bin0_right` | Named arm | Hold the parcel over the release point inside bin 0. |
 | `drop_bin1_left` / `drop_bin1_right` | Named arm | Hold the parcel over the release point inside bin 1. |
 | `drop_receiving_left` / `drop_receiving_right` | Named arm | Hold the parcel a few centimetres above the receiving surface for a no-read return. |
@@ -142,10 +146,10 @@ eight required poses in total. A single capture must occur at that pose's own
 intended posture; consecutive save commands at one posture would save identical
 angles under different names.
 
-Current runtime carrier selection is fixed by `MEDIA`: mailers and cartons use
-the left arm, and envelopes use the right after left-arm assistance. It does not
-detect the carrier automatically. Envelope pickup can use both policy arms; the
-assisting left arm returns home before scanning. See [runtime arm selection](../runtime/README.md#holding-arm-selection).
+Current runtime carrier selection is fixed by `MEDIA`: cartons use the left arm;
+envelopes and mailers use the right after any left-arm assistance. It does not
+detect the carrier automatically. Envelope and mailer pickup can use both policy
+arms; the assisting left arm returns home before scanning. See [runtime arm selection](../runtime/README.md#holding-arm-selection).
 
 ### Files, stability checks, and commissioning
 

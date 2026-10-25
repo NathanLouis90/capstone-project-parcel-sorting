@@ -13,6 +13,7 @@ import yaml
 
 from barcode_scanning.scanner_reader import ScanWindow, ScannerReader, destination_mapping
 from experiments.experiments_config import SUPERVISOR
+from experiments.handoff import home_action
 from experiments.scripted_motion import (
     MotionLoop, SimulatedEnv, VirtualClock, load_waypoints, simulation_waypoints,
 )
@@ -39,9 +40,15 @@ def waypoint_plan(points, start, name):
     action = np.asarray(start, dtype=float).copy()
     plan = []
     for point in names:
-        if point not in points['poses'] or not point.endswith('_' + arm):
+        if point == 'home_' + arm and point == name:
+            joints = home_action()[offset:offset + 6]
+        elif point not in points['poses'] or not point.endswith('_' + arm):
             raise ValueError('Unknown or wrong-arm waypoint: ' + point)
-        action[offset:offset + 6] = points['poses'][point]
+        else:
+            joints = np.asarray(points['poses'][point], dtype=float)
+        if np.shape(joints) != (6,) or not np.isfinite(joints).all():
+            raise ValueError('Unrecorded waypoint: ' + point)
+        action[offset:offset + 6] = joints
         plan.append((point, action.copy()))
     return plan
 
@@ -126,7 +133,7 @@ def parser_for(description):
     mode.add_argument('--live', action='store_true', help='Connect to the running follower server')
     parser.add_argument('--waypoints', type=Path, default=Path(SUPERVISOR['waypoint_file']))
     parser.add_argument('--grippers', type=float, nargs=2, metavar=('LEFT', 'RIGHT'),
-                        help='Current jaw commands, 0=open and 1=closed; required with --live')
+                        help='Jaw positions, 0=open and 1=closed; required with --live')
     parser.add_argument('--speed', type=float, default=.1, help='Joint speed in radians/s (default: 0.1)')
     parser.add_argument('--report', type=Path, help='Append check results as JSON lines')
     return parser
@@ -135,8 +142,10 @@ def parser_for(description):
 def check_options(parser, args):
     if not np.isfinite(args.speed) or not 0 < args.speed <= SUPERVISOR['joint_speed_rad_s']:
         parser.error('--speed must be positive and no greater than {}'.format(SUPERVISOR['joint_speed_rad_s']))
-    if args.live and (args.grippers is None or not sys.stdin.isatty()):
-        parser.error('--live requires an interactive terminal and --grippers LEFT RIGHT')
+    if args.live and not sys.stdin.isatty():
+        parser.error('Live movement requires an interactive terminal')
+    if args.live and args.grippers is None:
+        parser.error('--live requires --grippers LEFT RIGHT for a single check')
     if args.grippers is not None:
         values = np.asarray(args.grippers)
         if not np.isfinite(values).all() or np.any((values < 0) | (values > 1)):
@@ -201,7 +210,7 @@ def run_check(args, make_plan, execute, initial=None, evaluate=None):
         start = motion.observe()['joint_positions']
         plan = make_plan(points, start)
         count = preflight(points, start, plan, motion.config)
-        print('Preflight passed for {} simulated commands. Physical collision clearance is not checked.'.format(count), flush=True)
+        print('Preflight passed for {} commands. Physical collision clearance is not checked.'.format(count), flush=True)
         print('Starting joints (radians): ' + json.dumps(start.tolist()), flush=True)
         # The execution functions require MOVE before every live step.
         started = True
@@ -230,24 +239,38 @@ def run_check(args, make_plan, execute, initial=None, evaluate=None):
 
 
 def waypoint_main(argv=None):
-    parser = parser_for('Check one taught waypoint and its via points, pausing before each move.')
-    selection = parser.add_mutually_exclusive_group(required=True)
-    selection.add_argument('--name', help='Taught pose name, for example drop_bin0_left')
+    from experiments.waypoint_menu import (
+        check_other_arm_home, configure_motion, display_menu, load_defaults, read_catalog, run_menu,
+    )
+    parser = argparse.ArgumentParser(
+        description='Choose real-robot waypoints. Defaults are in tests/waypoint_config.py; require MOVE before movement.')
+    selection = parser.add_mutually_exclusive_group()
+    selection.add_argument('--name', help='Optional single check, then exit; omit for the persistent menu')
     selection.add_argument('--list', action='store_true', help='List saved poses without opening devices')
-    args = parser.parse_args(argv)
-    if not args.list:
-        check_options(parser, args)
+    selection_args = parser.parse_args(argv)
+    try:
+        args = load_defaults()
+    except (OSError, ValueError, KeyError, SyntaxError, TypeError, NameError) as error:
+        parser.error('Invalid tests/waypoint_config.py: ' + str(error))
+    args.name, args.list = selection_args.name, selection_args.list
     if args.list:
-        points = yaml.safe_load(args.waypoints.read_text()) if args.waypoints.exists() else simulation_waypoints() if args.dry_run else None
-        if points is None:
-            parser.error('Waypoint file does not exist')
-        for name, pose in sorted(points.get('poses', {}).items()):
-            print('{}: degrees {}'.format(name, np.round(np.rad2deg(pose), 2).tolist()))
+        display_menu(read_catalog(args))
         return 0
-    args.required_poses = [args.name]
-    code, _ = run_check(args, lambda points, start: waypoint_plan(points, start, args.name),
-                        lambda motion, plan, results: execute_waypoints(
-                            motion, plan, confirm_move if args.live else None, results))
+    if args.name is None:
+        return run_menu(args)
+    check_options(parser, args)
+    args.required_poses = [] if args.name in ('home_left', 'home_right') else [args.name]
+
+    def make_plan(points, start):
+        arm = 'left' if args.name.endswith('_left') else 'right'
+        check_other_arm_home(start, arm, SUPERVISOR['waypoint_home_tolerance_rad'])
+        return waypoint_plan(points, start, args.name)
+
+    def execute(motion, plan, results):
+        configure_motion(motion, args.name)
+        return execute_waypoints(motion, plan, confirm_move if args.live else None, results)
+
+    code, _ = run_check(args, make_plan, execute)
     return code
 
 

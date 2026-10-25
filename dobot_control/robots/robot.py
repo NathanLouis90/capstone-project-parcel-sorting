@@ -123,6 +123,14 @@ class BimanualRobot(Robot):
     def num_dofs(self) -> int:
         return self._robot_l.num_dofs() + self._robot_r.num_dofs()
 
+    def get_controller_status(self):
+        from dobot_control.robots.dashboard_rpc import controller_status
+        return controller_status(dict(left=self._robot_l.r_inter, right=self._robot_r.r_inter))
+
+    def emergency_stop(self):
+        from dobot_control.robots.dashboard_rpc import emergency_stop
+        return emergency_stop(dict(left=self._robot_l.r_inter, right=self._robot_r.r_inter))
+
     def get_joint_state(self) -> np.ndarray:
         assert not self._robot_l.robot_is_err, "left robot error!"
         assert not self._robot_r.robot_is_err, "right robot error!"
