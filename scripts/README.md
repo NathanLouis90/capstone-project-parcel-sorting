@@ -28,15 +28,18 @@ locks/unlocks leaders; use `run_control.py` to make followers track them.
 ## Data workflow
 
 Fresh projects default to `<medium>_<label_face>`, such as `poly_mailer_bottom`.
-Existing medium-only project names remain registered. Register custom
-names under `PREPARE_ACT_DATASETS["projects"]` in `scripts_config.py`, including
-schema 3, medium, episode length, training fraction, cameras and control period.
+After reviewing episodes, run `python3 scripts/train_models.py` to manage datasets
+and train ACT, DP, or both. The menu discovers raw collections automatically,
+creates move destinations, saves settings, and generates training files.
+Custom names need no registration in this workflow. The older vendor preparation
+tools still require registration under `PREPARE_ACT_DATASETS["projects"]`.
 Each episode ends with a held scan pose; release and home are outside the demo.
 
 | Tool | Purpose |
 | --- | --- |
 | `count_episodes.py` | Count complete, interrupted, and unknown recordings |
 | `review_episodes.py` | Review raw episodes and synchronize converted statuses |
+| `train_models.py` | Menu: delete rejected recordings, move, combine, split, configure, name, train ACT/DP, inspect reports, and reuse frozen model data |
 | `prepare_act_datasets.py` | Validate and convert accepted fresh recordings |
 | `curate_datasets.py` | Quarantine, restore, transfer, merge and audit |
 | `convert_to_robomimic.py` | Build one medium dataset with a frozen split |
@@ -44,13 +47,17 @@ Each episode ends with a held scan pose; release and home are outside the demo.
 
 See [recording](../docs/guides/recording/protocol.md),
 [preparation](../docs/guides/datasets/preparation.md), and
-[training](../docs/guides/training/act_dp.md) for procedures.
+[training menu](../docs/guides/training/menu.md) for procedures.
 Use the [topic READMEs](../docs/guides/README.md) for explanations and command options.
 Use [curation](../docs/guides/datasets/curation.md) for file operations.
 Converted images become RGB for
 robomimic; vendor ACT retains its BGR preprocessing. `script_collect2train.py`
 is the individual converter called by preparation.
 
-Raw files, training files, videos and logs live under `datasets/<project>/`.
-Rejected files stay on disk. Review decisions and curation do not change trained
-checkpoints. Stale folders require fresh conversion before training.
+Raw files live under `datasets/<project>/`. Review decisions alone leave rejected
+files on disk; menu option 2 permanently deletes them after confirmation.
+The menu reads accepted raw episodes directly and prepares immutable training
+data in `datasets/.training_cache/`, bypassing stale legacy conversions.
+Models and readable settings live under `ckpt/<model_name>/`. Existing checkpoints
+and their frozen data are preserved. The older vendor conversion workflow still
+requires rebuilding stale training folders.

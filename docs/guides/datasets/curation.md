@@ -1,5 +1,17 @@
 # Curate reviewed demonstrations
 
+The standard workflow is now `python3 scripts/train_models.py` after review.
+Choose **2** to permanently delete rejected recordings without quarantine.
+Choose **3** to move accepted recordings, including overflow beyond a chosen
+count; type a new destination name and the menu creates its folders automatically.
+Choose **4** to train on selected collections without merging or copying source
+folders. No project registration is required. See the [menu guide](../training/menu.md).
+
+## Advanced legacy commands
+
+The commands below retain the older reversible quarantine and registered-project
+workflow for explicit advanced use. They are not required by the menu.
+
 Prepare [one terminal](../../terminal_commands.md) with `Xtrainer` activated.
 Stop recording. No robot server is needed. Read the [dataset README](README.md)
 for operation meanings, compatibility rules, stale markers, and provenance.

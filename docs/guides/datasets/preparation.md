@@ -15,7 +15,7 @@ python3 scripts/count_episodes.py --details
 python3 scripts/review_episodes.py --project "datasets/$PROJECT"
 ```
 
-Replace `poly_mailer_bottom` with another registered medium/face or custom
+Replace `poly_mailer_bottom` with another existing medium/face or custom
 project. Review each collection you intend to train on.
 
 1. Focus the video window.
@@ -48,7 +48,21 @@ Inspect the proposed operation, then rerun that command without `--dry-run` to
 apply it. Do not combine `--set-status` with `--sync-review-status`. Use batch
 `--dry-run` only with one of those two modes.
 
-## 2. Validate, then convert accepted episodes
+## 2. Manage recordings and train from the menu
+
+After review, run:
+
+```bash
+python3 scripts/train_models.py
+```
+
+Use the [dataset and training menu](../training/menu.md) to permanently delete
+rejected episodes, move recordings into automatically created destinations,
+select datasets, set a validation percentage, edit hyperparameters, name models,
+and train ACT/DP. No conversion commands, registered snapshot copies, or manual
+JSON files are needed. Continue below only for the older manual/vendor workflow.
+
+## Advanced: validate, then convert accepted episodes
 
 Keep using the terminal where `PROJECT` is set. Validate first:
 

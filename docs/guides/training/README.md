@@ -1,5 +1,20 @@
 # Training: meaning and behavior
 
+The standard workflow is `python3 scripts/train_models.py` after episode review.
+Use the [menu guide](menu.md) to delete rejected episodes, move recordings,
+select and combine datasets, choose a validation share, set hyperparameters,
+name models, and train ACT/DP. All generated files are managed automatically.
+The menu reads accepted raw recordings directly; stale legacy conversions do
+not require new registered copies. Settings are saved per model and can be
+inspected through the menu. The command options below describe the older manual
+and vendor routes, which remain available for advanced use.
+
+New menu runs record every epoch and generate a standalone HTML training report,
+loss graphs, and a CSV of scalar metrics. Choose **6** to inspect or refresh a
+model's report. Choose **7** to train a comparison algorithm on an existing
+model's exact frozen dataset and split. See the [report and comparison guide](menu.md).
+Reports use saved run settings and explicitly label incomplete legacy histories.
+
 Use [matched ACT/DP training](act_dp.md) for the comparison stack. Use
 [Dobot ACT training](vendor_act.md) for the optional vendor stack. These procedures
 need the complete Python 3.8 `Xtrainer` setup from the repository README;

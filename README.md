@@ -111,9 +111,10 @@ explanation READMEs for each workflow.
 1. [Teach waypoints](docs/guides/hardware/waypoints.md), then follow the
    [recording protocol](docs/guides/recording/protocol.md) and
    [instructions by medium](docs/guides/recording/media.md).
-2. [Review and prepare data](docs/guides/datasets/preparation.md), then
-   [train matched ACT/DP models](docs/guides/training/act_dp.md) or
-   use the optional [vendor ACT route](docs/guides/training/vendor_act.md).
+2. [Review episodes](docs/guides/datasets/preparation.md), then run
+   `python3 scripts/train_models.py` to [manage datasets and train ACT/DP from
+   one menu](docs/guides/training/menu.md). The optional
+   [vendor ACT route](docs/guides/training/vendor_act.md) remains available.
 3. [Run and evaluate cycles](docs/guides/runtime/evaluation.md).
    Use [curation](docs/guides/datasets/curation.md) and
    [robot recovery](docs/guides/hardware/homing.md) when needed.

@@ -10,6 +10,15 @@ sys.path.insert(0,str(ROOT)); sys.path.insert(0,str(ROOT/'robomimic-r2d2'))
 from experiments.run_inference import park_idle_arm
 
 
+def checkpoint_medium_matches(saved, config, medium):
+    """Prefer recorded dataset identity; retain support for older named runs."""
+    metadata = saved.get('env_metadata') or {}
+    recorded = (metadata.get('env_kwargs') or {}).get('medium')
+    if recorded is not None:
+        return recorded == medium
+    return config['experiment']['name'].startswith(medium + '_')
+
+
 class RobomimicPolicy:
     def __init__(self,medium,checkpoint,device=None):
         import torch
@@ -22,7 +31,7 @@ class RobomimicPolicy:
         self.smoke_checkpoint=self.config['experiment']['name'].endswith('_smoke')
         algorithm=saved['algo_name']
         if algorithm not in ('act','diffusion_policy'): raise ValueError('Expected ACT or DP checkpoint')
-        if not self.config['experiment']['name'].startswith(medium+'_'):
+        if not checkpoint_medium_matches(saved,self.config,medium):
             raise ValueError('Checkpoint medium differs from requested medium')
         expected={'qpos','top','left_wrist','right_wrist'}
         if set(saved['shape_metadata']['all_shapes'])!=expected:

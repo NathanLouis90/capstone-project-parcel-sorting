@@ -1,5 +1,22 @@
 # Train matched ACT and Diffusion Policy models
 
+For the standard workflow, finish reviewing episodes, then run:
+
+```bash
+python3 scripts/train_models.py
+```
+
+Choose **4**, select the dataset numbers, choose both algorithms, enter model
+names, edit settings if needed, and type `TRAIN`. The menu combines accepted
+raw recordings, freezes one split, generates settings, and trains ACT then DP.
+Follow the [menu guide](menu.md) for dataset moves, permanent rejection deletion,
+validation settings, model names, progress, and saved parameters.
+
+## Advanced manual workflow
+
+The remaining commands are optional alternatives to the menu. They require
+prepared legacy `train_data/` collections and explicit generated filenames.
+
 Complete [recording](../recording/protocol.md) and
 [dataset preparation](../datasets/preparation.md). Stop the recorder. Prepare
 [one terminal](../../terminal_commands.md) with Python 3.8 `Xtrainer` activated

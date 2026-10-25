@@ -7,7 +7,8 @@ from robomimic.utils.hyperparam_utils import ConfigGenerator
 from scripts.scripts_config import ROBOMIMIC
 
 
-def generate_configs(dataset, split_file, output_dir, smoke=False, cpu=False):
+def generate_configs(dataset, split_file, output_dir, smoke=False, cpu=False,
+                     overrides=None, names=None, algorithms=('act', 'diffusion_policy')):
     import h5py
     dataset, split_file, output_dir = Path(dataset).resolve(), Path(split_file).resolve(), Path(output_dir)
     split = json.loads(split_file.read_text())
@@ -15,17 +16,19 @@ def generate_configs(dataset, split_file, output_dir, smoke=False, cpu=False):
         if json.loads(source['data'].attrs['split_json']) != split:
             raise ValueError('Split file differs from dataset split')
         for key in ('train', 'valid'):
-            names = [name.decode() for name in source['mask/' + key][:]]
-            if names != split[key]:
+            filter_names = [name.decode() for name in source['mask/' + key][:]]
+            if filter_names != split[key]:
                 raise ValueError('Dataset filter differs from explicit split file')
         recipe_name = source['data'].attrs['recipe']
     if recipe_name not in ROBOMIMIC['recipes']:
         raise ValueError('Unknown medium recipe')
     output_dir.mkdir(parents=True, exist_ok=True)
     paths = []
-    for algorithm in ('act', 'diffusion_policy'):
+    for algorithm in algorithms:
+        if algorithm not in ('act', 'diffusion_policy'):
+            raise ValueError('Choose ACT or Diffusion Policy')
         config = json.loads(config_factory(algorithm).dump())
-        name = recipe_name + '_' + algorithm + ('_smoke' if smoke else '')
+        name = (names or {}).get(algorithm, recipe_name + '_' + algorithm + ('_smoke' if smoke else ''))
         config['experiment']['name'] = name
         base = output_dir / ('base_' + algorithm + '.json')
         base.write_text(json.dumps(config, indent=2) + '\n')
@@ -89,6 +92,7 @@ def generate_configs(dataset, split_file, output_dir, smoke=False, cpu=False):
                 parameters['algo.unet.down_dims'] = ROBOMIMIC['smoke_unet_down_dims']
                 parameters['algo.ddpm.num_train_timesteps'] = ROBOMIMIC['smoke_diffusion_steps']
                 parameters['algo.ddpm.num_inference_timesteps'] = ROBOMIMIC['smoke_diffusion_steps']
+        parameters.update((overrides or {}).get(algorithm, {}))
         for key, value in parameters.items():
             generator.add_param(key=key, name='', group=0, values=[value])
         generator.generate()

@@ -17,9 +17,9 @@ hardware actions. See the [guide layout](guides/README.md).
 | Print labels and check scanner | [Scanner/labels](guides/hardware/barcodes.md) | [Scanner and labels](guides/hardware/README.md#scanner-and-destination-mapping) |
 | Teach scan, bin, and receiving poses | [Waypoints](guides/hardware/waypoints.md) | [Waypoint meanings](guides/hardware/README.md#waypoint-names-and-arm-selection) |
 | Record demonstrations | [Recording protocol](guides/recording/protocol.md), [by medium](guides/recording/media.md) | [Recording README](guides/recording/README.md) |
-| Review and convert accepted episodes | [Dataset preparation](guides/datasets/preparation.md) | [Dataset README](guides/datasets/README.md) |
-| Quarantine or combine collections | [Dataset curation](guides/datasets/curation.md) | [Curation behavior](guides/datasets/README.md#curation-behavior) |
-| Train comparison models | [Matched ACT/DP](guides/training/act_dp.md) | [Training README](guides/training/README.md) |
+| Review episodes | [Dataset preparation](guides/datasets/preparation.md) | [Dataset README](guides/datasets/README.md) |
+| Delete rejected episodes, move recordings, combine datasets, and train ACT/DP | [Dataset and training menu](guides/training/menu.md) | [Training README](guides/training/README.md) |
+| Use advanced curation commands | [Dataset curation](guides/datasets/curation.md) | [Curation behavior](guides/datasets/README.md#curation-behavior) |
 | Train with the optional Dobot stack | [Vendor ACT](guides/training/vendor_act.md) | [Vendor options](guides/training/README.md#vendor-act-task-selection-and-options) |
 | Run cycles and record outcomes | [Runtime/evaluation](guides/runtime/evaluation.md) | [Runtime README](guides/runtime/README.md) |
 | Inspect or recover the robot | [Homing/recovery](guides/hardware/homing.md) | [Controller behavior](guides/hardware/README.md#homing-and-controller-behavior) |
