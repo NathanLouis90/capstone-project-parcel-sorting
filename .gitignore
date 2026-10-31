@@ -1,44 +1,32 @@
-# Local recordings, converted training data, and exported videos
+# Local recordings, training data, checkpoints and run logs
 /datasets/
 /archived_datasets/
-# Capstone proposal
+/ckpt/
+/cycle_logs/
+/logs/
+*.log
+
+# Local hardware settings and taught poses
+/config/dobot_settings.ini
+/config/waypoints.local.yaml
+
+# Generated files (labels, images)
+/output/
+
+# Capstone proposal and session recaps
 /docs/RSE4018_Proposal_2302637_AdielFirqin.pdf
-# session recaps
 /docs/recaps
-# models
-/ckpt
 
-# Local hardware settings and credentials
-/scripts/dobot_config/dobot_settings.ini
-
-# Generated caches; retain required source-only vendor modules
+# Python caches and build metadata
 __pycache__/
 *.py[cod]
-!/ModelTrain/module/model_module.pyc
-!/ModelTrain/module/policy.pyc
-!/ModelTrain/module/train_module.pyc
-!/ModelTrain/module/utils.pyc
 *.egg-info/
-
-# Editor state and runtime logs
-/.idea/
-/.vscode/
-/scripts/logs/
-*.log
-.env
-.env.*
-
-
-# Editor swap files
-*.swp
-*.swo
-
-# Preserve the previous architecture locally without publishing it
-/old_architecture_folder/
-/experiments/waypoints.local.yaml
-/cycle_logs/
-/waypoint_reports/
 .pytest_cache/
 
-# Generated labels; committed PDF examples live in label_examples/
-/barcode_scanning/labels/
+# Editor state and secrets
+/.idea/
+/.vscode/
+*.swp
+*.swo
+.env
+.env.*

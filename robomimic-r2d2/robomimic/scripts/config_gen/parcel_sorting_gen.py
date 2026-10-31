@@ -4,7 +4,7 @@ from pathlib import Path
 
 from robomimic.config import config_factory
 from robomimic.utils.hyperparam_utils import ConfigGenerator
-from scripts.scripts_config import ROBOMIMIC
+from config.settings import ROBOMIMIC
 
 
 def generate_configs(dataset, split_file, output_dir, smoke=False, cpu=False,

@@ -8,9 +8,11 @@ import h5py
 import numpy as np
 import pytest
 
-from scripts import train_models, training_workflow
-from scripts.training_report import EpochMetrics, generate_training_report, read_metrics
-from scripts.training_workflow import TrainingSettings, create_training_jobs
+from parcel_sorting.training import menu as train_models, workflow as training_workflow
+from parcel_sorting.training.report import EpochMetrics, generate_training_report, read_metrics
+from parcel_sorting.training.report import learning_rate_history, learning_rate_note, saved_config
+from parcel_sorting.training.parameters import act_build_defaults, configuration_catalog, flatten_configuration
+from parcel_sorting.training.workflow import TrainingSettings, create_training_jobs
 
 
 def configured_job(tmp_path, algorithm='act'):
@@ -109,6 +111,11 @@ def test_training_retains_metrics_and_report_after_success_or_failure(tmp_path, 
     assert job['status'] == ('failed' if exit_code else 'completed')
     assert (folder / 'training_report.html').exists()
     assert job['status'] in (folder / 'training_report.html').read_text()
+    metadata = json.loads((folder / '.training/report.json').read_text())
+    assert metadata['learning_rate_graph_shown'] is False
+    assert 'stayed at' in metadata['learning_rate_note']
+    assert 'algo.horizon.prediction_horizon' in (folder / 'full_configuration.csv').read_text()
+    assert metadata['implementation_defaults'] == []
 
 
 def test_dp_comparison_reuses_exact_snapshot_and_split_without_config_helpers(tmp_path, monkeypatch):
@@ -128,3 +135,87 @@ def test_dp_comparison_reuses_exact_snapshot_and_split_without_config_helpers(tm
     assert config['experiment']['env_meta_update_dict']['env_kwargs']['medium'] == 'poly_mailer'
     assert config['train']['num_epochs'] == 3
     assert trained[0]['train_count'] == trained[0]['valid_count'] == 1
+
+
+def test_full_configuration_preserves_every_saved_leaf_and_marks_inactive_fields(tmp_path):
+    job = configured_job(tmp_path)
+    config = saved_config(job)
+    config['future_fields'] = {'scalar': 7, 'empty': {}, 'choices': [], 'enabled': False,
+                               'objects': [{'name': 'one'}, {'name': 'two'}]}
+    for key in ('temporal_agg', 'temporal_ensemble_coeff', 'query_frequency'):
+        config['algo']['act'].pop(key, None)
+    rows = configuration_catalog(config)
+    recorded = {row['path']: row['value'] for row in rows if row['source'] == 'Saved configuration'}
+    assert recorded == dict(flatten_configuration(config))
+    assert recorded['future_fields.enabled'] is False
+    assert recorded['future_fields.objects[1].name'] == 'two'
+    by_path = {row['path']: row for row in rows}
+    assert 'Unused' in by_path['observation.encoder.rgb.core_class']['effect']
+    assert 'Unused' in by_path['algo.loss.l2_weight']['effect']
+    assert 'Inactive' in by_path['algo.optim_params.policy.learning_rate.scheduler_type']['effect']
+    assert 'Legacy compatibility fallback' in by_path['algo.act.temporal_agg']['source']
+    assert by_path['algo.act.temporal_agg']['value'] is False
+    assert by_path['train.batch_size']['menu'] == 'Common: Batch size'
+
+
+@pytest.mark.parametrize('changes', [False, True])
+@pytest.mark.parametrize('algorithm', ['act', 'diffusion_policy'])
+def test_learning_rate_graph_only_appears_when_recorded_rates_change(tmp_path, monkeypatch, changes, algorithm):
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+    job = configured_job(tmp_path, algorithm)
+    records = [record('train', 1, .2), record('valid', 1, .3), record('train', 2, .1), record('valid', 2, .2)]
+    if algorithm == 'diffusion_policy':
+        for row in records:
+            row['metrics'].pop('Reconstruction_Loss')
+            row['metrics'].pop('KL_Loss')
+            row['metrics']['Time_Data_Loading'] = 0.01
+            if row['phase'] == 'train':
+                row['metrics']['Policy_Grad_Norms'] = 0.5
+    if changes:
+        records[2]['metrics']['Optimizer/policy0_lr'] = 0.0001
+    titles = []
+    original = FigureCanvasAgg.print_png
+
+    def capture(canvas, *args, **kwargs):
+        titles.extend(axis.get_title() for axis in canvas.figure.axes)
+        return original(canvas, *args, **kwargs)
+
+    monkeypatch.setattr(FigureCanvasAgg, 'print_png', capture)
+    generate_training_report(job, records=records)
+    metadata = json.loads((Path(job['folder']) / '.training/report.json').read_text())
+    assert metadata['learning_rate_graph_shown'] is changes
+    assert ('Actual learning rate' in titles) is changes
+    assert 'algo.optim_params.policy.optimizer_type' in (Path(job['folder']) / 'full_configuration.csv').read_text()
+    assert 'Full saved configuration' in (Path(job['folder']) / 'training_summary.txt').read_text()
+    if algorithm == 'act':
+        assert 'not recorded' in (Path(job['folder']) / 'training_report.html').read_text()
+        assert 'ACT reconstruction loss' in titles
+    else:
+        assert 'DP policy gradient norm' in titles
+        assert 'Reported data-loading time' in titles
+        assert 'ACT KL loss' not in titles
+        assert metadata['implementation_defaults'] == []
+    recorded = {row['path']: row['value'] for row in metadata['configuration']
+                if row['source'] == 'Saved configuration'}
+    assert recorded == dict(flatten_configuration(saved_config(job)))
+    assert ('ranged from' if changes else 'flat learning-rate graph is omitted') in metadata['learning_rate_note']
+
+
+def test_missing_learning_rate_history_does_not_invent_a_constant_rate(tmp_path):
+    job = configured_job(tmp_path)
+    assert learning_rate_history([]) == ({}, False)
+    assert 'cannot be verified' in learning_rate_note(saved_config(job), [])
+
+
+def test_report_reads_trainer_captured_configuration_instead_of_later_input_edits(tmp_path):
+    job = configured_job(tmp_path)
+    original = saved_config(job)
+    captured = Path(job['folder']) / 'runs/named_act/date/config.json'
+    captured.parent.mkdir(parents=True)
+    captured.write_text(json.dumps(original))
+    changed = json.loads(Path(job['config']).read_text())
+    changed['train']['batch_size'] = 99
+    Path(job['config']).write_text(json.dumps(changed))
+    assert saved_config(job)['train']['batch_size'] == original['train']['batch_size']
+    assert dict(act_build_defaults())['Transformer dropout'] == 0.1
+    assert dict(act_build_defaults())['Transformer activation'] == 'relu'

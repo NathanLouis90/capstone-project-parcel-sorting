@@ -12,6 +12,7 @@ import robomimic.utils.tensor_utils as TensorUtils
 
 from robomimic.algo import register_algo_factory_func, PolicyAlgo
 from robomimic.algo.bc import BC_VAE
+from robomimic.algo.act_rollout import ACTActionSelector
 
 
 @register_algo_factory_func("act")
@@ -76,11 +77,15 @@ class ACT(BC_VAE):
         self.nets["policy"] = model
         self.nets = self.nets.float().to(self.device)
 
-        self.temporal_agg = False
-        self.query_frequency = self.chunk_size  # TODO maybe tune
-
-        self._step_counter = 0
-        self.a_hat_store = None
+        self.action_selector = ACTActionSelector(
+            self.chunk_size,
+            temporal_agg=self.algo_config.act.get('temporal_agg', False),
+            coefficient=self.algo_config.act.get('temporal_ensemble_coeff', 0.01),
+            query_frequency=self.algo_config.act.get('query_frequency', 0),
+        )
+        self.temporal_agg = self.action_selector.temporal_agg
+        self.query_frequency = self.action_selector.query_frequency
+        self.reset()
 
 
     def process_batch_for_training(self, batch):
@@ -125,6 +130,11 @@ class ACT(BC_VAE):
         proprio = [batch["obs"][k] for k in self.proprio_keys]
         proprio = torch.cat(proprio, axis=1)
         qpos = proprio
+        noise_std = self.algo_config.act.get('qpos_noise_std', 0.0)
+        if noise_std > 0 and self.nets.training:
+            # Joint inputs alone predict the next action closely, so an unregularized
+            # policy can learn to ignore the cameras. Validation stays noise-free.
+            qpos = qpos + noise_std * torch.randn_like(qpos)
 
         images = []
         for cam_name in self.camera_keys:
@@ -182,12 +192,9 @@ class ACT(BC_VAE):
 
         env_state = torch.zeros([qpos.shape[0], 10], device=qpos.device) # not used
 
-        if self._step_counter % self.query_frequency == 0:
-            a_hat, is_pad_hat, (mu, logvar) = self.nets["policy"](qpos, images, env_state)
-            self.a_hat_store = a_hat
-
-        action = self.a_hat_store[:, self._step_counter % self.query_frequency, :]
-        self._step_counter += 1
+        action = self.action_selector.select(lambda: self.nets['policy'](qpos, images, env_state)[0])
+        self.a_hat_store = self.action_selector.latest_chunk
+        self._step_counter = self.action_selector.timestep
         return action
 
 
@@ -196,6 +203,8 @@ class ACT(BC_VAE):
         Reset algo state to prepare for environment rollouts.
         """
         self._step_counter = 0
+        self.a_hat_store = None
+        self.action_selector.reset()
 
     def _compute_losses(self, predictions, batch):
         """

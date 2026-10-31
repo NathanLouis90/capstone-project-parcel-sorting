@@ -37,6 +37,13 @@ class ACTConfig(BaseConfig):
         self.algo.loss.cos_weight = 0.0     # cosine loss weight
 
         self.algo.act.pretrained_backbone = True
+        # Rollout settings; these do not alter the training objective or weights.
+        self.algo.act.temporal_agg = False
+        self.algo.act.temporal_ensemble_coeff = 0.01
+        self.algo.act.query_frequency = 0  # 0 executes a full chunk when ensembling is off.
+        # Training-only Gaussian noise on normalized joint inputs. Zero disables it.
+        # Noise keeps the policy from predicting actions from joints alone.
+        self.algo.act.qpos_noise_std = 0.0
 
         # ACT policy settings
         self.algo.act.hidden_dim = 512                              # length of (s, a) seqeunces to feed to transformer - should usually match train.frame_stack
