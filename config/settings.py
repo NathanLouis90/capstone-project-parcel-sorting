@@ -187,8 +187,7 @@ MAKE_LABELS = {
     "sizes": {
         "3x4": (3.0, 4.0, "inch"),
         "2x3": (2.0, 3.0, "inch"),
-        "100x150": (100.0, 150.0, "mm"),
-        "carton": (80.0, 40.0, "mm"),
+        "100x150": (100.0, 150.0, "mm"),  # standard label for every parcel
     },
     "barcode_options": {
         "module_width": 0.25,

@@ -11,7 +11,7 @@ At the end you have printed labels for both destinations and a scanner that read
 
 ## Steps
 
-1. Generate the full-size labels for envelopes and poly mailers.
+1. Generate the 100 × 150 mm labels. The same label is used on every parcel: envelopes, poly mailers and cartons.
 
    ```bash
    python3 setup/make_labels.py --size 100x150
@@ -19,19 +19,11 @@ At the end you have printed labels for both destinations and a scanner that read
 
    Expect: `wrote .../output/labels/label_100x150_DEST-A-S138683.pdf  (payload 'DEST-A-S138683' -> bin 0)`, the same for `DEST-B-S828608` -> bin 1, and the supervisor mapping.
 
-2. Generate the carton labels.
-
-   ```bash
-   python3 setup/make_labels.py --size carton
-   ```
-
-   Expect: `label_carton_DEST-A-S138683.pdf` and `label_carton_DEST-B-S828608.pdf` in `output/labels/`.
-
-3. Print the PDFs from `output/labels/` at actual size (no scaling, no "fit to page").
+2. Print the PDFs from `output/labels/` at actual size (no scaling, no "fit to page").
 
    Expect: each barcode is about 52 mm wide. Compare with the samples in [label_examples](../label_examples/).
 
-4. Check the token-to-bin mapping without the scanner.
+3. Check the token-to-bin mapping without the scanner.
 
    ```bash
    python3 setup/check_scanner.py --simulate DEST-A-S138683
@@ -40,7 +32,7 @@ At the end you have printed labels for both destinations and a scanner that read
 
    Expect: `"reason": "accepted"` with `"bin_index": 0`, then `"bin_index": 1`.
 
-5. List the input devices and find the scanner.
+4. List the input devices and find the scanner.
 
    ```bash
    python3 setup/check_scanner.py --list-devices
@@ -48,11 +40,11 @@ At the end you have printed labels for both destinations and a scanner that read
 
    Expect: one JSON line per device. The scanner's name, vendor and product match `SCANNER_READER` in `config/settings.py`. **Never use the normal keyboard as the scanner.**
 
-6. Set the scanner to a US keyboard layout and presentation (continuous) mode, using its manual, if it supports this.
+5. Set the scanner to a US keyboard layout and presentation (continuous) mode, using its manual, if it supports this.
 
    Expect: scanning a label into a text editor types `DEST-A-S138683` followed by Enter.
 
-7. Read one label through the program.
+6. Read one label through the program.
 
    ```bash
    python3 setup/check_scanner.py --once --window 10
@@ -60,7 +52,7 @@ At the end you have printed labels for both destinations and a scanner that read
 
    Expect: `Capturing scanner exclusively: ...`, `Scan window open for 10 seconds`; present a label and see `"barcode": "DEST-A-S138683", "bin_index": 0` (or bin 1 for `DEST-B-S828608`). Exit status 0.
 
-8. Read both labels on every face you will use, holding each still under the scanner.
+7. Read both labels on every face you will use, holding each still under the scanner.
 
    ```bash
    python3 setup/check_scanner.py --continuous

@@ -12,7 +12,6 @@ script, so no label_manifest.csv is required.
 
 Usage (from the repository root):
     python3 setup/make_labels.py                 # configured size, writes output/labels/
-    python3 setup/make_labels.py --size carton   # 80 x 40 mm, cut from stock
     python3 setup/make_labels.py --combined      # all destinations on one page
 """
 

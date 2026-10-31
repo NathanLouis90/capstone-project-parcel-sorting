@@ -42,15 +42,11 @@ At the end the board, bins, scanner and receiving area sit at their measured pos
 
    Expect: measured sizes match. If not, see [parcel dimensions](../reference/hardware.md#parcel-dimensions-and-label-faces) before changing `MEDIA` in `config/settings.py`.
 
-6. Apply a 100 × 150 mm label centrally on the chosen face (top or bottom) of each envelope and mailer.
+6. Apply one 100 × 150 mm label to each parcel, with the barcode at roughly the centre of the chosen face: top or bottom for envelopes and poly mailers; top, bottom, front or rear for cartons.
 
-   Expect: label flat, barcode fully visible.
+   Expect: label flat, barcode fully visible and clear of the gripper fingertips.
 
-7. Cut out the 80 × 40 mm carton labels and apply each centrally on a carton face: top, bottom, front or rear (the long 150 × 45 mm sides). Keep about 25 mm clear at each end for the fingertips.
-
-   Expect: no label part under the gripper fingertips.
-
-8. Place one parcel at a time in the receiving area.
+7. Place one parcel at a time in the receiving area.
 
    Expect: only one parcel in the receiving zone.
 

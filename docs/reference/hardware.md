@@ -89,11 +89,11 @@ This layout frame is separate from each controller's base, User and Tool frames;
 | Carton, exterior | 150 × 75 × 45 mm | Top, bottom, front, rear | [Lazada](https://s.lazada.sg/s.6ELRP?c=d&t=p-i1DjcEO-s2CK0KWD) |
 | DL envelope | 110 × 220 mm | Top, bottom | [Lazada](https://s.lazada.sg/s.6ELkQ?c=d&t=p-i3XhIlx-sNuvvNZ) |
 | USB HID presentation scanner | See the listing | Not applicable | [Shopee](https://sg.shp.ee/M8FZszsv) |
-| Label stock | 100 × 150 mm | Cut an 80 × 40 mm layout for cartons | Not specified |
+| Label stock | 100 × 150 mm, used on every parcel | Barcode at roughly the centre of the labelled face | Not specified |
 
-Purchase links are references from the reimplementation specification, not measurements of the installed items. The configured sizes and faces are in `MEDIA`. Carton front and rear are the long 150 × 45 mm faces, not the 75 × 45 mm ends. An end-on grasp aligns wrist roll with the long axis, so 90° wrist steps expose the four candidate faces. About 25 mm at each end is reserved for the fingertips; a central label stays clear of the grasp.
+Purchase links are references from the reimplementation specification, not measurements of the installed items. The configured sizes and faces are in `MEDIA`. Carton front and rear are the long 150 × 45 mm faces, not the 75 × 45 mm ends. An end-on grasp aligns wrist roll with the long axis, so 90° wrist steps expose the four candidate faces. Every parcel, cartons included, carries the same 100 × 150 mm label with its barcode at roughly the centre of the labelled face, clear of the fingertips.
 
-Mailer filling is fixed so deformation and grasp behaviour stay comparable. The receiving area sits below the top camera and holds one parcel at a time. Mailer pickup uses an elevated platform for the left-arm flip when the label starts facing up, followed by a right-arm corner pickup. The platform's position, size and height must be measured on the installation and checked against both learned pickup paths and the scripted scan, drop and home routes. The same scanner serves both arms.
+Mailer filling is fixed so deformation and grasp behaviour stay comparable. The receiving area sits below the top camera and holds one parcel at a time. Mailer pickup is a right-arm corner pickup with the left arm at home. If an elevated platform is used, its position, size and height must be measured on the installation and checked against the learned pickup path and the scripted scan, drop and home routes. The same scanner serves both arms.
 
 ## Scanner and destination mapping
 
@@ -124,17 +124,16 @@ Stationary reads on every candidate face, and wrist cable slack through the cart
 
 ## Label layouts and outputs
 
-`setup/make_labels.py` writes Code 128 labels for both destinations in each run. Full-stock labels use the 100 × 150 mm layout for envelopes and mailers; the carton layout is 80 × 40 mm. Both use a 0.25 mm module width and 20 mm bar height, about 52 mm wide for the configured tokens. Printing at actual size keeps those dimensions.
+`setup/make_labels.py` writes Code 128 labels for both destinations in each run. The 100 × 150 mm layout is used for every medium. It uses a 0.25 mm module width and 20 mm bar height, about 52 mm wide for the configured tokens. Printing at actual size keeps those dimensions.
 
 | Option | Meaning |
 | --- | --- |
 | `--size 100x150` | Full 100 × 150 mm layout (default). `3x4` and `2x3` inch presets also exist. |
-| `--size carton` | Compact 80 × 40 mm carton layout. |
 | `--outdir DIR` | Output folder; default `output/labels/`. |
 | `--combined` | Also write one PDF with both labels side by side (`labels_<size>_combined.pdf`); it may need larger stock. |
 | `--no-crop-marks` | Omit the cutting guides. |
 
-Each run writes `label_<size>_<token>.pdf` and barcode PNGs `bc_<token>.png`, for example `label_carton_DEST-A-S138683.pdf`. Regenerating the same size in the same folder replaces those files. Sample PDFs are in [docs/label_examples](../label_examples/). Layout, fonts and destinations are in `MAKE_LABELS`.
+Each run writes `label_<size>_<token>.pdf` and barcode PNGs `bc_<token>.png`, for example `label_100x150_DEST-A-S138683.pdf`. Regenerating the same size in the same folder replaces those files. Sample PDFs are in [docs/label_examples](../label_examples/). Layout, fonts and destinations are in `MAKE_LABELS`.
 
 ## Waypoint names and arm selection
 
