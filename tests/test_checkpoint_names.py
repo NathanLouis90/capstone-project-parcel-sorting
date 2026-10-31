@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from scripts import training_workflow
-from scripts.training_workflow import publish_checkpoint, run_training_job
+from parcel_sorting.training import workflow as training_workflow
+from parcel_sorting.training.workflow import publish_checkpoint, run_training_job
 
 
 def checkpoint(folder, name):

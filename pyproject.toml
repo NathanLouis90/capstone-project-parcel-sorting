@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "parcel-sorting"
+version = "0.1.0"
+description = "Dual-arm Dobot X-Trainer parcel sorting with ACT and Diffusion Policy"
+requires-python = ">=3.8"
+
+# Dependencies are installed from requirements files; see README.md.
+[tool.setuptools]
+packages = [
+    "config",
+    "parcel_sorting",
+    "parcel_sorting.data",
+    "parcel_sorting.hardware",
+    "parcel_sorting.hardware.agents",
+    "parcel_sorting.hardware.cameras",
+    "parcel_sorting.hardware.dynamixel",
+    "parcel_sorting.hardware.gripper",
+    "parcel_sorting.hardware.robots",
+    "parcel_sorting.policies",
+    "parcel_sorting.runtime",
+    "parcel_sorting.safety",
+    "parcel_sorting.scanning",
+    "parcel_sorting.training",
+    "scservo_sdk",
+]
+
+[tool.setuptools.package-dir]
+scservo_sdk = "third_party/feetech/scservo_sdk"

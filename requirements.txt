@@ -1,34 +1,20 @@
-# keep in alphabetical order
-dm_control
-Pillow
-pygame
-PyQt6
-pyrealsense2
-pure-python-adb
-tyro
-zmq
-termcolor
-pyquaternion
-pyyaml
-rospkg
-pexpect
-mujoco==2.3.7
-dm_control==1.0.14
-opencv-python
-matplotlib
-einops
-packaging
+# Robot, camera, scanner and label dependencies (Python 3.8).
+# Install the training stack from requirements-robomimic.txt as well; see
+# docs/procedures/01_install.md for the full order.
+evdev==1.6.1
 h5py
 ipython
-tyro==0.8.8
-huggingface_hub==0.25.2
-click
-
-
-
-# Dedicated Linux HID barcode scanner capture (Python 3.8 compatible)
-evdev==1.6.1
-
-# Physical barcode-label rendering (Python 3.8)
+matplotlib
+opencv-python
+packaging
+Pillow
+pyrealsense2
+pyserial
 python-barcode==0.16.0
+pyyaml
+PyQt6
 reportlab==3.6.13
+requests
+termcolor
+tyro==0.8.8
+zmq

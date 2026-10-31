@@ -8,12 +8,12 @@ import h5py
 import numpy as np
 import pytest
 
-from scripts import train_models
-from scripts.train_models import (
+from parcel_sorting.training import menu as train_models
+from parcel_sorting.training.menu import (
     edit_hyperparameters, hyperparameter_fields, load_hyperparameter_defaults,
     run_menu, save_hyperparameter_defaults,
 )
-from scripts.training_workflow import TrainingSettings, create_training_jobs
+from parcel_sorting.training.workflow import TrainingSettings, create_training_jobs
 
 
 def prepared_dataset(path):
