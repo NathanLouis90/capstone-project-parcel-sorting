@@ -1,73 +1,56 @@
 # Documentation
 
-Use the repository [README](../README.md) for initial environment and device setup.
-Use [terminal preparation](terminal_commands.md) before following a procedure.
-Commands run from the repository root in the Python 3.8 `Xtrainer` environment.
+Two kinds of page:
 
-Guides contain prerequisites, ordered actions, commands, expected results, and
-recovery steps. Each topic's separate `README.md` explains its terms, options,
-file formats, and implementation behavior. Safety instructions remain next to
-hardware actions. See the [guide layout](guides/README.md).
+- **Procedures** say what to do, in order, with commands you can paste from the
+  repository root. They contain no background.
+- **Reference** pages explain how things work: terms, options, file formats,
+  safety logic and limitations. Procedures link to them where it helps.
 
-## Workflow
+Prepare every terminal the same way before running a procedure:
 
-| Task | Step-by-step guide | Explanation and options |
+```bash
+conda activate Xtrainer
+cd ~/dobot_xtrainer
+```
+
+## Procedures
+
+Follow these in order the first time. Later sessions usually start at step 7, 9 or 10.
+
+| Step | Procedure | Reference |
 | --- | --- | --- |
-| Prepare parcels and workspace | [Hardware/media](guides/hardware/media.md) | [Workspace layout](guides/hardware/README.md#workspace-layout-and-coordinate-frame), [parcel dimensions](guides/hardware/README.md#parcel-dimensions-and-label-faces) |
-| Print labels and check scanner | [Scanner/labels](guides/hardware/barcodes.md) | [Scanner and labels](guides/hardware/README.md#scanner-and-destination-mapping) |
-| Teach scan, bin, and receiving poses | [Waypoints](guides/hardware/waypoints.md) | [Waypoint meanings](guides/hardware/README.md#waypoint-names-and-arm-selection) |
-| Record demonstrations | [Recording protocol](guides/recording/protocol.md), [by medium](guides/recording/media.md) | [Recording README](guides/recording/README.md) |
-| Review episodes | [Dataset preparation](guides/datasets/preparation.md) | [Dataset README](guides/datasets/README.md) |
-| Delete rejected episodes, move recordings, combine datasets, and train ACT/DP | [Dataset and training menu](guides/training/menu.md) | [Training README](guides/training/README.md) |
-| Use advanced curation commands | [Dataset curation](guides/datasets/curation.md) | [Curation behavior](guides/datasets/README.md#curation-behavior) |
-| Train with the optional Dobot stack | [Vendor ACT](guides/training/vendor_act.md) | [Vendor options](guides/training/README.md#vendor-act-task-selection-and-options) |
-| Run cycles and record outcomes | [Runtime/evaluation](guides/runtime/evaluation.md) | [Runtime README](guides/runtime/README.md) |
-| Inspect or recover the robot | [Homing/recovery](guides/hardware/homing.md) | [Controller behavior](guides/hardware/README.md#homing-and-controller-behavior) |
+| 1 | [Install the software](procedures/01_install.md) | [Commands and terminals](reference/commands.md) |
+| 2 | [Set up the hardware](procedures/02_hardware_setup.md) | [Hardware](reference/hardware.md) |
+| 3 | [Print labels and check the scanner](procedures/03_labels_and_scanner.md) | [Hardware: scanner](reference/hardware.md) |
+| 4 | [Prepare the workspace and parcels](procedures/04_workspace.md) | [Hardware: workspace](reference/hardware.md) |
+| 5 | [Teach waypoints](procedures/05_teach_waypoints.md) | [Hardware: waypoints](reference/hardware.md) |
+| 6 | [Check waypoints and wrist rotation](procedures/06_check_waypoints.md) | [Hardware: waypoints](reference/hardware.md) |
+| 7 | [Record demonstrations](procedures/07_record_episodes.md) | [Recording](reference/recording.md) |
+| 8 | [Review episodes](procedures/08_review_episodes.md) | [Datasets](reference/datasets.md) |
+| 9 | [Train ACT and DP](procedures/09_train_models.md) | [Training](reference/training.md), [hyperparameters](reference/hyperparameters.md), [tuning](reference/tuning.md) |
+| 10 | [Run sorting cycles](procedures/10_run_cycles.md) | [Runtime](reference/runtime.md), [ACT rollout](reference/act_rollout.md) |
+| 11 | [Evaluate poly mailers](procedures/11_evaluate_poly_mailer.md) | [Runtime](reference/runtime.md) |
 
-## Terminal syntax
+As needed:
 
-Use [terminal preparation](terminal_commands.md) for actions to run in each
-terminal. These examples explain the syntax used by all guides:
-
-| Example | Meaning |
+| Procedure | Reference |
 | --- | --- |
-| `python3 experiments/run_cycle.py` | Run the named Python script. Its arguments follow the filename. |
-| `--medium poly_mailer` | An option followed by its value. Here, select the poly mailer workflow. |
-| `--show-img` | A switch with no following value. Including it enables the image preview. |
-| `status` in `curate_datasets.py status` | A subcommand: choose the operation before giving its options. |
-| `PROJECT=poly_mailer_bottom` | Save a shell variable in the current terminal. Do not add spaces around `=`. |
-| `"datasets/$PROJECT"` | Substitute the variable, giving `datasets/poly_mailer_bottom`. Quotes keep a path containing spaces together. |
-| `"ckpt/${MEDIUM}_configs"` | Braces separate the variable name from the suffix, giving `ckpt/poly_mailer_configs`. |
-| `PYTHONPATH=.:robomimic-r2d2` before `python3` | Make the repository (`.`) and bundled robomimic package importable for that command. `:` separates directories on Linux. |
-| `\` at the end of a line | Continue the same command on the next line. Copy the whole block; leave no spaces after `\`. |
-| `/path/to/model.pth` or `EPISODE_ID` | A placeholder. Replace it with an actual checkpoint path or episode folder name before running. |
-| `/tmp/carton-cycle.csv` | An example output path in temporary storage. Choose a persistent path for results you need to keep. |
+| [Home and recover the robot](procedures/home_and_recover.md) | [Hardware: homing](reference/hardware.md) |
+| [Curate datasets](procedures/curate_datasets.md) | [Datasets](reference/datasets.md) |
 
-Shell variables belong to their terminal. A variable set in one terminal is not
-automatically available in another. `--help` on documented entrypoints prints
-options and exits; numbered calibration helpers are hardware programs and have
-their own setup procedures. Ctrl+C requests a foreground process to stop and is
-not a substitute for the physical emergency stop during robot motion.
+## Reference
 
-## Dry-run effects
+- [Architecture](reference/architecture.md): code layout, processes, policy-step contract, cycle flow.
+- [Commands and terminals](reference/commands.md): shell syntax, terminal roles, what each dry run writes.
+- [Tests](reference/tests.md): the hardware-free regression suite.
+- Manufacturer manuals: [Dobot X-Trainer user guide](provided_dobot/Dobot%20X-Trainer%20%28Lightweight%20Base%29%20User%20Guide%20V1.1_20240731_en.pdf)
+  and [operation guide and FAQ](provided_dobot/Dobot%20X-Trainer%20Operation%20Guide%20and%20FAQ.pdf).
+- Example labels: [docs/label_examples](label_examples/).
 
-A dry run does not have one universal meaning. Several tools create files or
-append results even though they do not move a robot:
+## Writing new pages
 
-| Tool | Effect of `--dry-run` |
-| --- | --- |
-| `run_control.py` | Opens no hardware; writes a metadata-only episode, with no usable training frames. |
-| `teach_waypoints.py` | Opens no hardware; writes uncommissioned example poses to `--output`. |
-| `run_cycle.py` | Simulates motion/scanner behavior and appends cycle rows to `--csv`. |
-| `robomimic_runner.py` | Loads a checkpoint and prints predictions on synthetic observations; sends no robot commands. |
-| `scripted_motion.py` | Exercises the simulated joint stream without moving hardware. |
-| `review_episodes.py` | Checks a batch status/synchronization operation without changing files. |
-| `curate_datasets.py` | Prints a proposed file operation plan without applying it. |
-
-## Development and reference
-
-- [Architecture](development/architecture.md): policy-step interface and supervisor responsibilities.
-- [Tests](../tests/README.md): hardware-free regression suite, focused commands, and coverage by file.
-- [Scripts](../scripts/README.md) and [experiments](../experiments/README.md): entrypoints and configuration.
-- [Dobot user guide](provided_dobot/Dobot%20X-Trainer%20%28Lightweight%20Base%29%20User%20Guide%20V1.1_20240731_en.pdf)
-  and [FAQ](provided_dobot/Dobot%20X-Trainer%20Operation%20Guide%20and%20FAQ.pdf): manufacturer setup and operation.
+Put new instructions in `procedures/` and new explanations in `reference/`.
+A procedure step is one action, one pasteable command block and one
+`Expect:` line. Put background, option tables and design reasons in the
+reference page and link to it.
